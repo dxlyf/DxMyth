@@ -1,0 +1,36 @@
+{
+  "name": "@dxyl/math",
+  "version": "1.0.0",
+  "description": "Collected many useful mathematical tools",
+  "keywords": [
+    "graphic",
+    "math"
+  ],
+  "main": "./lib/index",
+  "module": "./es/index",
+  "types": "./types/index.d.ts",
+  "files": [
+    "package.json",
+    "types",
+    "readme.md",
+    "dist"
+  ],
+  "homepage": "https://github.com/dxlyf/DxMyth",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dxlyf/DxMyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlyf/DxMyth/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --port=8428",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@dxyl/utils":"workspace:*"
+  },
+  "devDependencies": {},
+  "peerDependencies": {}
+}
