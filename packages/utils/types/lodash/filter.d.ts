@@ -1,2 +1,2 @@
-declare const filter: <T>(arr: T[], func: (v: T, idx: number) => boolean) => T[];
+import { filter } from 'lodash';
 export default filter;

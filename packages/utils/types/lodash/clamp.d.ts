@@ -1,2 +1,2 @@
-declare const clamp: (a: number, min: number, max: number) => number;
+import { clamp } from 'lodash';
 export default clamp;

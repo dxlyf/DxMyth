@@ -1,1 +1,2 @@
-export default function uniq(arr: any[], cache?: Map<any, any>): any[];
+import { uniq } from 'lodash';
+export default uniq;

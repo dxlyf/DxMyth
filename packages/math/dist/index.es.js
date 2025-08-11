@@ -1069,88 +1069,84 @@ let A2 = class extends Float32Array {
     this.setXY(e, n);
   }
 };
-function C2(r) {
-  return class extends r {
-    position = nr.create(0, 0);
-    _rotation = 0;
-    _cx = 1;
-    _sx = 0;
-    _cy = 0;
-    _sy = 1;
-    skew = nr.create(0, 0);
-    // 斜切
-    scale = nr.create(1, 1);
-    // 缩放向量
-    origin = nr.create(0, 0);
-    // 图形的变换原点
-    pivot = nr.create(0, 0);
-    // 图形的轴点
-    _matrix = ue.default();
-    // 本地矩阵
-    _matrixWorld = ue.default();
-    // 世界矩阵
-    localMatrixDirty = !1;
-    // 本地矩阵是否需要更新
-    worldMatrixId = 0;
-    // 当前世界矩阵每次更新的自增ID
-    parentWorldMatrixId = 0;
-    // 父级世界矩阵ID，相同代表不需要更新
-    parent = null;
-    children = null;
-    constructor(...n) {
-      super(...n);
-      const i = n[0];
-      this.position.onChange(this.onUpdateTransformable), this.scale.onChange(this.onUpdateTransformable), this.origin.onChange(this.onUpdateTransformable), this.pivot.onChange(this.onUpdateTransformable), this.skew.onChange(this.onUpdateTransformable), this.setTransformWithOptions(i);
-    }
-    get rotation() {
-      return this._rotation;
-    }
-    set rotation(n) {
-      this._rotation !== n && (this._rotation = n, this.onUpdateTransformable(this.skew));
-    }
-    get angle() {
-      return this._rotation / Math.PI * 180;
-    }
-    set angle(n) {
-      this.rotation = n / 180 * Math.PI;
-    }
-    // 递归计算父级世界矩阵是否变化
-    get hasWorldMatrixDirty() {
-      return this.parent ? this.parentWorldMatrixId === -1 || this.parentWorldMatrixId !== this.parent.worldMatrixId || this.parent.hasWorldMatrixDirty : this.parentWorldMatrixId === -1;
-    }
-    get matrix() {
-      return this.updateMatrix(), this._matrix;
-    }
-    get worldMatrix() {
-      return this.updateWorldMatrix(), this._matrixWorld;
-    }
-    setTransformWithOptions(n) {
-      n && (n.position && this.position.setXY(n.position.x, n.position.y), n.rotation !== void 0 && (this.rotation = n.rotation), n.angle !== void 0 && (this.angle = n.angle), n.scale && this.scale.setXY(n.scale.x, n.scale.y), n.origin && this.origin.setXY(n.origin.x, n.origin.y), n.pivot && this.pivot.setXY(n.pivot.x, n.pivot.y), n.skew && this.skew.setXY(n.skew.x, n.skew.y));
-    }
-    setTransformFromMatrix(n) {
-      n.decompose(this), this.onUpdateTransformable();
-    }
-    // 更新局部矩阵，但不更新世界矩阵
-    updateMatrix() {
-      if (!this.localMatrixDirty)
-        return;
-      this.localMatrixDirty = !1;
-      const n = this.position.x, i = this.position.y, s = this.pivot.x, o = this.pivot.y, a = -this.origin.x, h = -this.origin.y, c = this.scale.x, l = this.scale.y, u = this._matrix;
-      u.a = this._cx * c, u.b = this._sx * c, u.c = this._cy * l, u.d = this._sy * l, u.tx = n - (s * u.a + o * u.c) + (a * u.a + h * u.c) - a, u.ty = i - (s * u.b + o * u.d) + (a * u.b + h * u.d) - h;
-    }
-    updateWorldMatrix() {
-      this.hasWorldMatrixDirty && (this.parent ? (this._matrixWorld.multiplyMatrices(this.parent.worldMatrix, this.matrix), this.parentWorldMatrixId = this.parent.worldMatrixId) : (this._matrixWorld.copy(this.matrix), this.parentWorldMatrixId = 0), this.worldMatrixId += 1);
-    }
-    onUpdateTransformable = (n) => {
-      n === this.skew && this._updateSkew(), this.localMatrixDirty = !0, this.parentWorldMatrixId = -1, this.onTransformChange();
-    };
-    _updateSkew() {
-      const n = this._rotation, i = this.skew;
-      this._cx = Math.cos(n + i.y), this._sx = Math.sin(n + i.y), this._cy = -Math.sin(n - i.x), this._sy = Math.cos(n - i.x);
-    }
-    onTransformChange() {
-    }
+class C2 {
+  position = nr.create(0, 0);
+  _rotation = 0;
+  _cx = 1;
+  _sx = 0;
+  _cy = 0;
+  _sy = 1;
+  skew = nr.create(0, 0);
+  // 斜切
+  scale = nr.create(1, 1);
+  // 缩放向量
+  origin = nr.create(0, 0);
+  // 图形的变换原点
+  pivot = nr.create(0, 0);
+  // 图形的轴点
+  _matrix = ue.default();
+  // 本地矩阵
+  _matrixWorld = ue.default();
+  // 世界矩阵
+  localMatrixDirty = !1;
+  // 本地矩阵是否需要更新
+  worldMatrixId = 0;
+  // 当前世界矩阵每次更新的自增ID
+  parentWorldMatrixId = 0;
+  // 父级世界矩阵ID，相同代表不需要更新
+  parent = null;
+  children = null;
+  constructor(e) {
+    this.position.onChange(this.onUpdateTransformable), this.scale.onChange(this.onUpdateTransformable), this.origin.onChange(this.onUpdateTransformable), this.pivot.onChange(this.onUpdateTransformable), this.skew.onChange(this.onUpdateTransformable), this.setTransformWithOptions(e);
+  }
+  get rotation() {
+    return this._rotation;
+  }
+  set rotation(e) {
+    this._rotation !== e && (this._rotation = e, this.onUpdateTransformable(this.skew));
+  }
+  get angle() {
+    return this._rotation / Math.PI * 180;
+  }
+  set angle(e) {
+    this.rotation = e / 180 * Math.PI;
+  }
+  // 递归计算父级世界矩阵是否变化
+  get hasWorldMatrixDirty() {
+    return this.parent ? this.parentWorldMatrixId === -1 || this.parentWorldMatrixId !== this.parent.worldMatrixId || this.parent.hasWorldMatrixDirty : this.parentWorldMatrixId === -1;
+  }
+  get matrix() {
+    return this.updateMatrix(), this._matrix;
+  }
+  get worldMatrix() {
+    return this.updateWorldMatrix(), this._matrixWorld;
+  }
+  setTransformWithOptions(e) {
+    e && (e.position && this.position.setXY(e.position.x, e.position.y), e.rotation !== void 0 && (this.rotation = e.rotation), e.angle !== void 0 && (this.angle = e.angle), e.scale && this.scale.setXY(e.scale.x, e.scale.y), e.origin && this.origin.setXY(e.origin.x, e.origin.y), e.pivot && this.pivot.setXY(e.pivot.x, e.pivot.y), e.skew && this.skew.setXY(e.skew.x, e.skew.y));
+  }
+  setTransformFromMatrix(e) {
+    e.decompose(this), this.onUpdateTransformable();
+  }
+  // 更新局部矩阵，但不更新世界矩阵
+  updateMatrix() {
+    if (!this.localMatrixDirty)
+      return;
+    this.localMatrixDirty = !1;
+    const e = this.position.x, n = this.position.y, i = this.pivot.x, s = this.pivot.y, o = -this.origin.x, a = -this.origin.y, h = this.scale.x, c = this.scale.y, l = this._matrix;
+    l.a = this._cx * h, l.b = this._sx * h, l.c = this._cy * c, l.d = this._sy * c, l.tx = e - (i * l.a + s * l.c) + (o * l.a + a * l.c) - o, l.ty = n - (i * l.b + s * l.d) + (o * l.b + a * l.d) - a;
+  }
+  updateWorldMatrix() {
+    this.hasWorldMatrixDirty && (this.parent ? (this._matrixWorld.multiplyMatrices(this.parent.worldMatrix, this.matrix), this.parentWorldMatrixId = this.parent.worldMatrixId) : (this._matrixWorld.copy(this.matrix), this.parentWorldMatrixId = 0), this.worldMatrixId += 1);
+  }
+  onUpdateTransformable = (e) => {
+    e === this.skew && this._updateSkew(), this.localMatrixDirty = !0, this.parentWorldMatrixId = -1, this.onTransformChange();
   };
+  _updateSkew() {
+    const e = this._rotation, n = this.skew;
+    this._cx = Math.cos(e + n.y), this._sx = Math.sin(e + n.y), this._cy = -Math.sin(e - n.x), this._sy = Math.cos(e - n.x);
+  }
+  onTransformChange() {
+  }
 }
 let Ms = class s1 {
   static empty() {
@@ -11039,7 +11035,7 @@ function Ew() {
     Q0 = !0;
   }
 }
-const _P = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const MP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   EnableSwizzles: Ew,
   Mat2: le,
@@ -28261,7 +28257,7 @@ function _p(r, e, n, i, s) {
     cm(r, a, e, n, s), o.push(e, a, a, n);
   }
 }
-const CP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const AP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   AxisAlignedBounds: mo,
   Bezier: Wt,
@@ -28279,7 +28275,7 @@ const CP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   RBush: JT,
   Spline: hb,
   TinyQueue: om,
-  TransformableMixin: C2,
+  Transformable: C2,
   Vector2: O,
   bernstein: zr,
   bezierCurvatureAt: Iw,
@@ -45630,7 +45626,7 @@ class B5 extends Bg {
     this.image = e, this.needsUpdate = !0;
   }
 }
-const PP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const CP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   ACESFilmicToneMapping: sz,
   AddEquation: _E,
@@ -46415,7 +46411,7 @@ function gP(r, e, n, i, s, o, a, h) {
   const c = Xg(r, e, n, i, s, o, a, h);
   return Oe(c.x, c.y, a, h);
 }
-const IP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const PP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   arcBox: Y5,
   arcNearestPoint: H5,
@@ -46449,8 +46445,8 @@ const IP = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   quadPointDistance: gP
 }, Symbol.toStringTag, { value: "Module" }));
 export {
-  IP as gMath,
-  _P as glMatrix,
-  CP as m2d,
-  PP as m3d
+  PP as gMath,
+  MP as glMatrix,
+  AP as m2d,
+  CP as m3d
 };

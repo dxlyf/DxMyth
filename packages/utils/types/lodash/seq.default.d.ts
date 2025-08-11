@@ -1,0 +1,31 @@
+import { default as at } from './wrapperAt.js';
+import { default as chain } from './chain.js';
+import { default as commit } from './commit.js';
+import { default as lodash } from './wrapperLodash.js';
+import { default as next } from './next.js';
+import { default as plant } from './plant.js';
+import { default as reverse } from './wrapperReverse.js';
+import { default as tap } from './tap.js';
+import { default as thru } from './thru.js';
+import { default as toIterator } from './toIterator.js';
+import { default as toJSON } from './toJSON.js';
+import { default as value } from './wrapperValue.js';
+import { default as valueOf } from './valueOf.js';
+import { default as wrapperChain } from './wrapperChain.js';
+declare namespace _default {
+    export { at };
+    export { chain };
+    export { commit };
+    export { lodash };
+    export { next };
+    export { plant };
+    export { reverse };
+    export { tap };
+    export { thru };
+    export { toIterator };
+    export { toJSON };
+    export { value };
+    export { valueOf };
+    export { wrapperChain };
+}
+export default _default;

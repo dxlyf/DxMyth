@@ -1,0 +1,18 @@
+import { default as Hash } from './_Hash.js';
+export default mapCacheClear;
+/**
+ * Removes all key-value entries from the map.
+ *
+ * @private
+ * @name clear
+ * @memberOf MapCache
+ */
+declare function mapCacheClear(): void;
+declare class mapCacheClear {
+    size: number;
+    __data__: {
+        hash: Hash;
+        map: any;
+        string: Hash;
+    };
+}

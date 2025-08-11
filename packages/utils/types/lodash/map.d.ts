@@ -1,2 +1,2 @@
-declare const map: <T, G>(arr: T[], func: (v: T, idx: number) => G) => G[];
+import { map } from 'lodash';
 export default map;

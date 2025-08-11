@@ -1,2 +1,2 @@
-declare const clone: (obj: any) => any;
+import { clone } from 'lodash';
 export default clone;

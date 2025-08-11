@@ -1,1 +1,2 @@
-export default function last(o: unknown): any;
+import { last } from 'lodash';
+export default last;

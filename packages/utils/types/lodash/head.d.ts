@@ -1,1 +1,2 @@
-export default function head(o: unknown): any;
+import { head } from 'lodash';
+export default head;

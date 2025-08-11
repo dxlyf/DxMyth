@@ -1,2 +1,2 @@
-declare const _default: <T>(v: T) => T;
-export default _default;
+import { identity } from 'lodash';
+export default identity;

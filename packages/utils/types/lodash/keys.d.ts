@@ -1,2 +1,2 @@
-declare const keys: (obj: any) => any[];
+import { keys } from 'lodash';
 export default keys;

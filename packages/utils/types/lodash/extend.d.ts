@@ -1,2 +1,2 @@
-declare const extend: (subclass: any, superclass: any, overrides?: any, staticOverrides?: any) => any;
+import { extend } from 'lodash';
 export default extend;

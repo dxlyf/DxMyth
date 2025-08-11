@@ -1,2 +1,2 @@
-declare const values: (obj: any) => any[];
+import { values } from 'lodash';
 export default values;

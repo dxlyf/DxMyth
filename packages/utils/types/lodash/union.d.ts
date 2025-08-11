@@ -1,2 +1,2 @@
-declare const union: (...sources: any[]) => any[];
+import { union } from 'lodash';
 export default union;

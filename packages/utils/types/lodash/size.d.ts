@@ -1,1 +1,2 @@
-export default function size(o: unknown): number;
+import { size } from 'lodash';
+export default size;

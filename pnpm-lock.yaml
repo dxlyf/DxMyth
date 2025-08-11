@@ -25,9 +25,15 @@ importers:
 
   packages/myth:
     dependencies:
+      '@dxyl/math':
+        specifier: ^1.0.4
+        version: 1.0.4
+      '@dxyl/utils':
+        specifier: ^1.1.2
+        version: 1.1.2
       skia-path2d:
-        specifier: ^1.7.5
-        version: 1.7.5(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1))
+        specifier: ^1.7.6
+        version: 1.7.6
 
   packages/utils:
     dependencies:
@@ -53,6 +59,12 @@ packages:
   '@babel/types@7.28.2':
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
+
+  '@dxyl/math@1.0.4':
+    resolution: {integrity: sha512-aeCsED2TM+HftCbN26mVJmMybbJblv0E1+/QS02G4w/ojUWopjiKCXDPUU2tUx84gfPqcY5BhS7J2kB6fBxTpQ==}
+
+  '@dxyl/utils@1.1.2':
+    resolution: {integrity: sha512-g27AfQLVfPnF8wwm51inoRzZQJlct7keSXdCttVOzqpw0AshvEJYsQFRBboWPs1m+FJxQXuD7drQX+oYwSw2WQ==}
 
   '@esbuild/aix-ppc64@0.25.8':
     resolution: {integrity: sha512-urAvrUedIqEiFR3FYSLTWQgLu5tb+m0qZw0NBEasUeo6wuqatkMDaRT+1uABiGXEu5vqgPd7FGE1BhsAIy9QVA==}
@@ -627,11 +639,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  skia-path2d@1.7.5:
-    resolution: {integrity: sha512-HkrxpfHNsflU1W/Xw5kuM6EhVQKybs/POXBHhP74dmWBkRp7UYNalP5o2BmXrymcCjMZNUoc0Z/koJCeb4Iv8Q==}
-    peerDependencies:
-      typescript: '*'
-      vite: ^7.0.4
+  skia-path2d@1.7.6:
+    resolution: {integrity: sha512-QKtkHC7mynEM77ldXSeQmQ/NGeSX+qOTLKrExYGe4NH9cP4zwuptkqkRBtKRN4dGCUfL+gPnDiKpezXz5Pv57w==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -756,6 +765,12 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
+
+  '@dxyl/math@1.0.4': {}
+
+  '@dxyl/utils@1.1.2':
+    dependencies:
+      gl-matrix: 3.4.4
 
   '@esbuild/aix-ppc64@0.25.8':
     optional: true
@@ -1270,10 +1285,7 @@ snapshots:
     dependencies:
       lru-cache: 6.0.0
 
-  skia-path2d@1.7.5(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1)):
-    dependencies:
-      typescript: 5.9.2
-      vite: 7.1.1(@types/node@24.2.1)
+  skia-path2d@1.7.6: {}
 
   source-map-js@1.2.1: {}
 

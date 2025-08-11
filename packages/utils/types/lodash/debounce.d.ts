@@ -1,2 +1,3 @@
-declare function debounce(func: Function, wait?: number, immediate?: boolean): () => void;
+import { debounce, DebouncedFunc, DebounceSettings } from 'lodash';
+export { DebouncedFunc, DebounceSettings };
 export default debounce;

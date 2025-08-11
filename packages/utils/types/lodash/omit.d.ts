@@ -1,3 +1,2 @@
-import { ObjectType } from './types';
-declare const _default: <T>(obj: ObjectType<T>, keys: string[]) => ObjectType<T>;
-export default _default;
+import { omit } from 'lodash';
+export default omit;

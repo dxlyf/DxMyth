@@ -2,6 +2,9 @@
   "name": "@dxyl/myth",
   "version": "1.0.0",
   "description": "",
+  "publishConfig": {
+    "access": "public"
+ },
   "keywords": [
     "graphic",
     "canvas",
@@ -32,6 +35,8 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@dxyl/math": "^1.0.4",
+    "@dxyl/utils": "^1.1.2",
     "skia-path2d": "^1.7.6"
   }
 }

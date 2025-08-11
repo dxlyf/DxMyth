@@ -1,2 +1,2 @@
-declare const _default: () => void;
-export default _default;
+import { noop } from 'lodash';
+export default noop;

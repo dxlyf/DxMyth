@@ -1,0 +1,10 @@
+export default createInverter;
+/**
+ * Creates a function like `_.invertBy`.
+ *
+ * @private
+ * @param {Function} setter The function to set accumulator values.
+ * @param {Function} toIteratee The function to resolve iteratees.
+ * @returns {Function} Returns the new inverter function.
+ */
+declare function createInverter(setter: Function, toIteratee: Function): Function;

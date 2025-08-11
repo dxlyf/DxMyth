@@ -1,0 +1,14 @@
+import { default as ListCache } from './_ListCache.js';
+export default stackClear;
+/**
+ * Removes all key-value entries from the stack.
+ *
+ * @private
+ * @name clear
+ * @memberOf Stack
+ */
+declare function stackClear(): void;
+declare class stackClear {
+    __data__: ListCache;
+    size: number;
+}

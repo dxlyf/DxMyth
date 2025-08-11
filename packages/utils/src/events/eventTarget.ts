@@ -1,278 +1,202 @@
-export interface EventListener<T=any> {
-    (evt: Event<T>): void;
+import { EventEmitter } from './eventemitter3'
+
+interface EventOptions{
+    once?:boolean
+    capture?:boolean
 }
+type EventCallback<T> = (event: Event<T>) => void
 
-interface EventListenerObject<T=any> {
-    handleEvent(object: Event<T>): void;
-}
-interface EventInit {
-    bubbles?: boolean;
-    cancelable?: boolean;
-    composed?: boolean;
-}
 
-interface EventListenerOptions {
-    capture?: boolean;
-}
-type EventListenerOrEventListenerObject<T=any> = EventListener<T> | EventListenerObject<T>;
-type EventHandleItem = {
-    handle: EventListenerOrEventListenerObject;
+export const EventPhase = {
+    NONE: 0,
+    CAPTURING_PHASE: 1,
+    AT_TARGET: 2,
+    BUBBLING_PHASE: 3
+} as const;
 
-} & AddEventListenerOptions
+export type EventPhase = typeof EventPhase[keyof typeof EventPhase];
+export const NONE = EventPhase.NONE;
+export const CAPTURING_PHASE = EventPhase.CAPTURING_PHASE;
+export const AT_TARGET = EventPhase.AT_TARGET;
+export const BUBBLING_PHASE = EventPhase.BUBBLING_PHASE;
 
-interface AddEventListenerOptions extends EventListenerOptions {
-    once?: boolean;
-    passive?: boolean;
-    signal?: AbortSignal;
-}
-Element.prototype.dispatchEvent
-export class Event<T=any> {
-    readonly NONE = 0; // 无事件阶段
-
-    readonly CAPTURING_PHASE = 1; // 捕获阶段
-    readonly AT_TARGET = 2;// 目标阶段
-    readonly BUBBLING_PHASE = 3;// 冒泡阶段
-
-    public data:T|null=null
-    /** 事件类型 */
-    public type: string;
-
-    /** 事件是否冒泡 */
-    public bubbles: boolean;
-
-    /** 阻止事件冒泡的标志 */
-    public cancelBubble: boolean = false;
-
-    /** 事件是否可以取消 */
-    public cancelable: boolean;
-
-    /** 事件是否支持跨文档冒泡 */
-    public composed: boolean;
-
-    /** 事件是否被默认行为阻止 */
-    public defaultPrevented: boolean;
-
-    /** 事件是否由用户操作生成 */
-    public isTrusted: boolean;
-
-    /** 事件的目标对象 */
-    public target: EventTarget | null;
-
-    /** 当前正在处理事件的对象 */
-    public currentTarget: EventTarget | null;
-
-    /** 事件阶段 */
-    public eventPhase: number;
-
-    /** 事件的时间戳 */
-    public timeStamp: number;
-    /**
-     * 标记事件是否应该立即停止传播
-     */
-    public stopImmediatePropagationInternal = false;
-    /**
-     * 构造函数
-     * @param type 事件类型
-     * @param eventInitDict 可选的事件初始化字典
-     */
-    constructor(type: string, eventInitDict?: EventInit) {
-        this.type = type;
-        this.bubbles = eventInitDict?.bubbles ?? false;
-        this.cancelable = eventInitDict?.cancelable ?? false;
-        this.composed = eventInitDict?.composed ?? false;
-        this.defaultPrevented = false;
-        this.isTrusted = false;
-        this.target = null;
-        this.currentTarget = null;
-        this.eventPhase = 0;
-        this.timeStamp = Date.now();
+export class Event<T=any,E extends Extract<keyof Record<string,any>,string>=''> {
+    static create<T=any,E extends Extract<keyof Record<string,any>,string>=''>(type:E, bubbles?:boolean, cancelable?:boolean){
+        return new this<T,E>(type, bubbles, cancelable)
     }
-    setData(data:T){
-        this.data=data;
+    type:E = 'none' as E
+    parentNode = null
+    target:EventTarget|null = null
+    currentTarget:EventTarget|null = null
+    data:T|null = null
+    eventPhase:number = NONE
+    bubbles = false // Does it support bubbling
+    cancelable=false // Is it possible to block default behavior
+    defaultPrevented = false // Whether to block by default
+    cancelBubble = false // Whether to stop bubbles
+    immediateCancelBubble = false // Stop bubbles immediately
+
+    constructor(type:E, bubbles?:boolean, cancelable?:boolean) {
+        this.initEvent(type, bubbles, cancelable)
+    }
+    setData(data:T|null):this {
+        this.data = data
         return this
     }
-
-    /**
-      * 初始化事件对象的属性
-      * @param type 事件类型
-      * @param bubbles 是否冒泡
-      * @param cancelable 是否可以取消
-      */
-    initEvent(type: string, bubbles?: boolean, cancelable?: boolean): void {
-        this.type = type;
-        this.bubbles = bubbles ?? false;
-        this.cancelable = cancelable ?? false;
-        this.defaultPrevented = false;
+    initEvent(type:E, bubbles:boolean=true, cancelable:boolean = true) {
+        this.type = type
+        this.bubbles = bubbles
+        this.cancelable = cancelable
     }
     /**
-     * 阻止事件冒泡
+     * 
+     * @returns {EventTarget[]}
      */
-    stopPropagation(): void {
-        this.cancelBubble = true;
-    }
-
-    /**
-     * 阻止事件的默认行为
-     */
-    preventDefault(): void {
-        if (this.cancelable) {
-            this.defaultPrevented = true;
-        }
-    }
-
-    /**
-     * 阻止事件冒泡并停止调用事件监听器
-     */
-    stopImmediatePropagation(): void {
-        this.stopPropagation();
-        this.stopImmediatePropagationInternal = true;
-    }
-
-    /**
-     * 返回事件的目标对象及其祖先对象的路径
-     * @returns 事件路径的数组
-     */
-    composedPath(): EventTarget[] {
-        const path: EventTarget[] = [];
-        let current = this.target;
+    composedPath() {
+        let current = this.currentTarget;
+        let composePath:EventTarget[] = []
         while (current) {
-            path.push(current);
-            current = current.parentNode; // 假设存在 parentNode 属性
+            composePath.push(current)
+            current = current.parentNode
         }
-        return path;
+        return composePath
     }
+    preventDefault() {
+        if (this.cancelable) {
+            this.defaultPrevented = true
+        }
+    }
+    stopPropagation() {
+        this.cancelBubble = true
+    }
+    stopImmediatePropagation() {
+        this.stopPropagation()
+        this.immediateCancelBubble = true
+    }
+}
+function getOptions(options?:EventOptions|boolean) {
+    if (typeof options === 'boolean' || !options) {
+        options = {
+            capture: !!options
+        }
+    }
+    options = { capture: false, once: false ,...(options||{})}
+    return options
+}
+/**
+ * @this {EventEmitter}
+ * @param {EventEmitter} emitter 
+ * @param {string} event 
+ * @returns {EE[]}
+ */
+function getEmitterListenerEvents(emitter:any,evt:string) {
+    var handlers = emitter._events[evt],ee:any[];
+    if (!handlers) return [];
+    if (handlers.fn) return [handlers];
 
+    for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+        ee[i] = handlers[i];
+    }
+    return ee;
+}
+export interface EventTarget<Events extends Record<string,any>={}>{
+    on<K extends keyof Events>(type:K, fn:EventCallback<Events[K]>, options?:EventOptions|boolean):void
+    off<K extends keyof Events>(type:K, fn:EventCallback<Events[K]>, options?:EventOptions|boolean):void
+    emit<K extends Extract<keyof Events, string>>(e:Event<Events[K],K>):void
 
 }
-export class EventTarget<Events extends Record<string,any>=any> {
-    private listeners: Map<keyof Events, { capture: EventHandleItem[], bubble: EventHandleItem[] }> = new Map();
-    public parentNode: EventTarget | null = null;
+export class EventTarget<Events extends Record<string,any>={}>  {
+    parentNode:EventTarget|null=null
+    private _bubble_emitter = new EventEmitter()
+    private _capture_emitter = new EventEmitter()
 
-    constructor() {
-
-    }
-    addEventListener<E extends keyof Events>(type: E, callback: EventListenerOrEventListenerObject<Events[E]>, options?: AddEventListenerOptions | boolean): void {
-
-        const newOptions: AddEventListenerOptions = {
-            once: false,
-            passive: false,
-            capture: false,
-
-        }
-        if (typeof options !== 'object' && options !== null) {
-            newOptions.capture = !!options
+    addEventListener<K extends keyof Events>(type:K, fn:EventCallback<Events[K]>, options?:EventOptions|boolean) {
+        options = getOptions(options) as EventOptions
+        const emitter = options.capture ? this._capture_emitter : this._bubble_emitter
+        if (options && options.once) {
+            emitter.once(type as string, fn)
         } else {
-            Object.assign(newOptions, options)
-        }
-        if (!this.listeners.has(type)) {
-            this.listeners.set(type, { capture: [], bubble: [] });
-        }
-
-        const listenersSet = this.listeners.get(type)!;
-        const handleItem: EventHandleItem = {
-            ...newOptions,
-            handle: callback,
-        };
-        if (newOptions.capture) {
-            listenersSet.capture.push(handleItem);
-        } else {
-            listenersSet.bubble.push(handleItem);
+            emitter.on(type as string, fn,)
         }
     }
-
-    dispatchEvent<E extends keyof Events>(event: Event<Events[E]>): boolean {
-
-        event.currentTarget=this
-        event.target = this // 设置当前目标为事件分发者
-        const path = event.composedPath();
-        const captureListeners: EventHandleItem[][] = [];
-        const bubbleListeners: EventHandleItem[][] = [];
-        const eventPathTarget: EventTarget[] = [];
-        for (const target of path) {
-            const targetListeners = (target as EventTarget).listeners?.get(event.type);
-            if (targetListeners) {
-                eventPathTarget.push(target)
-                captureListeners.unshift(targetListeners.capture);
-                bubbleListeners.push(targetListeners.bubble);
-            }
-        }
-      
-   
-        let index = eventPathTarget.length - 1
-        CaptureAllEvent:
-        for (const listeners of captureListeners) {
-            const target = eventPathTarget[index--]
-            // 设置事件目标为当前捕获阶段的目标元素
-            event.target = target
-            // 设置事件阶段为捕获阶段
-            event.eventPhase = target === this ? event.AT_TARGET : event.CAPTURING_PHASE
-            CaptureCurrentEvent:
-            for (const listener of listeners) {
-                if (typeof listener.handle === "function") {
-                    listener.handle.call(this, event);
-                } else if (listener.handle && typeof listener.handle.handleEvent === "function") {
-                    listener.handle.handleEvent(event);
-                }
-                if (listener.once) {
-                    target.removeEventListener(event.type, listener.handle)
-                }
-                // 如果事件取消冒泡，则不再继续向上传播
-                if (event.stopImmediatePropagationInternal) {
-                    break
-                }
-            }
-            // 如果事件取消冒泡，则不再继续向下传播
-            if (event.cancelBubble) {
-                break CaptureAllEvent;
-            }
-        }
-
-        // Bubble phase
-        if (!event.cancelBubble) {
-            let index = 0
-            BubbleAllEvent:
-            for (const listeners of bubbleListeners) {
-                const target = eventPathTarget[index++]
-                event.target = target
-                event.eventPhase = target === this ? event.AT_TARGET : event.BUBBLING_PHASE
-                BubbleCurrentEvent:
-                for (const listener of listeners) {
-                    if (typeof listener.handle === "function") {
-                        listener.handle.call(this, event);
-                    } else if (listener.handle && typeof listener.handle.handleEvent === "function") {
-                        listener.handle.handleEvent(event);
+ 
+    removeEventListener<K extends keyof Events>(type:K, fn:EventCallback<Events[K]>, options?:EventOptions|boolean) {
+        options = getOptions(options) as EventOptions
+        const emitter = options.capture ? this._capture_emitter : this._bubble_emitter
+        emitter.off(type as string, fn)
+    }
+    /**
+     * 
+     * @param {Event} e 
+     */
+    dispatchEvent<K extends Extract<keyof Events, string>>(e:Event<Events[K],K>) {
+        e.currentTarget=this
+        const type = e.type
+        const nodePath = e.composedPath()
+        const nodePathLength=nodePath.length
+        // 执行capture
+        for (let i =nodePathLength - 1; i >= 0; i--) {
+            const emitter=nodePath[i]._capture_emitter
+            const listenerCount = emitter.listenerCount(type)
+            if (listenerCount > 0) {
+                e.target=nodePath[i]
+                e.eventPhase=e.target!==this?CAPTURING_PHASE:AT_TARGET
+                const listeners = getEmitterListenerEvents(emitter,type)
+                for(let j=0,len=listeners.length;j<len;j++){
+                    const event=listeners[j]
+                    if(event.once){
+                        emitter.removeListener(type,event.fn,event.context,event.once)
                     }
-                    if (listener.once) {
-                        target.removeEventListener(event.type, listener.handle)
-                    }
-                    if (event.stopImmediatePropagationInternal) {
+                    event.fn(e)
+                    if(e.immediateCancelBubble){
                         break
                     }
                 }
-                if (event.cancelBubble||!event.bubbles) {
-                    break;
+            }
+            if(e.cancelBubble){
+                break
+            }
+        }
+        // 并且没有停止冒泡就继续
+        if(!e.cancelBubble){
+            for (let i = 0; i<nodePathLength; i++) {
+                const emitter=nodePath[i]._bubble_emitter
+                const listenerCount = emitter.listenerCount(type)
+                if (listenerCount>0) {
+                    e.target=nodePath[i]
+                    e.eventPhase=e.target!==this?BUBBLING_PHASE:AT_TARGET
+                    const listeners = getEmitterListenerEvents(emitter,type)
+                    for(let j=0,len=listeners.length;j<len;j++){
+                        const event=listeners[j]
+                        if(event.once){
+                            emitter.removeListener(type,event.fn,event.context,event.once)
+                        }
+                        event.fn(e)
+                        // 如果用户执行了立即停止冒泡，就直接结束
+                        if(e.immediateCancelBubble){
+                            break
+                        }
+                    }
+                }
+                // 是否取消了冒泡或不支持冒泡
+                if(e.cancelBubble||!e.bubbles){
+                    break
                 }
             }
         }
-
-        event.eventPhase = event.NONE; // NONE
-        return !event.defaultPrevented;
+        e.eventPhase=NONE
+        return !e.defaultPrevented
     }
-
-    removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: EventListenerOptions | boolean): void {
-        if (!callback || !this.listeners.has(type)) return;
-
-        const capture = typeof options === "boolean" ? options : options?.capture ?? false;
-        const listenersSet = this.listeners.get(type)!;
-
-        if (capture) {
-            listenersSet.capture = listenersSet.capture.filter(listener => listener.handle !== callback);
-        } else {
-            listenersSet.bubble = listenersSet.bubble.filter(listener => listener.handle !== callback);
-        }
-
-        if (listenersSet.capture.length === 0 && listenersSet.bubble.length === 0) {
-            this.listeners.delete(type);
-        }
+    removeAllListeners(){
+        this._bubble_emitter.removeAllListeners()
+        this._capture_emitter.removeAllListeners()
     }
+}
+EventTarget.prototype.on=EventTarget.prototype.addEventListener
+EventTarget.prototype.off=EventTarget.prototype.removeEventListener
+EventTarget.prototype.emit=EventTarget.prototype.dispatchEvent
+
+
+export {
+    EventTarget as EventPropagation
 }

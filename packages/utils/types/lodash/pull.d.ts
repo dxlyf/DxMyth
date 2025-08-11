@@ -1,2 +1,2 @@
-declare const pull: <T>(arr: T[], ...values: any[]) => T[];
+import { pull } from 'lodash';
 export default pull;

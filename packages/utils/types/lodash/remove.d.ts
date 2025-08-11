@@ -1,2 +1,2 @@
-declare const remove: <T>(arr: T[], predicate: (value: T, idx: number, arr?: T[]) => boolean) => T[];
+import { remove } from 'lodash';
 export default remove;
