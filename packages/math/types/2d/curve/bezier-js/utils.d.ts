@@ -9,7 +9,7 @@ export namespace utils {
         y: number;
         z: number | boolean;
         t: any;
-    } | undefined;
+    };
     function derive(points: any, _3d: any): {
         x: number;
         y: number;

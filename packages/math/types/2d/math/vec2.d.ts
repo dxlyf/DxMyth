@@ -267,7 +267,7 @@ export declare class Vector2 extends Float32Array {
     ccw(): this;
     cw(): this;
     reflect(other: Vector2Like): this;
-    refract(incident: Vector2, normal: Vector2, eta1: number, eta2: number): this | null;
+    refract(incident: Vector2, normal: Vector2, eta1: number, eta2: number): this;
     negate(): this;
     abs(): this;
     round(): this;

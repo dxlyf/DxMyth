@@ -1,7 +1,5 @@
 import { SHAPES } from '../const';
 import { Matrix } from '../Matrix';
-export interface Rectangle extends GlobalMixins.Rectangle {
-}
 /**
  * Size object, contains width and height
  * @memberof PIXI

@@ -22,9 +22,9 @@ export declare class XNumber {
     get inverse(): XNumber;
     /** Returns -x of this number. */
     get negative(): XNumber;
-    get fraction(): number[] | undefined;
+    get fraction(): number[];
     /** Parses a number string, e.g. '1/2' or '20.7%'. */
-    static fromString(s: string): XNumber | undefined;
+    static fromString(s: string): XNumber;
     /** Converts a decimal into the closest fraction with a given maximum denominator. */
     static fractionFromDecimal(x: number, maxDen?: number, precision?: number): XNumber;
     clamp(min?: number, max?: number): XNumber;

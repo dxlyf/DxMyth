@@ -10,4 +10,4 @@ export interface Bbox {
  *
  */
 export declare const isInBbox: (bbox: Bbox, point: Vector) => boolean;
-export declare const getBboxOverlap: (b1: Bbox, b2: Bbox) => Bbox | null;
+export declare const getBboxOverlap: (b1: Bbox, b2: Bbox) => Bbox;

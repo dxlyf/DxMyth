@@ -1,0 +1,37 @@
+{
+  "name": "@dxyl/myth",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "graphic",
+    "canvas",
+    "2d"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "type": "module",
+  "types": "./types/index.d.ts",
+  "files": [
+    "package.json",
+    "readme.md",
+    "dist",
+    "types",
+    "lib"
+  ],
+  "homepage": "https://github.com/dxlyf/DxMyth",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dxlyf/DxMyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlyf/DxMyth/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --port=8428",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "skia-path2d": "^1.7.6"
+  }
+}

@@ -64,7 +64,7 @@ export default class Point {
     /**
      * Apply a transform matrix array.
      */
-    transform(m: Matrix2dLike): this | undefined;
+    transform(m: Matrix2dLike): this;
     toArray(out: number[]): number[];
     fromArray(input: number[]): void;
     static set(p: PointLike, x: number, y: number): void;

@@ -36,7 +36,7 @@ declare function decompose(a: Matrix2dLike): {
     };
 };
 declare function multiply<T extends Matrix2dLike = Matrix2dLike>(out: T, a: Matrix2dLike, b: Matrix2dLike): T;
-declare function invert<T extends Matrix2dLike = Matrix2dLike>(out: T, a: Matrix2dLike): T | null;
+declare function invert<T extends Matrix2dLike = Matrix2dLike>(out: T, a: Matrix2dLike): T;
 declare function mapPoint(out: Vector2Like, a: Matrix2dLike, v: Vector2Like): Vector2Like;
 declare function mapPoints(out: Vector2Like[], a: Matrix2dLike, v: Vector2Like[]): Vector2Like[];
 declare function hasIdentity(a: Matrix2dLike): boolean;
@@ -118,7 +118,7 @@ export declare class Matrix2D extends Float32Array {
     multiplyMatrices(a: Matrix2dLike, b: Matrix2dLike): this;
     premultiply(a: Matrix2dLike): this;
     multiply(a: Matrix2dLike): this;
-    invert(): this | null;
+    invert(): this;
     translate(v: Vector2Like): this;
     rotate(radian: number): this;
     scale(v: Vector2Like): this;

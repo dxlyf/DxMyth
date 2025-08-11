@@ -12,17 +12,17 @@ export class Delaunator {
     _ids: Uint32Array<ArrayBuffer>;
     _dists: Float64Array<ArrayBuffer>;
     update(): void;
-    hull: Uint32Array<ArrayBuffer> | undefined;
-    triangles: Uint32Array<ArrayBuffer> | undefined;
-    halfedges: Uint32Array<ArrayBuffer> | Int32Array<ArrayBuffer> | undefined;
+    hull: Uint32Array<ArrayBuffer>;
+    triangles: Uint32Array<ArrayBuffer>;
+    halfedges: Uint32Array<ArrayBuffer> | Int32Array<ArrayBuffer>;
     _cx: any;
     _cy: any;
-    _hullStart: number | undefined;
-    trianglesLen: number | undefined;
+    _hullStart: number;
+    trianglesLen: number;
     _hashKey(x: any, y: any): number;
     _legalize(a: any): number;
     _link(a: any, b: any): void;
-    _addTriangle(i0: any, i1: any, i2: any, a: any, b: any, c: any): number | undefined;
+    _addTriangle(i0: any, i1: any, i2: any, a: any, b: any, c: any): number;
 }
 declare function defaultGetX(p: any): any;
 declare function defaultGetY(p: any): any;

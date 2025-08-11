@@ -4,15 +4,15 @@ type TESSVertex = any;
 
 export class TESShalfEdge {
 
-	next: TESShalfEdge = null; /* doubly-linked list (prev==Sym->next) */
-	Org: TESSVertex= null; /* origin vertex (Overtex too long) */
-	Sym: TESShalfEdge = null; /* same edge, opposite direction */
-	Onext: TESShalfEdge= null; /* next edge CCW around origin */
-	Lnext: TESShalfEdge = null; /* next edge CCW around left face */
-	Lface: TESSface = null; /* left face */
+	next: TESShalfEdge|null = null; /* doubly-linked list (prev==Sym->next) */
+	Org: TESSVertex|null= null; /* origin vertex (Overtex too long) */
+	Sym: TESShalfEdge|null = null; /* same edge, opposite direction */
+	Onext: TESShalfEdge|null= null; /* next edge CCW around origin */
+	Lnext: TESShalfEdge|null = null; /* next edge CCW around left face */
+	Lface: TESSface|null = null; /* left face */
 
 	/* Internal data (keep hidden) */
-	activeRegion: ActiveRegion = null; /* a region with this upper edge (sweep.c) */
+	activeRegion: ActiveRegion|null = null; /* a region with this upper edge (sweep.c) */
 	winding: number = 0; /* change in winding number when crossing from the right face to the left face */
 
 	constructor(public side: number) { };

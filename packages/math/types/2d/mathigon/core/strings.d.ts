@@ -12,4 +12,4 @@ export declare function isPalindrome(str: string): boolean;
  */
 export declare function stringDistance(s1: string, s2: string, ignoreTrailing?: boolean): number;
 /** Tries to auto-correct a word from a dictionary. */
-export declare function autoCorrect(word: string, dict: string[]): string | undefined;
+export declare function autoCorrect(word: string, dict: string[]): string;

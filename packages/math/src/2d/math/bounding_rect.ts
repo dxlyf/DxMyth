@@ -4,6 +4,7 @@ import { Vector2,Vector2Like } from "./vec2";
 
 
 /**
+ * AABB：Axis-Aligned Bounding Box，轴对齐包围盒;
  * 2d包围盒
  */
 export class BoundingRect {
@@ -324,5 +325,19 @@ export class BoundingRect {
         this.expandByPoint(bottomLeft)
         this.expandByPoint(bottomRight)
 
+    }
+    getObjectBoundingBox(matrix:Matrix2D) {
+        if (matrix.hasIdentity()) {
+            return
+        }
+        const topLeft = Vector2.create(this.left, this.top)
+        const topRight = Vector2.create(this.right, this.top)
+        const bottomLeft = Vector2.create(this.left, this.bottom)
+        const bottomRight = Vector2.create(this.right, this.bottom)
+        topLeft.applyMatrix2D(matrix)
+        topRight.applyMatrix2D(matrix)
+        bottomLeft.applyMatrix2D(matrix)
+        bottomRight.applyMatrix2D(matrix)
+        return [topLeft, topRight, bottomRight,bottomLeft]
     }
 }

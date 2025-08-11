@@ -8,9 +8,9 @@ export declare class RingOut {
     _enclosingRing: RingOut | null | undefined;
     static factory(allSegments: Segment[]): RingOut[];
     constructor(events: SweepEvent[]);
-    getGeom(): Ring | null;
+    getGeom(): Ring;
     isExteriorRing(): boolean;
-    enclosingRing(): RingOut | null | undefined;
+    enclosingRing(): RingOut;
     _calcEnclosingRing(): RingOut | null | undefined;
 }
 export declare class PolyOut {
@@ -18,7 +18,7 @@ export declare class PolyOut {
     interiorRings: RingOut[];
     constructor(exteriorRing: RingOut);
     addInterior(ring: RingOut): void;
-    getGeom(): Poly | null;
+    getGeom(): Poly;
 }
 export declare class MultiPolyOut {
     rings: RingOut[];

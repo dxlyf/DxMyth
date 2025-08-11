@@ -49,6 +49,6 @@ export declare class Tesselator {
      * @param normal
      * @param validate UNSAFE! Skip mesh validation pass, may throw any error.
      */
-    tesselate(windingRule: WINDING | undefined, elementType: ELEMENT | undefined, polySize: number, vertexSize: 2 | 3, normal: V3, validate?: boolean): boolean;
+    tesselate(windingRule: WINDING, elementType: ELEMENT, polySize: number, vertexSize: 2 | 3, normal: V3, validate?: boolean): boolean;
 }
 export {};

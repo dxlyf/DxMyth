@@ -54,8 +54,8 @@ export default class Tree<Key = number, Value = any> {
     values(): Value[];
     min(): Key | null;
     max(): Key | null;
-    minNode(t?: Node<Key, Value> | null): Node<Key, Value> | null;
-    maxNode(t?: Node<Key, Value> | null): Node<Key, Value> | null;
+    minNode(t?: Node<Key, Value>): Node<Key, Value> | null;
+    maxNode(t?: Node<Key, Value>): Node<Key, Value> | null;
     /**
      * Returns node at given index
      */

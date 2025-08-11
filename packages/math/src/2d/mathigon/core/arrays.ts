@@ -198,7 +198,7 @@ export class LinkedList<T> {
     return Array.from(this.traverse());
   }
 
-  delete(node: LinkedListItem<T>) {
+  delete(node: LinkedListItem<T>):any {
     if (node === this.root) {
       if (node.next === node) return (this.root = undefined);
       this.root = node.next;

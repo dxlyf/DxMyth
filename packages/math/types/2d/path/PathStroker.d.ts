@@ -132,7 +132,7 @@ export declare class PathStroker {
     strokeCloseEnough(stroke: Vector2[], ray: Vector2[], quad_points: QuadConstruct): ResultType;
     intersectRay(intersect_ray_type: IntersectRayType, quad_points: QuadConstruct): ResultType;
     addDegenerateLine(quad_points: QuadConstruct): void;
-    setCubicEndNormal(cubic: Vector2[], normal_ab: Vector2, unit_normal_ab: Vector2, normal_cd: Vector2, unit_normal_cd: Vector2): boolean | undefined;
+    setCubicEndNormal(cubic: Vector2[], normal_ab: Vector2, unit_normal_ab: Vector2, normal_cd: Vector2, unit_normal_cd: Vector2): boolean;
     lineTo(p: Vector2, iter?: PathSegmentsIter): void;
     quadraticCurveTo(p1: Vector2, p2: Vector2): void;
     bezierCurveTo(pt1: Vector2, pt2: Vector2, pt3: Vector2): void;

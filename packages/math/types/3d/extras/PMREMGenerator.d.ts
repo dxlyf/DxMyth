@@ -46,8 +46,8 @@ export class PMREMGenerator {
      * @return {WebGLRenderTarget} The resulting PMREM.
      */
     fromScene(scene: Scene, sigma?: number, near?: number, far?: number, options?: {
-        size?: number | undefined;
-        renderTarget?: Vector3 | undefined;
+        size?: number;
+        renderTarget?: Vector3;
     }): WebGLRenderTarget;
     /**
      * Generates a PMREM from an equirectangular texture, which can be either LDR

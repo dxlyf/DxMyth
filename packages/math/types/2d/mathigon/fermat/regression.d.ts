@@ -35,5 +35,5 @@ export declare function bestPolynomial(data: Coordinate[], threshold?: number, m
     order: number;
     coefficients: number[];
     fn: (x: number) => number;
-} | undefined;
+};
 export {};

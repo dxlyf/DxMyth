@@ -26,13 +26,13 @@ export class Quat extends Float32Array {
       case 4:
         super(values); break;
       case 2:
-        super(values[0] as ArrayBufferLike, values[1], 4); break;
+        super(values[0] as any, values[1], 4); break;
       case 1: {
         const v = values[0];
         if (typeof v === 'number') {
           super([v, v, v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 4);
+          super(v as any, 0, 4);
         }
         break;
       }

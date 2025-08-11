@@ -11,12 +11,12 @@ export declare const cosineOfAngle: (pShared: Vector, pBase: Vector, pAngle: Vec
 export declare const horizontalIntersection: (pt: Vector, v: Vector, y: bn.BigNumber) => {
     x: bn.BigNumber;
     y: bn.BigNumber;
-} | null;
+};
 export declare const verticalIntersection: (pt: Vector, v: Vector, x: bn.BigNumber) => {
     x: bn.BigNumber;
     y: bn.BigNumber;
-} | null;
-export declare const intersection: (pt1: Vector, v1: Vector, pt2: Vector, v2: Vector) => Vector | null;
+};
+export declare const intersection: (pt1: Vector, v1: Vector, pt2: Vector, v2: Vector) => Vector;
 export declare const perpendicular: (v: Vector) => {
     x: bn.BigNumber;
     y: bn.BigNumber;

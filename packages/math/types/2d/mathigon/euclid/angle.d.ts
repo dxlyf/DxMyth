@@ -25,7 +25,7 @@ export declare class Angle implements GeoShape {
     /** Checks if this angle is right-angled. */
     get isRight(): boolean;
     /** The bisector of this angle. */
-    get bisector(): Line | undefined;
+    get bisector(): Line;
     /** Returns the smaller one of this and its supplementary angle. */
     get sup(): Angle;
     /** Returns the Arc element corresponding to this angle. */

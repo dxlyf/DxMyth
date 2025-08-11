@@ -24,7 +24,7 @@ export declare function normal(m?: number, v?: number): number;
 /** Generates an exponential random variable. */
 export declare function exponential(l?: number): number;
 /** Generates a geometric random variable. */
-export declare function geometric(p?: number): number | undefined;
+export declare function geometric(p?: number): number;
 /** Generates an Cauchy random variable. */
 export declare function cauchy(): number;
 /** Generates pdf(x) for the normal distribution with mean m and variance v. */

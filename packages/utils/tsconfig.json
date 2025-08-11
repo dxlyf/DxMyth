@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
-      "declaration": true,
-      "declarationDir": "./types",
-       "rootDir": "./src",
+      "composite": false, 
+      "declaration": false,
+      "allowSyntheticDefaultImports": true,
        "baseUrl": "./",
       "target": "ES2022",
       "useDefineForClassFields": true,

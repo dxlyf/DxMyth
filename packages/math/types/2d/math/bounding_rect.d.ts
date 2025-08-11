@@ -1,6 +1,7 @@
 import { Matrix2D } from './mat2d';
 import { Vector2, Vector2Like } from './vec2';
 /**
+ * AABB：Axis-Aligned Bounding Box，轴对齐包围盒;
  * 2d包围盒
  */
 export declare class BoundingRect {
@@ -30,7 +31,7 @@ export declare class BoundingRect {
     setViewport(x: number, y: number, width: number, height: number): this;
     set(min: Vector2, max: Vector2): this;
     fromCircle(cx: number, cy: number, radius: number): this;
-    fromLine(x0: number, y0: number, x1: number, y1: number, strokeWidth: number): this | undefined;
+    fromLine(x0: number, y0: number, x1: number, y1: number, strokeWidth: number): this;
     fromRect(x: number, y: number, w: number, h: number): this;
     setFromVertices(points: number[]): this;
     setFromPoints(points: Vector2Like[]): this;
@@ -52,4 +53,5 @@ export declare class BoundingRect {
     intersectBox3(b: BoundingRect, mtv: Vector2): boolean;
     intersectionBox(box: BoundingRect): boolean;
     applyMatrix(matrix: Matrix2D): void;
+    getObjectBoundingBox(matrix: Matrix2D): Vector2[];
 }

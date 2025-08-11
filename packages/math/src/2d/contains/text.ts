@@ -119,8 +119,8 @@ export function innerGetBoundingRect(
     const width = measureWidth(ensureFontMeasureInfo(font), text);
     const height = getLineHeight(font);
 
-    const x = adjustTextX(0, width, textAlign);
-    const y = adjustTextY(0, height, textBaseline);
+    const x = adjustTextX(0, width, textAlign!);
+    const y = adjustTextY(0, height, textBaseline!);
 
     const rect = new BoundingRect(x, y, width, height);
 
@@ -179,7 +179,7 @@ export function adjustTextY(y: number, height: number, verticalAlign: TextVertic
 
 export function getLineHeight(font?: string): number {
     // FIXME A rough approach.
-    return ensureFontMeasureInfo(font).stWideCharWidth;
+    return ensureFontMeasureInfo(font!).stWideCharWidth;
 }
 
 export function measureText(text: string, font?: string): {
@@ -232,8 +232,8 @@ export function calculateTextPosition(
     let x = rect.x;
     let y = rect.y;
 
-    let textAlign: TextAlign = 'left';
-    let textVerticalAlign: TextVerticalAlign = 'top';
+    let textAlign: TextAlign|null = 'left';
+    let textVerticalAlign: TextVerticalAlign|null = 'top';
 
     if (textPosition instanceof Array) {
         x += parsePercent(textPosition[0], rect.width);
@@ -320,8 +320,8 @@ export function calculateTextPosition(
     out = out || {} as TextPositionCalculationResult;
     out.x = x;
     out.y = y;
-    out.align = textAlign;
-    out.verticalAlign = textVerticalAlign;
+    out.align = textAlign as any;
+    out.verticalAlign = textVerticalAlign as any;
 
     return out;
 }

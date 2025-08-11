@@ -46,8 +46,8 @@ export declare function getBezierPointWithBernstein(points: Vector2[], t: number
  * 使用德卡斯特尔朱算法计算贝塞尔曲线上的点
  */
 export declare function getBezierPointWithDeCasteljau(points: Vector2[], t: number): Vector2;
-export declare function conicBezierAt(p0: number, p1: number, p2: number, weight: number | undefined, t: number): number;
-export declare function conicBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2, weight: number | undefined, t: number): Vector2;
+export declare function conicBezierAt(p0: number, p1: number, p2: number, weight: number, t: number): number;
+export declare function conicBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2, weight: number, t: number): Vector2;
 /**
  * 如conicTo(p0, p1,p2, weight)=getRationalBezierPointWithBernstein([p0,p1,p2],[1,weight,1])
  * 有理贝塞尔曲线，使用伯恩斯坦多项式计算

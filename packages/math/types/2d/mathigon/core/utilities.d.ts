@@ -27,7 +27,7 @@ export declare function defer<T = void>(): {
  * which are always called with different arguments. Note that argument
  * comparison does not work with Objects or nested arrays.
  */
-export declare function cache<T, Args extends unknown[]>(fn: (...args: Args) => T): (...args: Args) => NonNullable<T>;
+export declare function cache<T, Args extends unknown[]>(fn: (...args: Args) => T): (...args: Args) => T;
 /**
  * Function wrapper that prevents a function from being executed more than once
  * every t ms. This is particularly useful for optimising callbacks for

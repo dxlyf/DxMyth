@@ -23,7 +23,7 @@ declare function extractScale(out: Vector2Like, a: Matrix3Like): Vector2Like;
 declare function decompose<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like): number;
 declare function adjugate<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like): T;
 declare function determinant(a: Matrix3Like): number;
-declare function invert<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like): T | null;
+declare function invert<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like): T;
 declare function transpose<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like): void;
 declare function fromValues<T extends Matrix3Like = Matrix3Like>(out: T, m00: number, m01: number, m02: number, m10: number, m11: number, m12: number, m20: number, m21: number, m22: number): T;
 declare function mapPoint(out: Vector2Like, a: Matrix3Like, v: Vector2Like): Vector2Like;
@@ -72,7 +72,7 @@ export declare class Matrix3 extends Float32Array {
     makeTRS(v: Vector2Like, radian: number, scale: Vector2Like): this;
     adjugate(): this;
     determinant(): number;
-    invert(): this | null;
+    invert(): this;
     transpose(): void;
     hasTranslation(): boolean;
     hasRotation(): boolean;

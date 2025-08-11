@@ -11,4 +11,4 @@ export declare function flatMap<S, T>(set: Iterable<T>, map: (x: T) => Iterable<
 export declare function pairs<S, T>(a: Iterable<S>, b: Iterable<T>): Iterable<[S, T]>;
 export declare function listPairs<T>(list: T[]): Iterable<[T, T]>;
 /** Find the item in an iterable for which value() returns the smallest value. */
-export declare function findMin<T>(items: Iterable<T>, value: (item: T) => number, max?: number, min?: number): T | undefined;
+export declare function findMin<T>(items: Iterable<T>, value: (item: T) => number, max?: number, min?: number): T;

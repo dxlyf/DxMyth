@@ -81,19 +81,19 @@ export class FlyControls extends Controls<any> {
 declare function onKeyDown(event: any): void;
 declare class onKeyDown {
     constructor(event: any);
-    movementSpeedMultiplier: number | undefined;
+    movementSpeedMultiplier: number;
 }
 declare function onKeyUp(event: any): void;
 declare class onKeyUp {
     constructor(event: any);
-    movementSpeedMultiplier: number | undefined;
+    movementSpeedMultiplier: number;
 }
 declare function onPointerMove(event: any): void;
 declare function onPointerDown(event: any): void;
 declare function onPointerUp(event: any): void;
 declare function onPointerCancel(): void;
 declare class onPointerCancel {
-    _status: number | undefined;
+    _status: number;
 }
 declare function onContextMenu(event: any): void;
 export {};

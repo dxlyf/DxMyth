@@ -21,11 +21,13 @@ importers:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@24.2.1)(rollup@4.46.2)(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1))
 
-  packages/math:
+  packages/math: {}
+
+  packages/myth:
     dependencies:
-      '@dxyl/utils':
-        specifier: workspace:*
-        version: link:../utils
+      skia-path2d:
+        specifier: ^1.7.5
+        version: 1.7.5(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1))
 
   packages/utils:
     dependencies:
@@ -624,6 +626,12 @@ packages:
     resolution: {integrity: sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==}
     engines: {node: '>=10'}
     hasBin: true
+
+  skia-path2d@1.7.5:
+    resolution: {integrity: sha512-HkrxpfHNsflU1W/Xw5kuM6EhVQKybs/POXBHhP74dmWBkRp7UYNalP5o2BmXrymcCjMZNUoc0Z/koJCeb4Iv8Q==}
+    peerDependencies:
+      typescript: '*'
+      vite: ^7.0.4
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -1261,6 +1269,11 @@ snapshots:
   semver@7.5.4:
     dependencies:
       lru-cache: 6.0.0
+
+  skia-path2d@1.7.5(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1)):
+    dependencies:
+      typescript: 5.9.2
+      vite: 7.1.1(@types/node@24.2.1)
 
   source-map-js@1.2.1: {}
 

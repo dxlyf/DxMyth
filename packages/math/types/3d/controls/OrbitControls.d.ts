@@ -374,7 +374,7 @@ export class OrbitControls extends Controls<any> {
      * was called, or the initial state.
      */
     reset(): void;
-    update(deltaTime?: null): boolean;
+    update(deltaTime?: any): boolean;
     _getAutoRotationAngle(deltaTime: any): number;
     _getZoomScale(delta: any): number;
     _rotateLeft(angle: any): void;
@@ -420,7 +420,7 @@ declare function onPointerDown(event: any): void;
 declare function onPointerUp(event: any): void;
 declare class onPointerUp {
     constructor(event: any);
-    state: number | undefined;
+    state: number;
 }
 declare function onContextMenu(event: any): void;
 declare function onMouseWheel(event: any): void;
@@ -428,7 +428,7 @@ declare function onKeyDown(event: any): void;
 declare function onTouchStart(event: any): void;
 declare class onTouchStart {
     constructor(event: any);
-    state: number | undefined;
+    state: number;
 }
 declare function onTouchMove(event: any): void;
 declare class onTouchMove {
@@ -438,17 +438,17 @@ declare class onTouchMove {
 declare function onMouseDown(event: any): void;
 declare class onMouseDown {
     constructor(event: any);
-    state: number | undefined;
+    state: number;
 }
 declare function onMouseMove(event: any): void;
 declare function interceptControlDown(event: any): void;
 declare class interceptControlDown {
     constructor(event: any);
-    _controlActive: boolean | undefined;
+    _controlActive: boolean;
 }
 declare function interceptControlUp(event: any): void;
 declare class interceptControlUp {
     constructor(event: any);
-    _controlActive: boolean | undefined;
+    _controlActive: boolean;
 }
 export {};

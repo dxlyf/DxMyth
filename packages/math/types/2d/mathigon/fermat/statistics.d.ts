@@ -8,9 +8,9 @@ export declare function median(values: number[], method?: number): number;
  * Calculates the mode of an array of numbers. Returns undefined if no mode
  * exists, i.e. there are multiple values with the same largest count.
  */
-export declare function mode(values: number[]): number | undefined;
+export declare function mode(values: number[]): number;
 /** Calculates the variance of an array of numbers. */
-export declare function variance(values: number[]): number | undefined;
+export declare function variance(values: number[]): number;
 /** Calculates the standard deviation of an array of numbers. */
 export declare function stdDev(values: number[]): number;
 /** Calculates the covariance of the numbers in two arrays aX and aY. */

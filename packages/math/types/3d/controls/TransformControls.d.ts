@@ -49,7 +49,7 @@ export class TransformControls extends Controls<any> {
     pointerHover(pointer: any): void;
     axis: any;
     pointerDown(pointer: any): void;
-    dragging: boolean | undefined;
+    dragging: boolean;
     pointerMove(pointer: any): void;
     rotationAngle: any;
     pointerUp(pointer: any): void;
@@ -89,42 +89,42 @@ export class TransformControls extends Controls<any> {
      * @param {'translate'|'rotate'|'scale'} mode - The transformation mode to set.
      */
     setMode(mode: "translate" | "rotate" | "scale"): void;
-    mode: "rotate" | "scale" | "translate" | undefined;
+    mode: "rotate" | "scale" | "translate";
     /**
      * Sets the translation snap.
      *
      * @param {?number} translationSnap - The translation snap to set.
      */
     setTranslationSnap(translationSnap: number | null): void;
-    translationSnap: number | null | undefined;
+    translationSnap: number;
     /**
      * Sets the rotation snap.
      *
      * @param {?number} rotationSnap - The rotation snap to set.
      */
     setRotationSnap(rotationSnap: number | null): void;
-    rotationSnap: number | null | undefined;
+    rotationSnap: number;
     /**
      * Sets the scale snap.
      *
      * @param {?number} scaleSnap - The scale snap to set.
      */
     setScaleSnap(scaleSnap: number | null): void;
-    scaleSnap: number | null | undefined;
+    scaleSnap: number;
     /**
      * Sets the size of the helper UI.
      *
      * @param {number} size - The size to set.
      */
     setSize(size: number): void;
-    size: number | undefined;
+    size: number;
     /**
      * Sets the coordinate space in which transformations are applied.
      *
      * @param {'world'|'local'} space - The space to set.
      */
     setSpace(space: "world" | "local"): void;
-    space: "world" | "local" | undefined;
+    space: "world" | "local";
     /**
      * Sets the colors of the control's gizmo.
      *

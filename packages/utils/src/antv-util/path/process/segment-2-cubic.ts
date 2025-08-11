@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { PathSegment, ParserParams, CSegment, MSegment, CubicSegment } from '../types';
 import { arcToCubic } from './arc-2-cubic';
 import { quadToCubic } from './quad-2-cubic';

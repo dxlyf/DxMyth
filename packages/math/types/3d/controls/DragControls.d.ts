@@ -81,7 +81,7 @@ export class DragControls extends Controls<any> {
     connect(element: any): void;
     _updatePointer(event: any): void;
     _updateState(event: any): void;
-    state: number | undefined;
+    state: number;
     getRaycaster(): Raycaster;
     setObjects(objects: any): void;
     getObjects(): Object3D[];
@@ -94,7 +94,7 @@ declare function onPointerMove(event: any): void;
 declare function onPointerDown(event: any): void;
 declare function onPointerCancel(): void;
 declare class onPointerCancel {
-    state: number | undefined;
+    state: number;
 }
 declare function onContextMenu(event: any): void;
 export {};

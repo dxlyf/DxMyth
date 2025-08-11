@@ -78,7 +78,7 @@ export interface ITransformable  {
 type Constructor<T = {}> = new (...args: any[]) => T;
 
 export function TransformableMixin<TBase extends Constructor>(BaseClass:TBase){
-    return class extends BaseClass implements ITransformable  {
+    return class Transformable extends BaseClass implements ITransformable {
         position = ObservablePoint.create(0, 0)
         _rotation = 0
         _cx = 1
@@ -216,7 +216,7 @@ export function TransformableMixin<TBase extends Constructor>(BaseClass:TBase){
             }
             this.worldMatrixId += 1 // 每次世界矩阵更新，id加1
         }
-        private onUpdateTransformable = (p?: ObservablePoint) => {
+         onUpdateTransformable = (p?: ObservablePoint) => {
             if (p === this.skew) {
                 this._updateSkew()
             }
@@ -225,7 +225,7 @@ export function TransformableMixin<TBase extends Constructor>(BaseClass:TBase){
             this.parentWorldMatrixId = -1 // 全局矩阵也需要更新
             this.onTransformChange()
         }
-        private _updateSkew(): void {
+         _updateSkew(): void {
             const rotation = this._rotation;
             const skew = this.skew;
             // 等MatrixMultiply(RotationMatrix, SkewMatrix)
@@ -238,3 +238,4 @@ export function TransformableMixin<TBase extends Constructor>(BaseClass:TBase){
     
     }
 }
+

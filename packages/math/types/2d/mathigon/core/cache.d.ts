@@ -5,7 +5,7 @@ export declare class Cache<T> {
     private list;
     constructor(maxSize: number);
     has(a: string): boolean;
-    get(a: string): T | undefined;
+    get(a: string): T;
     set(a: string, b: T): void;
     getOrSet(a: string, callback: (a: string) => T): T;
     private touch;

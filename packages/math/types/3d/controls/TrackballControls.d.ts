@@ -202,28 +202,28 @@ declare function onMouseWheel(event: any): void;
 declare function onKeyDown(event: any): void;
 declare class onKeyDown {
     constructor(event: any);
-    keyState: number | undefined;
+    keyState: number;
 }
 declare function onKeyUp(): void;
 declare class onKeyUp {
-    keyState: number | undefined;
+    keyState: number;
 }
 declare function onTouchStart(event: any): void;
 declare class onTouchStart {
     constructor(event: any);
     state: number;
-    _touchZoomDistanceEnd: number | undefined;
-    _touchZoomDistanceStart: number | undefined;
+    _touchZoomDistanceEnd: number;
+    _touchZoomDistanceStart: number;
 }
 declare function onTouchMove(event: any): void;
 declare class onTouchMove {
     constructor(event: any);
-    _touchZoomDistanceEnd: number | undefined;
+    _touchZoomDistanceEnd: number;
 }
 declare function onTouchEnd(event: any): void;
 declare class onTouchEnd {
     constructor(event: any);
-    state: number | undefined;
+    state: number;
 }
 declare function onMouseDown(event: any): void;
 declare class onMouseDown {

@@ -1,13 +1,17 @@
 {
     "compilerOptions": {
-       "rootDir": "./src",
-       "baseUrl": "./",
+      "composite": false,
+      "declaration":false,
+      "allowSyntheticDefaultImports": true,
+
+      "baseUrl": "./",
       "target": "ES2022",
       "useDefineForClassFields": true,
       "module": "ESNext",
       "lib": ["ES2022", "DOM", "DOM.Iterable"],
       "skipLibCheck": true,
       "allowJs": true,
+      "strictNullChecks":false,
 
   
       /* Bundler mode */
@@ -31,5 +35,5 @@
         "gl-matrix/*":["./src/gl-matrix/*"]
       }
     },
-    "include": ["src", "../utils/src/antv-util"]
+    "include": ["src"]
   }

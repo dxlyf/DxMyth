@@ -5,8 +5,6 @@ import type { Matrix } from '../Matrix';
 
 const tempPoints = [new Point(), new Point(), new Point(), new Point()];
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Rectangle extends GlobalMixins.Rectangle {}
 
 /**
  * Size object, contains width and height

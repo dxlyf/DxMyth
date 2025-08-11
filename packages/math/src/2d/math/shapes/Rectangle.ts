@@ -1,7 +1,7 @@
 // import { SHAPES } from '../const';
 import { Point } from '../points/Point';
 
-import type { Bounds } from '../../scene/container/bounds/Bounds';
+
 import type { Matrix } from '../matrix/Matrix';
 import type { SHAPE_PRIMITIVE } from '../misc/const';
 import type { ShapePrimitive } from './ShapePrimitive';
@@ -10,7 +10,6 @@ const tempPoints = [new Point(), new Point(), new Point(), new Point()];
 
 // eslint-disable-next-line max-len
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type, requireExport/require-export-jsdoc, requireMemberAPI/require-member-api-doc
-export interface Rectangle extends PixiMixins.Rectangle { }
 
 /**
  * The `Rectangle` object represents a rectangular area defined by its position and dimensions.
@@ -300,7 +299,7 @@ export class Rectangle implements ShapePrimitive
      * @see {@link Bounds} For bounds object structure
      * @see {@link Rectangle.getBounds} For getting rectangle bounds
      */
-    public copyFromBounds(bounds: Bounds): this
+    public copyFromBounds(bounds: any): this
     {
         this.x = bounds.minX;
         this.y = bounds.minY;

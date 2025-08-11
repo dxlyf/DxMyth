@@ -24,7 +24,7 @@ export class NURBSVolume {
     knots1: number[];
     knots2: number[];
     knots3: number[];
-    controlPoints: never[][];
+    controlPoints: any[][];
     /**
      * This method returns a vector in 3D space for the given interpolation factor. This vector lies within the NURBS volume.
      *

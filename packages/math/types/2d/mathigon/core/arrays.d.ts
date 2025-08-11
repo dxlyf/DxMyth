@@ -52,7 +52,7 @@ export declare class LinkedList<T> {
     constructor(items: T[]);
     private traverse;
     get array(): LinkedListItem<T>[];
-    delete(node: LinkedListItem<T>): undefined;
+    delete(node: LinkedListItem<T>): any;
 }
 export declare enum BinarySearchType {
     first = 0,

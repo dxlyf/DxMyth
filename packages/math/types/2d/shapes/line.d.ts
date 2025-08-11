@@ -38,7 +38,7 @@ export declare class Line {
        u=(BE-DC)/d
        v=(AE-CD)/d
     */
-    intersectionFromLine(line: Line, out?: Vector2): Vector2 | null;
+    intersectionFromLine(line: Line, out?: Vector2): Vector2;
     /**
      * y=xk+b b=y-xk
      * 适用所有直线

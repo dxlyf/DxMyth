@@ -70,11 +70,11 @@ export type module = {
      */
     workingColorSpaceConfig?: {
         unpackColorSpace: string;
-    } | undefined;
+    };
     /**
      * - The drawing buffer color space config.
      */
     outputColorSpaceConfig?: {
         drawingBufferColorSpace: string;
-    } | undefined;
+    };
 };

@@ -37,7 +37,7 @@ export class Mat3 extends Float32Array {
       case 9:
         super(values); break;
       case 2:
-        super(values[0] as ArrayBufferLike, values[1], 9); break;
+        super(values[0] as any, values[1], 9); break;
       case 1:
         const v = values[0];
         if (typeof v === 'number') {
@@ -46,7 +46,7 @@ export class Mat3 extends Float32Array {
             v, v, v,
             v, v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 9);
+          super(v as any, 0, 9);
         }
         break;
       default:

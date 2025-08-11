@@ -90,7 +90,7 @@ export declare class PathBuilder {
     ellipse(cx: number, cy: number, rx: number, ry: number, rotation?: number, startAngle?: number, endAngle?: number, ccw?: boolean): this;
     ellipseArc(x1: number, y1: number, x2: number, y2: number, rx: number, ry: number, xAxisRotation: number, largeArcFlag: boolean, sweepFlag: boolean): void;
     arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void;
-    arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): this | undefined;
+    arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): this;
     arcTo2(x1: number, y1: number, x2: number, y2: number, radius: number): void;
     arcToOval(x: number, y: number, rx: number, ry: number, rotation: number, startAngle: number, deltaAngle: number, forceMoveTo?: boolean): void;
     addCircle(x: number, y: number, r: number, ccw?: boolean): this;
@@ -118,7 +118,7 @@ export declare class PathBuilder {
      * 如果与start点形成闭合路径则认为非零长度
     */
     isZeroLengthSincePoint(start_pt_index: number): boolean;
-    finish(): this | null;
+    finish(): this;
     toCanvas(ctx: CanvasRenderingContext2D | Path2D): void;
     toPath2D(): Path2D;
     toSvgPath(): string;

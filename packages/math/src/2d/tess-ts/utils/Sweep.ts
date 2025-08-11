@@ -1,3 +1,4 @@
+// 
 import { Geom } from "./Geom";
 import { assert } from "./../utils/assert";
 import { PriorityQ } from "./PriorityQ";

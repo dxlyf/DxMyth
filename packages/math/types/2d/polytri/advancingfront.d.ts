@@ -4,12 +4,12 @@ export class AdvancingFront {
     head(): Node;
     /** @param {Node} node */
     setHead(node: Node): void;
-    head_: Node | undefined;
+    head_: Node;
     /** @return {Node} */
     tail(): Node;
     /** @param {Node} node */
     setTail(node: Node): void;
-    tail_: Node | undefined;
+    tail_: Node;
     /** @return {Node} */
     search(): Node;
     /** @param {Node} node */

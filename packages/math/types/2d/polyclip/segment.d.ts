@@ -54,7 +54,7 @@ export default class Segment {
      * If no non-trivial intersection exists, return null
      * Else, return null.
      */
-    getIntersection(other: Segment): Point | null;
+    getIntersection(other: Segment): Point;
     /**
      * Split the given segment into multiple segments on the given points.
      *  * Each existing segment will retain its leftSE and a new rightSE will be
@@ -73,6 +73,6 @@ export default class Segment {
     prevInResult(): Segment | null | undefined;
     beforeState(): State;
     afterState(): State;
-    isInResult(): boolean | undefined;
+    isInResult(): boolean;
 }
 export {};

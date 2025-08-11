@@ -349,8 +349,8 @@ declare const Big: Big.BigConstructor;
 type Big = Big.Big;
 
 // The export is the same as type/value combo symbol 'Big'.
-
-export as namespace Big;
+export as namespace Big
+export default Big
 export {
     Big
 }

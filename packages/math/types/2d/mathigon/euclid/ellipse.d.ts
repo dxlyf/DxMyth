@@ -16,8 +16,8 @@ export declare class Ellipse implements GeoShape {
      * @param angle The rotation of the major axis of the ellipse.
      */
     constructor(c: Point, a: number, b: number, angle?: number);
-    get rx(): number | undefined;
-    get ry(): number | undefined;
+    get rx(): number;
+    get ry(): number;
     normalAt(p: Point): Line;
     /** Intersection between an ellipse and a line. */
     intersect(line: Line): Point[];

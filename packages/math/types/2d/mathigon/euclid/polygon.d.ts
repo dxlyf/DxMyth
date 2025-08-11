@@ -59,7 +59,7 @@ export declare class Polyline extends Polygon {
 /** A triangle defined by its three vertices. */
 export declare class Triangle extends Polygon {
     readonly type = "triangle";
-    get circumcircle(): Circle | undefined;
-    get incircle(): Circle | undefined;
+    get circumcircle(): Circle;
+    get incircle(): Circle;
     get orthocenter(): Point;
 }

@@ -49,7 +49,7 @@ export class MeshSurfaceSampler {
     colorAttribute: any;
     uvAttribute: any;
     weightAttribute: any;
-    distribution: Float32Array<ArrayBuffer> | null;
+    distribution: Float32Array<ArrayBuffer>;
     /**
      * Specifies a vertex attribute to be used as a weight when sampling from the surface.
      * Faces with higher weights are more likely to be sampled, and those with weights of

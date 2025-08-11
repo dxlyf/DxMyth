@@ -11,7 +11,7 @@ export declare class Sweep {
     static edgeLeq(tess: Tesselator, reg1: ActiveRegion, reg2: ActiveRegion): boolean;
     static deleteRegion(tess: Tesselator, reg: ActiveRegion): void;
     static fixUpperEdge(tess: Tesselator, reg: ActiveRegion, newEdge: TESShalfEdge): void;
-    static topLeftRegion(tess: Tesselator, reg: ActiveRegion): ActiveRegion | null;
+    static topLeftRegion(tess: Tesselator, reg: ActiveRegion): ActiveRegion;
     static topRightRegion(reg: ActiveRegion): ActiveRegion;
     static addRegionBelow(tess: Tesselator, regAbove: ActiveRegion, eNewUp: TESShalfEdge): ActiveRegion;
     static isWindingInside(tess: Tesselator, n: number): boolean;

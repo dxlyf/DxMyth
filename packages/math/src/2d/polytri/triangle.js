@@ -12,9 +12,6 @@
 
 /* jshint maxcomplexity:10 */
 
-"use strict";
-
-
 /*
  * Note
  * ====

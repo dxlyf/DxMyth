@@ -38,7 +38,7 @@ export class Vec2 extends Float32Array {
         if (typeof v === 'number') {
           super([v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 2);
+          super(v as any, 0, 2);
         }
         break;
       }

@@ -634,24 +634,24 @@ declare function onWheel(event: any): void;
 declare function onPointerUp(event: any): void;
 declare class onPointerUp {
     constructor(event: any);
-    _input: symbol | undefined;
-    _button: number | undefined;
-    _nclicks: number | undefined;
-    _clickStart: number | undefined;
-    _downValid: boolean | undefined;
+    _input: symbol;
+    _button: number;
+    _nclicks: number;
+    _clickStart: number;
+    _downValid: boolean;
 }
 declare function onPointerMove(event: any): void;
 declare class onPointerMove {
     constructor(event: any);
-    _input: symbol | undefined;
-    _downValid: boolean | undefined;
+    _input: symbol;
+    _downValid: boolean;
 }
 declare function onPointerDown(event: any): void;
 declare class onPointerDown {
     constructor(event: any);
     _downValid: boolean;
-    _downStart: number | undefined;
-    _input: symbol | undefined;
+    _downStart: number;
+    _input: symbol;
     _mouseOp: any;
     _button: any;
 }

@@ -149,36 +149,36 @@ declare class onPointerMove {
 declare function onPointerDown(event: any): void;
 declare class onPointerDown {
     constructor(event: any);
-    _moveForward: boolean | undefined;
-    _moveBackward: boolean | undefined;
+    _moveForward: boolean;
+    _moveBackward: boolean;
     mouseDragOn: boolean;
 }
 declare function onPointerUp(event: any): void;
 declare class onPointerUp {
     constructor(event: any);
-    _moveForward: boolean | undefined;
-    _moveBackward: boolean | undefined;
+    _moveForward: boolean;
+    _moveBackward: boolean;
     mouseDragOn: boolean;
 }
 declare function onContextMenu(event: any): void;
 declare function onKeyDown(event: any): void;
 declare class onKeyDown {
     constructor(event: any);
-    _moveForward: boolean | undefined;
-    _moveLeft: boolean | undefined;
-    _moveBackward: boolean | undefined;
-    _moveRight: boolean | undefined;
-    _moveUp: boolean | undefined;
-    _moveDown: boolean | undefined;
+    _moveForward: boolean;
+    _moveLeft: boolean;
+    _moveBackward: boolean;
+    _moveRight: boolean;
+    _moveUp: boolean;
+    _moveDown: boolean;
 }
 declare function onKeyUp(event: any): void;
 declare class onKeyUp {
     constructor(event: any);
-    _moveForward: boolean | undefined;
-    _moveLeft: boolean | undefined;
-    _moveBackward: boolean | undefined;
-    _moveRight: boolean | undefined;
-    _moveUp: boolean | undefined;
-    _moveDown: boolean | undefined;
+    _moveForward: boolean;
+    _moveLeft: boolean;
+    _moveBackward: boolean;
+    _moveRight: boolean;
+    _moveUp: boolean;
+    _moveDown: boolean;
 }
 export {};

@@ -1,6 +1,6 @@
 {
   "name": "@dxyl/math",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Collected many useful mathematical tools",
   "keywords": [
     "graphic",
@@ -29,7 +29,6 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@dxyl/utils":"workspace:*"
   },
   "devDependencies": {},
   "peerDependencies": {}

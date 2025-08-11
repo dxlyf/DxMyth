@@ -1,18 +1,18 @@
 export default class TinySDF {
     constructor({ fontSize, buffer, radius, cutoff, fontFamily, fontWeight, fontStyle }?: {
-        fontSize?: number | undefined;
-        buffer?: number | undefined;
-        radius?: number | undefined;
-        cutoff?: number | undefined;
-        fontFamily?: string | undefined;
-        fontWeight?: string | undefined;
-        fontStyle?: string | undefined;
+        fontSize?: number;
+        buffer?: number;
+        radius?: number;
+        cutoff?: number;
+        fontFamily?: string;
+        fontWeight?: string;
+        fontStyle?: string;
     });
     buffer: number;
     cutoff: number;
     radius: number;
     size: number;
-    ctx: CanvasRenderingContext2D | null;
+    ctx: CanvasRenderingContext2D;
     gridOuter: Float64Array<ArrayBuffer>;
     gridInner: Float64Array<ArrayBuffer>;
     f: Float64Array<ArrayBuffer>;

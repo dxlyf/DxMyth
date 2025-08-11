@@ -1,9 +1,6 @@
-import { Bounds } from '../../scene/container/bounds/Bounds';
 import { Matrix } from '../matrix/Matrix';
 import { SHAPE_PRIMITIVE } from '../misc/const';
 import { ShapePrimitive } from './ShapePrimitive';
-export interface Rectangle extends PixiMixins.Rectangle {
-}
 /**
  * The `Rectangle` object represents a rectangular area defined by its position and dimensions.
  * Used for hit testing, bounds calculation, and general geometric operations.
@@ -251,7 +248,7 @@ export declare class Rectangle implements ShapePrimitive {
      * @see {@link Bounds} For bounds object structure
      * @see {@link Rectangle.getBounds} For getting rectangle bounds
      */
-    copyFromBounds(bounds: Bounds): this;
+    copyFromBounds(bounds: any): this;
     /**
      * Copies another rectangle to this one.
      * @example
