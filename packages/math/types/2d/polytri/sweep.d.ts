@@ -4,4 +4,5 @@
  * @private
  * @param {!SweepContext} tcx - SweepContext object
  */
-export function triangulate(tcx: SweepContext): void;
+declare function triangulate(tcx: any): void;
+export { triangulate };

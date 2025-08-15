@@ -1,4 +1,3 @@
-export default assert;
 /**
  * assert and throw an exception.
  *
@@ -6,4 +5,5 @@ export default assert;
  * @param {boolean} condition   the condition which is asserted
  * @param {string} message      the message which is display is condition is falsy
  */
-declare function assert(condition: boolean, message: string): void;
+declare function assert(condition: any, message: any): void;
+export default assert;

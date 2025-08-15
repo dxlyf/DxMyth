@@ -43,7 +43,7 @@ export class Mat2d extends Float32Array {
             v, v,
             v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 6);
+          super(v as any, 0, 6);
         }
         break;
       default:

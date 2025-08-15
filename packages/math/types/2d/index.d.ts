@@ -1,6 +1,9 @@
 export * from './math';
 export * from './curve';
 export * from './math/matrix/Matrix';
+export * as animation from './animation';
+export { default as tweenjs } from './tweenjs/Index';
+export * as intersections from './intersections';
 export * as pathUtil from './path';
 export * as contains from './contains';
 export * as core from './core';
@@ -19,3 +22,4 @@ export * as mapbox from './mapbox';
 export * as pixi from './pixi';
 export * from './data/rbush';
 export { default as TinyQueue } from './data/tinyqueue';
+export * as phaser from './phaser';

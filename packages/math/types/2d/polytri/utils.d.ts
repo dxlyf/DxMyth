@@ -1,4 +1,21 @@
 /**
+ * Precision to detect repeated or collinear points
+ * @private
+ * @const {number}
+ * @default
+ */
+declare var EPSILON: number;
+/**
+ * @private
+ * @enum {number}
+ * @readonly
+ */
+declare var Orientation: {
+    CW: number;
+    CCW: number;
+    COLLINEAR: number;
+};
+/**
  * Formula to calculate signed area<br>
  * Positive if CCW<br>
  * Negative if CW<br>
@@ -14,7 +31,7 @@
  * @param {!XY} pc  point object with {x,y}
  * @return {Orientation}
  */
-export function orient2d(pa: XY, pb: XY, pc: XY): Orientation;
+declare function orient2d(pa: any, pb: any, pc: any): number;
 /**
  *
  * @private
@@ -24,7 +41,7 @@ export function orient2d(pa: XY, pb: XY, pc: XY): Orientation;
  * @param {!XY} pd  point object with {x,y}
  * @return {boolean}
  */
-export function inScanArea(pa: XY, pb: XY, pc: XY, pd: XY): boolean;
+declare function inScanArea(pa: any, pb: any, pc: any, pd: any): boolean;
 /**
  * Check if the angle between (pa,pb) and (pa,pc) is obtuse i.e. (angle > π/2 || angle < -π/2)
  *
@@ -34,20 +51,5 @@ export function inScanArea(pa: XY, pb: XY, pc: XY, pd: XY): boolean;
  * @param {!XY} pc  point object with {x,y}
  * @return {boolean} true if angle is obtuse
  */
-export function isAngleObtuse(pa: XY, pb: XY, pc: XY): boolean;
-/**
- * *
- */
-export type Orientation = number;
-export namespace Orientation {
-    let CW: number;
-    let CCW: number;
-    let COLLINEAR: number;
-}
-/**
- * Precision to detect repeated or collinear points
- * @private
- * @const {number}
- * @default
- */
-export var EPSILON: number;
+declare function isAngleObtuse(pa: any, pb: any, pc: any): boolean;
+export { orient2d, inScanArea, isAngleObtuse, Orientation, EPSILON, };

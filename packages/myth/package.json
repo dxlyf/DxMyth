@@ -4,7 +4,7 @@
   "description": "",
   "publishConfig": {
     "access": "public"
- },
+  },
   "keywords": [
     "graphic",
     "canvas",
@@ -35,8 +35,9 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@dxyl/math": "^1.0.4",
-    "@dxyl/utils": "^1.1.2",
+    "@dxyl/math": "^1.0.5",
+    "@dxyl/tapable": "^1.0.2",
+    "@dxyl/utils": "^1.1.6",
     "skia-path2d": "^1.7.6"
   }
 }

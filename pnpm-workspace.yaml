@@ -7,3 +7,5 @@ packages:
   #- 'components/**'
   # 排除测试目录中的包
   - '!**/test/**'
+# 当为 true 时，所有依赖项都会被提升到 node_modules/.pnpm/node_modules。 这使得 node_modules 中的所有包都可以访问未列出的依赖项。
+hoist: true

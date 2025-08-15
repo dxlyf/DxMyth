@@ -1,0 +1,35 @@
+/**
+ * @author       Richard Davey <rich@phaser.io>
+ * @copyright    2013-2025 Phaser Studio Inc.
+ * @license      {@link https://opensource.org/licenses/MIT|MIT License}
+ */
+
+import TWEEN_ACTIVE from './TWEEN_ACTIVE_EVENT'
+import TWEEN_COMPLETE from './TWEEN_COMPLETE_EVENT'
+import TWEEN_LOOP from './TWEEN_LOOP_EVENT'
+import TWEEN_PAUSE from './TWEEN_PAUSE_EVENT'
+import TWEEN_RESUME from './TWEEN_RESUME_EVENT'
+import TWEEN_REPEAT from './TWEEN_REPEAT_EVENT'
+import TWEEN_START from './TWEEN_START_EVENT'
+import TWEEN_STOP from './TWEEN_STOP_EVENT'
+import TWEEN_UPDATE from './TWEEN_UPDATE_EVENT'
+import TWEEN_YOYO from './TWEEN_YOYO_EVENT'
+
+/**
+ * @namespace Phaser.Tweens.Events
+ */
+
+export default {
+
+TWEEN_ACTIVE:TWEEN_ACTIVE,
+TWEEN_COMPLETE:TWEEN_COMPLETE,
+TWEEN_LOOP:TWEEN_LOOP,
+TWEEN_PAUSE:TWEEN_PAUSE,
+TWEEN_RESUME:TWEEN_RESUME,
+TWEEN_REPEAT:TWEEN_REPEAT,
+TWEEN_START:TWEEN_START,
+TWEEN_STOP:TWEEN_STOP,
+TWEEN_UPDATE:TWEEN_UPDATE,
+TWEEN_YOYO:TWEEN_YOYO,
+
+};

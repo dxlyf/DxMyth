@@ -1,3 +1,7 @@
+/// <reference path="./big.d.ts" />
+// @ts-nocheck
+
+
 /*
  *  big.js v7.0.1
  *  A small, fast, easy-to-use library for arbitrary-precision decimal arithmetic.

@@ -1,6 +1,11 @@
 {
     "compilerOptions": {
       "allowSyntheticDefaultImports": true,
+       "outDir":"./lib",
+       "declarationDir": "./lib",
+       "declaration": true,
+       "emitDeclarationOnly": false,
+       "rootDir": "./src",
       "baseUrl": "./",
       "target": "ES2022",
       "useDefineForClassFields": true,
@@ -10,6 +15,7 @@
       "allowJs": true,
       "strictNullChecks":false,
 
+      
   
       /* Bundler mode */
       "moduleResolution": "bundler",
@@ -29,8 +35,10 @@
         "src/*":["./src/*"],
         "three":["./src/3d/index.core.ts"],
         "gl-matrix":["src/gl-matrix"],
-        "gl-matrix/*":["./src/gl-matrix/*"]
+        "gl-matrix/*":["./src/gl-matrix/*"],
+        "eventemitter3":["./src/eventemitter3"]
       }
     },
-    "include": ["src"]
+    "include": ["src"],
+    "exclude": ["./src/2d/utils/*.js"]
   }

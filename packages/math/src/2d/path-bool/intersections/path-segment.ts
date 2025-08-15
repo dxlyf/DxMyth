@@ -158,8 +158,8 @@ const collinearLineSegmentIntersection = (() => {
         vec2.sub(db, b[1], b[0]);
 
         // Divide by len^2, i.e., normalize and pre-divide by len.
-        vec2.scale(da, da, 1 / vec2.sqrLen(da));
-        vec2.scale(db, db, 1 / vec2.sqrLen(db));
+        vec2.scale(da, da, 1 / vec2.squaredLength(da));
+        vec2.scale(db, db, 1 / vec2.squaredLength(db));
 
         const pairs: [number, number][] = [];
 

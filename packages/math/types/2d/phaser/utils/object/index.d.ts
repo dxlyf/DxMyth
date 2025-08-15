@@ -1,0 +1,33 @@
+import { default as Clone } from './Clone';
+import { default as DeepCopy } from './DeepCopy';
+import { default as Extend } from './Extend';
+import { default as GetAdvancedValue } from './GetAdvancedValue';
+import { default as GetFastValue } from './GetFastValue';
+import { default as GetMinMaxValue } from './GetMinMaxValue';
+import { default as GetValue } from './GetValue';
+import { default as HasAll } from './HasAll';
+import { default as HasAny } from './HasAny';
+import { default as HasValue } from './HasValue';
+import { default as IsPlainObject } from './IsPlainObject';
+import { default as Merge } from './Merge';
+import { default as MergeRight } from './MergeRight';
+import { default as Pick } from './Pick';
+import { default as SetValue } from './SetValue';
+declare namespace _default {
+    export { Clone };
+    export { DeepCopy };
+    export { Extend };
+    export { GetAdvancedValue };
+    export { GetFastValue };
+    export { GetMinMaxValue };
+    export { GetValue };
+    export { HasAll };
+    export { HasAny };
+    export { HasValue };
+    export { IsPlainObject };
+    export { Merge };
+    export { MergeRight };
+    export { Pick };
+    export { SetValue };
+}
+export default _default;

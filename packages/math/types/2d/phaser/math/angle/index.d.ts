@@ -1,0 +1,35 @@
+import { default as Between } from './Between';
+import { default as BetweenPoints } from './BetweenPoints';
+import { default as BetweenPointsY } from './BetweenPointsY';
+import { default as BetweenY } from './BetweenY';
+import { default as CounterClockwise } from './CounterClockwise';
+import { default as GetClockwiseDistance } from './GetClockwiseDistance';
+import { default as GetCounterClockwiseDistance } from './GetCounterClockwiseDistance';
+import { default as GetShortestDistance } from './GetShortestDistance';
+import { default as Normalize } from './Normalize';
+import { default as Random } from './Random';
+import { default as RandomDegrees } from './RandomDegrees';
+import { default as Reverse } from './Reverse';
+import { default as RotateTo } from './RotateTo';
+import { default as ShortestBetween } from './ShortestBetween';
+import { default as Wrap } from './Wrap';
+import { default as WrapDegrees } from './WrapDegrees';
+declare namespace _default {
+    export { Between };
+    export { BetweenPoints };
+    export { BetweenPointsY };
+    export { BetweenY };
+    export { CounterClockwise };
+    export { GetClockwiseDistance };
+    export { GetCounterClockwiseDistance };
+    export { GetShortestDistance };
+    export { Normalize };
+    export { Random };
+    export { RandomDegrees };
+    export { Reverse };
+    export { RotateTo };
+    export { ShortestBetween };
+    export { Wrap };
+    export { WrapDegrees };
+}
+export default _default;

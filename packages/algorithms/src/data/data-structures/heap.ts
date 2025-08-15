@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Compare, defaultCompare, ICompareFunction, reverseCompare, swap } from '../util';
 
 export class MinHeap<T> {

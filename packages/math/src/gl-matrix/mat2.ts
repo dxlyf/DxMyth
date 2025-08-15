@@ -40,7 +40,7 @@ export class Mat2 extends Float32Array {
             v, v,
             v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 4);
+          super(v as any, 0, 4);
         }
         break;
       default:

@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => {
         alias:{
             'src':'/src',
             'three':'/src/3d/index.core.ts',
-            'gl-matrix':'/src/gl-matrix'
+            'gl-matrix':'/src/gl-matrix',
+            'eventmitter3':'/src/eventemitter3'
         }
     }
   }

@@ -1,0 +1,20 @@
+export default CopyFrom;
+/**
+ * @author       Richard Davey <rich@phaser.io>
+ * @copyright    2013-2025 Phaser Studio Inc.
+ * @license      {@link https://opensource.org/licenses/MIT|MIT License}
+ */
+/**
+ * Copy the values of one Rectangle to a destination Rectangle.
+ *
+ * @function Phaser.Geom.Rectangle.CopyFrom
+ * @since 3.0.0
+ *
+ * @generic {Phaser.Geom.Rectangle} O - [dest,$return]
+ *
+ * @param {Phaser.Geom.Rectangle} source - The source Rectangle to copy the values from.
+ * @param {Phaser.Geom.Rectangle} dest - The destination Rectangle to copy the values to.
+ *
+ * @return {Phaser.Geom.Rectangle} The destination Rectangle.
+ */
+declare function CopyFrom(source: Phaser.Geom.Rectangle, dest: Phaser.Geom.Rectangle): Phaser.Geom.Rectangle;

@@ -1,0 +1,14 @@
+export default RandomRGB;
+/**
+ * Creates a new Color object where the r, g, and b values have been set to random values
+ * based on the given min max values.
+ *
+ * @function Phaser.Display.Color.RandomRGB
+ * @since 3.0.0
+ *
+ * @param {number} [min=0] - The minimum value to set the random range from (between 0 and 255)
+ * @param {number} [max=255] - The maximum value to set the random range from (between 0 and 255)
+ *
+ * @return {Phaser.Display.Color} A Color object.
+ */
+declare function RandomRGB(min?: number, max?: number): Phaser.Display.Color;

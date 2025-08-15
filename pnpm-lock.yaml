@@ -16,24 +16,33 @@ importers:
         version: 5.9.2
       vite:
         specifier: ^7.1.1
-        version: 7.1.1(@types/node@24.2.1)
+        version: 7.1.2(@types/node@24.2.1)
       vite-plugin-dts:
         specifier: ^4.5.4
-        version: 4.5.4(@types/node@24.2.1)(rollup@4.46.2)(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1))
+        version: 4.5.4(@types/node@24.2.1)(rollup@4.46.2)(typescript@5.9.2)(vite@7.1.2(@types/node@24.2.1))
+
+  packages/algorithms: {}
 
   packages/math: {}
 
   packages/myth:
     dependencies:
       '@dxyl/math':
-        specifier: ^1.0.4
-        version: 1.0.4
+        specifier: ^1.0.5
+        version: 1.0.5
+      '@dxyl/tapable':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@dxyl/utils':
-        specifier: ^1.1.2
-        version: 1.1.2
+        specifier: ^1.1.6
+        version: 1.1.6
       skia-path2d:
         specifier: ^1.7.6
         version: 1.7.6
+
+  packages/pixi-utils: {}
+
+  packages/tapable: {}
 
   packages/utils:
     dependencies:
@@ -60,11 +69,14 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@dxyl/math@1.0.4':
-    resolution: {integrity: sha512-aeCsED2TM+HftCbN26mVJmMybbJblv0E1+/QS02G4w/ojUWopjiKCXDPUU2tUx84gfPqcY5BhS7J2kB6fBxTpQ==}
+  '@dxyl/math@1.0.5':
+    resolution: {integrity: sha512-aJ3w85UoIDE29aGlQVXasd+dGCQUkX6ZDpX+VBTZS9ExVD9WfJ0+UW0xkzCrGnf6b6T1nrY+6pxMb4dXotfIog==}
 
-  '@dxyl/utils@1.1.2':
-    resolution: {integrity: sha512-g27AfQLVfPnF8wwm51inoRzZQJlct7keSXdCttVOzqpw0AshvEJYsQFRBboWPs1m+FJxQXuD7drQX+oYwSw2WQ==}
+  '@dxyl/tapable@1.0.2':
+    resolution: {integrity: sha512-rYl/oxeQXzenYV/i+d2ASkrQfPGJptvxpRSK8OhEkvW/Xj8m027jGOqoBMkk4FNnhv5rYt7c4wkv63wAsvNjWA==}
+
+  '@dxyl/utils@1.1.6':
+    resolution: {integrity: sha512-SVK07Y45ba3tHxbDbqxoWOTd4Wzyg6EoEX4UWo9cUhTkOhmBOlJ4cXepadnpWkYflJOQ8j9TzPnpMeZBgGSpqA==}
 
   '@esbuild/aix-ppc64@0.25.8':
     resolution: {integrity: sha512-urAvrUedIqEiFR3FYSLTWQgLu5tb+m0qZw0NBEasUeo6wuqatkMDaRT+1uABiGXEu5vqgPd7FGE1BhsAIy9QVA==}
@@ -230,8 +242,8 @@ packages:
     resolution: {integrity: sha512-ZT55BDLV0yv0RBm2czMiZ+SqCGO7AvmOM3G/w2xhVPH+te0aKgFjmBvGlL1dH+ql2tgGO3MVrbb3jCKyvpgnxA==}
     engines: {node: 20 || >=22}
 
-  '@jridgewell/sourcemap-codec@1.5.4':
-    resolution: {integrity: sha512-VT2+G1VQs/9oz078bLrYbecdZKs912zQlkelYpuf+SXF+QvZDYJlbx/LSx+meSAwdDFnF8FVXW92AVjjkVmgFw==}
+  '@jridgewell/sourcemap-codec@1.5.5':
+    resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
   '@microsoft/api-extractor-model@7.30.7':
     resolution: {integrity: sha512-TBbmSI2/BHpfR9YhQA7nH0nqVmGgJ0xH0Ex4D99/qBDAUpnhA2oikGmdXanbw9AWWY/ExBYIpkmY8dBHdla3YQ==}
@@ -545,8 +557,8 @@ packages:
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
-  jsonfile@6.1.0:
-    resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
+  jsonfile@6.2.0:
+    resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
 
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
@@ -705,8 +717,8 @@ packages:
       vite:
         optional: true
 
-  vite@7.1.1:
-    resolution: {integrity: sha512-yJ+Mp7OyV+4S+afWo+QyoL9jFWD11QFH0i5i7JypnfTcA1rmgxCbiA8WwAICDEtZ1Z1hzrVhN8R8rGTqkTY8ZQ==}
+  vite@7.1.2:
+    resolution: {integrity: sha512-J0SQBPlQiEXAF7tajiH+rUooJPo0l8KQgyg4/aMunNtrOa7bwuZJsJbDWzeljqQpgftxuq5yNJxQ91O9ts29UQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -766,9 +778,11 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@dxyl/math@1.0.4': {}
+  '@dxyl/math@1.0.5': {}
 
-  '@dxyl/utils@1.1.2':
+  '@dxyl/tapable@1.0.2': {}
+
+  '@dxyl/utils@1.1.6':
     dependencies:
       gl-matrix: 3.4.4
 
@@ -856,7 +870,7 @@ snapshots:
     dependencies:
       '@isaacs/balanced-match': 4.0.1
 
-  '@jridgewell/sourcemap-codec@1.5.4': {}
+  '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@microsoft/api-extractor-model@7.30.7(@types/node@24.2.1)':
     dependencies:
@@ -1140,7 +1154,7 @@ snapshots:
   fs-extra@11.3.1:
     dependencies:
       graceful-fs: 4.2.11
-      jsonfile: 6.1.0
+      jsonfile: 6.2.0
       universalify: 2.0.1
 
   fsevents@2.3.3:
@@ -1170,7 +1184,7 @@ snapshots:
 
   json-schema-traverse@1.0.0: {}
 
-  jsonfile@6.1.0:
+  jsonfile@6.2.0:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
@@ -1192,7 +1206,7 @@ snapshots:
 
   magic-string@0.30.17:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.4
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   minimatch@10.0.3:
     dependencies:
@@ -1322,7 +1336,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite-plugin-dts@4.5.4(@types/node@24.2.1)(rollup@4.46.2)(typescript@5.9.2)(vite@7.1.1(@types/node@24.2.1)):
+  vite-plugin-dts@4.5.4(@types/node@24.2.1)(rollup@4.46.2)(typescript@5.9.2)(vite@7.1.2(@types/node@24.2.1)):
     dependencies:
       '@microsoft/api-extractor': 7.52.10(@types/node@24.2.1)
       '@rollup/pluginutils': 5.2.0(rollup@4.46.2)
@@ -1335,13 +1349,13 @@ snapshots:
       magic-string: 0.30.17
       typescript: 5.9.2
     optionalDependencies:
-      vite: 7.1.1(@types/node@24.2.1)
+      vite: 7.1.2(@types/node@24.2.1)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
 
-  vite@7.1.1(@types/node@24.2.1):
+  vite@7.1.2(@types/node@24.2.1):
     dependencies:
       esbuild: 0.25.8
       fdir: 6.4.6(picomatch@4.0.3)

@@ -1,4 +1,5 @@
-
+/// <reference path="./bignumber.d.ts" />
+// @ts-nocheck
 /*
  *      bignumber.js v9.1.2
  *      A JavaScript library for arbitrary-precision arithmetic.

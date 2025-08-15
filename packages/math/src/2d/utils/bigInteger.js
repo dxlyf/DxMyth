@@ -1,4 +1,5 @@
-
+/// <reference path="./bigInteger.d.ts" />
+// @ts-nocheck
 var bigInt = (function (undefined) {
     "use strict";
 

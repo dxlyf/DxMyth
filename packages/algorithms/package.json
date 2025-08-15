@@ -1,6 +1,6 @@
 {
   "name": "@dxyl/algorithms",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "algorithms",
   "publishConfig": {
      "access": "public"
@@ -14,6 +14,11 @@
   "type": "module",
   "types": "./types/index.d.ts",
   "exports":{
+    ".":{
+      "import":"./dist/index.es.js",
+      "require":"./dist/index.umd.js",
+      "types":"./types/index.d.ts"
+    },
       "./common/*":"./common/*",
       "./lib/*":"./lib/*"
   },

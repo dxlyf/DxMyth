@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { defaultEquals, IEqualsFunction } from '../util';
 import LinkedList from './linked-list';
 import { DoublyNode } from './models/linked-list-models';
