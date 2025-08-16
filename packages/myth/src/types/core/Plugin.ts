@@ -15,7 +15,7 @@ export interface  IPluginManager<Context> extends EventEmitter4<PluginManagerEve
     install():void
     uninstall():void
 }
-
+export type PluginConstructor<Context>={name:string;new(ctx:Context,owner:IPluginManager<Context>):IPlugin<Context>}
 export interface IPlugin<Context>{
      name:string;
      ctx:Context

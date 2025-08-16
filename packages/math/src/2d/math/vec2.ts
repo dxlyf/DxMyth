@@ -492,6 +492,7 @@ export class Vector2 extends Float32Array {
     static equals = equals
     static isZero = isZero
     static equalsEpsilon = equalsEpsilon
+    static setLength=setLength
     constructor(x: number, y: number)
     constructor(values: Vector2Like)
     constructor(...values: any[]) { // 构造函数，传入 x 和 y 坐标

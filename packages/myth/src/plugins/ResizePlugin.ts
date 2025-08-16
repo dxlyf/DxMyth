@@ -1,6 +1,7 @@
 
-import { Application } from 'src/core/Application'
 import {Plugin} from 'src/core/PluginManager'
+import { IApplication } from 'src/types/core/Application';
+import { getMargins } from 'src/utils/dom';
 
 declare module '../types/core/Application.ts' {
     /**
@@ -16,36 +17,43 @@ declare module '../types/core/Application.ts' {
         width?: number
         height?: number
         resizeTo?:HTMLElement|Window
+
     }
 }
-class ResizePlugin extends Plugin<Application> {
-    name: string='ResizePlugin'
+
+class ResizePlugin extends Plugin<IApplication> {
+    static name: string='ResizePlugin'
     resizeId=0
     width: number=0
     height: number=0
+    resizeType:'window'|'element'|'none'='none'
     create(): void {
+        if(this.ctx.options.resizeTo===window) {
+            this.resizeType='window'    
+        }else if(this.ctx.options.resizeTo){
+            this.resizeType='element'
+        }
+
     }
     init(): void {
-        this.setupResizeObserver()
+        this.resize()
+        this.ctx.domElement.style.display='block'
+        if(this.resizeType!=='none') {
+            this.setupResizeObserver()
+        }
+  
     }
     private setupResizeObserver() {
         const {resizeTo}=this.ctx.options
-        if (resizeTo===window) {
-            const handleWindowSize=()=>{
-                this.width=window.innerWidth
-                this.height=window.innerHeight
-                this.handleResize()
-            }
-            window.addEventListener('resize', handleWindowSize);
+        if (this.resizeType==='window') {
+            window.addEventListener('resize', this.handleResize);
             this.destroy=()=>{
-                window.removeEventListener('resize', handleWindowSize);
+                window.removeEventListener('resize', this.handleResize);
             }
-        } else if ((resizeTo as HTMLElement).nodeType === 1) {
+        } else if (this.resizeType==='element') {
             let observer = new ResizeObserver((entries)=>{
                 for(let entry of entries) {
                     if(entry.target===resizeTo){
-                        this.width=entry.contentRect.width
-                        this.height=entry.contentRect.height
                         this.handleResize()
                     }
                 }
@@ -56,18 +64,38 @@ class ResizePlugin extends Plugin<Application> {
             }
         }
     }
+    getContainerDimension(){
+        const {resizeTo}=this.ctx.options
+        if(this.resizeType==='window') {
+          
+            this.width=window.innerWidth
+            this.height=window.innerHeight
+        }else if(this.resizeType==='element'){
+            this.width=(resizeTo as HTMLElement).clientWidth
+            this.height=(resizeTo as HTMLElement).clientHeight
+        }else{
+            this.width=this.ctx.options.width||300
+            this.height=this.ctx.options.height||300
+        }
+        const styles = getMargins(document.body)
+        this.width=this.width-styles.left-styles.right
+        this.height=this.height-styles.top-styles.bottom
+    }
     handleResize = () => {
         if(this.resizeId){
-            cancelAnimationFrame(this.resizeId)
+            clearTimeout(this.resizeId)
             this.resizeId=0
         }
-        this.resizeId=requestAnimationFrame(()=>{
-            this.resizeId=0
+        this.resizeId=setTimeout(()=>{
             this.resize()
-        })
+            this.resizeId=0
+        }) as any
     }
     resize=()=>{
-        this.ctx.renderer.updateSize(this.width, this.height)
+        this.getContainerDimension()
+        
+        this.ctx.renderer.setSize(this.width, this.height)
+        this.ctx.refresh()
     }
 
     destroy() {

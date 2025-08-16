@@ -1,27 +1,36 @@
 import {ProxyPath2D} from 'skia-path2d'
-import type {IApplication} from './Application'
 import {IContainer,ContainerProps} from './Container'
+import { IViewport } from './Viewport';
+import { ColorValue } from 'src/image/Color';
+import { RenderObject } from './Paint';
+
 export interface BaseRendererOptions{
     canvas:HTMLCanvasElement;
-    width:number;
-    height:number;
-    dpr:number;
+    width?:number;
+    height?:number;
+    dpr?:number;
+    backgroundColor?:ColorValue
 }
 
-export interface IBaseRenderer<Context=any> extends RendererContext{
+export interface IBaseRenderer<Context=any> extends Renderer2DContext{
     ctx:Context;
-    updateSize(width:number,height:number,updateStyle?:boolean):void;
+    viewport:IViewport
+    setSize(width:number,height:number,updateStyle?:boolean):void;
     render(renderOptions:RenderOptions):void
 }
 export interface RenderOptions{
-    container:IContainer<ContainerProps>
+    renderObjects:RenderObject[]
+}
+export type BaseRendereEvents={
+    resize:[width:number,height:number]
 }
 
-export interface RendererContext{
+export interface Renderer2DContext{
     canvas:HTMLCanvasElement
     renderMode:string
     width:number
     height:number
+    dpr:number
     readonly pixelWidth:number
     readonly pixelHeight:number
     drawRect(x: number, y: number, w: number, h: number): void;
@@ -29,3 +38,4 @@ export interface RendererContext{
     drawEllipse(x: number, y: number, rx: number,ry:number,xRotation:number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawPath(path: ProxyPath2D): void;
 }
+

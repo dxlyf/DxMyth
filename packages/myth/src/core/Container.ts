@@ -1,7 +1,7 @@
 import {Element} from './Element'
 import {IElement} from 'src/types/core/Element'
 import {IDisplayObject} from 'src/types/core/DisplayObject'
-import {ContainerProps,ContainerEvents,IContainer} from 'src/types/core/Container'
+import {ContainerProps,ContainerEvents,IContainer, DisplayListConfig} from 'src/types/core/Container'
 import { ElementEffectFlag } from 'src/constants'
 
 /**
@@ -21,15 +21,16 @@ export class Container<Props extends ContainerProps=ContainerProps,Events extend
         const dirtyFlag=this.getAllEffectFlag()
         if(dirtyFlag&(ElementEffectFlag.Children|ElementEffectFlag.Layout)){
             displayList.length=0
-            this.traverseSort((el)=>{
+            this.traverseSort((_el)=>{
+                let el=_el as IDisplayObject<any>
                 // 删除副作用标记
                 el.effectFlag&=~(ElementEffectFlag.Children|ElementEffectFlag.Layout)
                 // 只收集非容器元素，并且是可见的元素
                 if(el.shouldAddToDisplayList()){
-                    displayList.push(el as IDisplayObject<any>)
+                    displayList.push(el)
                 }
             })
         }
-        return displayList as IDisplayObject<any>[]
+        return this._displayList
     }
 }

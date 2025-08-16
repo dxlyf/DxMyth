@@ -35,7 +35,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@dxyl/math": "^1.0.5",
+    "@dxyl/math": "^1.0.7",
     "@dxyl/tapable": "^1.0.2",
     "@dxyl/utils": "^1.1.6",
     "skia-path2d": "^1.7.6"

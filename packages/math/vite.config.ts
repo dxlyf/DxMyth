@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
     })],
     // vite 配置
     define: {
+      'process.env.DEBUG': JSON.stringify(false)
      // __APP_ENV__: JSON.stringify(env.APP_ENV),
     },
     build:{

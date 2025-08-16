@@ -1,5 +1,5 @@
 
-import { IPluginManager,IPlugin,PluginManagerEvents,PluginCallNames } from 'src/types/core/Plugin.ts'
+import { IPluginManager,IPlugin,PluginConstructor,PluginManagerEvents,PluginCallNames } from 'src/types/core/Plugin.ts'
 import {EventEmitter4} from '@dxyl/utils'
 
 
@@ -8,6 +8,7 @@ export  class Plugin<Context> implements IPlugin<Context> {
     ctx: Context
     owner: IPluginManager<Context> 
     constructor(ctx: Context, owner: IPluginManager<Context>) {
+        this.name = this.constructor.name;
         this.ctx = ctx;
         this.owner = owner;
     }
@@ -16,11 +17,9 @@ export  class Plugin<Context> implements IPlugin<Context> {
      destroy?():void{}
 }
 
-export type PluginConstructor<Context>=typeof Plugin<Context>
-
 export class PluginManager<Context> extends EventEmitter4<PluginManagerEvents<Context>> implements IPluginManager<Context> {
     plugins: Map<string, PluginConstructor<Context>> = new Map();
-    installPluginList: Map<string, Plugin<Context>> = new Map();
+    installPluginList: Map<string, IPlugin<Context>> = new Map();
 
     ctx: Context
     constructor(ctx: Context, plugins?: PluginConstructor<Context>[]) {
@@ -31,8 +30,8 @@ export class PluginManager<Context> extends EventEmitter4<PluginManagerEvents<Co
         }
     }
     addPlugins(plugins: PluginConstructor<Context>[]) {
-        plugins.forEach(p => {
-            if (this.plugins.has(p.prototype.name)) {
+        plugins.filter(Boolean).forEach(p => {
+            if (!this.plugins.has(p.name)) {
                 this.plugins.set(p.name, p)
             }
         })
@@ -46,8 +45,8 @@ export class PluginManager<Context> extends EventEmitter4<PluginManagerEvents<Co
     }
     install() {
         this.emit('install',this.ctx)
-        this.plugins.forEach(Plugin => {
-            if (!this.installPluginList.has(Plugin.prototype.name)) {
+        this.plugins.forEach((Plugin,PluginName) => {
+            if (!this.installPluginList.has(PluginName)) {
                 let p=new Plugin(this.ctx,this)
                 p.create()
                 this.installPluginList.set(p.name, p)

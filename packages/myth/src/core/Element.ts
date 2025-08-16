@@ -1,32 +1,38 @@
 import type { IElement, ElementProps, ElementEvents } from 'src/types/core/Element'
-import { m2d } from '@dxyl/math'
-import { EventTarget,Event } from '@dxyl/utils'
-import { merge,assignDeepWith, applyMixins } from 'src/utils'
+import { Transformable ,ITransformable} from 'src/math/Transformable'
+import { BoundingRect } from 'src/math/BoundingRect'
+import { EventTarget } from 'src/events/EventTarget'
+import { merge, applyMixins } from 'src/utils'
 import { ElementEffectFlag } from 'src/constants'
+import { clz32Len } from 'src/math/utils'
+import { IApplication } from 'src/types/core/Application'
 
-export interface Element<Props extends ElementProps, Events extends {}> extends m2d.ITransformable, EventTarget<Events & ElementEvents> {
+export interface Element<Props extends ElementProps, Events extends {}> extends ITransformable, EventTarget<Events & ElementEvents> {
 }
 
 let elementId = 0
 /**
  * Element 类是所有可视元素的基类，提供了基本的属性和方法、变换属性、事件处理等。
  */
-export class Element<Props extends ElementProps, Events extends {}> extends m2d.Transformable<Props> implements IElement<Props> {
+export class Element<Props extends ElementProps, Events extends {}> extends Transformable<Props> implements IElement<Props> {
     id: number = 0;
     name: string = ''
     props: Props
     type: string = 'Element'
-    effectFlag: number = ElementEffectFlag.None
-    children: Element<Props, Events>[] | null = null
-    parent: Element<Props, Events> | null = null
-    _localBounds: m2d.BoundingRect | null = null
-    _globalBounds: m2d.BoundingRect | null = null
-    constructor(props: Partial<Props>) {
+    _effectFlag: number = ElementEffectFlag.None
+    children: IElement<Props>[] | null = null
+    parent: IElement<Props> | null = null
+    _localBounds: BoundingRect | null = null
+    _bounds: BoundingRect | null = null
+    _owner:IApplication
+    constructor(props?: Props) {
         super(props as Props)
-        this.name=props.name||`Element_${elementId}`
+        this.props = merge({}, ...this.defaultProps(), props||{})
+        this.name=this.props.name||`Element_${elementId}`
+        let target=new EventTarget()
+        delete target.parentNode
+        Object.assign(this,target)
         this.id = elementId++
-        Object.assign(this, new EventTarget())
-        this.props = merge({}, ...this.defaultProps(), props)
         this.initialize()
     }
 
@@ -68,6 +74,31 @@ export class Element<Props extends ElementProps, Events extends {}> extends m2d.
             this.props.silent=v
         }
     }
+    set effectFlag(value:number){
+        if((this._effectFlag^value)!==0){
+            this._effectFlag=value
+            if(this._effectFlag&(ElementEffectFlag.Transform|ElementEffectFlag.Shape|ElementEffectFlag.Children)){
+                this._localBounds=null
+                this._bounds=null
+            }
+        }
+    }
+    get effectFlag(){
+        return this._effectFlag
+    }
+    
+    get parentNode() {
+        return this.parent
+    }
+    get owner(){
+        if(this.parent){
+            return this.parent.owner
+        }
+        return this._owner
+    }
+    set owner(v:IApplication){
+        this._owner=v
+    }
     getObjectByName(name:string){
         const children=this.children
         if(children){
@@ -94,10 +125,6 @@ export class Element<Props extends ElementProps, Events extends {}> extends m2d.
     protected setProps(props:Partial<Props>):boolean{
        return  this._setProps(this.props, props)
     }
-    get parentNode() {
-        return this.parent
-    }
-
     defaultProps(): Partial<Props>[] {
         return [{
             zIndex: 0,
@@ -112,7 +139,7 @@ export class Element<Props extends ElementProps, Events extends {}> extends m2d.
     shouldAddToDisplayList() {
         return this.props.ignore !== true
     }
-    insert(el: Element<Props, Events>, index?: number): boolean {
+    insert(el: IElement<Props>, index?: number): boolean {
         if (this.children == null) {
             this.children = []
         }
@@ -125,21 +152,21 @@ export class Element<Props extends ElementProps, Events extends {}> extends m2d.
             el.parent.remove(el)
         }
         el.parent=this
-        this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout
+        this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout|ElementEffectFlag.Transform
         children.splice(index,0,el)
         return true
     }
-    add(el: Element<Props, Events>): boolean {
+    add(el: IElement<Props>): boolean {
         return this.insert(el)
     }
-    remove(el: Element<Props, Events>): boolean {
+    remove(el: IElement<Props>): boolean {
         if (!this.children) {
             return false
         }
         const index = this.children!.indexOf(el)
         if (index !== -1) {
             const el = this.children!.splice(index, 1)
-            this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout
+            this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout|ElementEffectFlag.Transform
             el[0].parent = null
             return true
         }
@@ -151,12 +178,33 @@ export class Element<Props extends ElementProps, Events extends {}> extends m2d.
         }
         return false
     }
-
-    getLocalBounds(): m2d.BoundingRect {
+    calcLocalBounds():BoundingRect {
         throw new Error('Method not implemented.')
     }
-    getGlobalBounds(): m2d.BoundingRect {
-        throw new Error('Method not implemented.')
+    getLocalBounds(force:boolean=false): BoundingRect {
+        let _localBounds=this._localBounds
+        if(!_localBounds){
+            force=true
+            _localBounds=this._localBounds=BoundingRect.empty()
+        }
+        if(force){
+            let bounds=this.calcLocalBounds()
+            _localBounds.copy(bounds).applyMatrix(this.matrix)
+        }
+        return _localBounds
+    }
+    getBounds(force:boolean=false): BoundingRect {
+        let _bounds=this._bounds
+        if(!_bounds){
+            force=true
+            _bounds=this._bounds=BoundingRect.empty()
+        }
+        if(force){
+            let bounds=this.calcLocalBounds()
+            console.log('getBounds')
+            _bounds.copy(bounds).applyMatrix(this.worldMatrix)
+        }
+        return _bounds
     }
     onTransformChange(): void {
         this.effectFlag |= ElementEffectFlag.Transform

@@ -12,6 +12,9 @@ export type Vector2Point = {
  * @returns 返回更新后的向量
  */
 declare function setXY<T extends Vector2Like = Vector2Like>(out: T, x: number, y: number): T;
+declare function setLength<T extends Vector2Like = Vector2Like>(out: T, x: number, y: number, length: number, orig_length?: {
+    value: any;
+}): boolean;
 declare function add<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, b: Vector2Like): T;
 declare function subtract<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, b: Vector2Like): T;
 declare function multiply<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, b: Vector2Like): T;
@@ -218,6 +221,7 @@ export declare class Vector2 extends Float32Array {
     static equals: typeof equals;
     static isZero: typeof isZero;
     static equalsEpsilon: typeof equalsEpsilon;
+    static setLength: typeof setLength;
     constructor(x: number, y: number);
     constructor(values: Vector2Like);
     get x(): number;

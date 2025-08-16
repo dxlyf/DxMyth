@@ -28,8 +28,8 @@ importers:
   packages/myth:
     dependencies:
       '@dxyl/math':
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^1.0.7
+        version: 1.0.7
       '@dxyl/tapable':
         specifier: ^1.0.2
         version: 1.0.2
@@ -69,8 +69,8 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@dxyl/math@1.0.5':
-    resolution: {integrity: sha512-aJ3w85UoIDE29aGlQVXasd+dGCQUkX6ZDpX+VBTZS9ExVD9WfJ0+UW0xkzCrGnf6b6T1nrY+6pxMb4dXotfIog==}
+  '@dxyl/math@1.0.7':
+    resolution: {integrity: sha512-9+dpX+1SHnsSMiyYWiWtjU5gRDkiNVeQs/rCwY2v5sGG1fMpP5XWxCMhv7a3cDRRojNE/YjwK2dhDfduPVijmg==}
 
   '@dxyl/tapable@1.0.2':
     resolution: {integrity: sha512-rYl/oxeQXzenYV/i+d2ASkrQfPGJptvxpRSK8OhEkvW/Xj8m027jGOqoBMkk4FNnhv5rYt7c4wkv63wAsvNjWA==}
@@ -778,7 +778,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@dxyl/math@1.0.5': {}
+  '@dxyl/math@1.0.7': {}
 
   '@dxyl/tapable@1.0.2': {}
 
