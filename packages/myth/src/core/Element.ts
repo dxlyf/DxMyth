@@ -1,20 +1,19 @@
-import type { IElement, ElementProps, ElementEvents } from 'src/types/core/Element'
-import { Transformable ,ITransformable} from 'src/math/Transformable'
+import type { IElement, ElementProps, ElementEvents,MergeEvents } from 'src/types/core/Element'
+import { Transformable, ITransformable } from 'src/math/Transformable'
 import { BoundingRect } from 'src/math/BoundingRect'
-import { EventTarget } from 'src/events/EventTarget'
+import { EventEmitter4 } from 'src/events'
 import { merge, applyMixins } from 'src/utils'
 import { ElementEffectFlag } from 'src/constants'
-import { clz32Len } from 'src/math/utils'
 import { IApplication } from 'src/types/core/Application'
 
-export interface Element<Props extends ElementProps, Events extends {}> extends ITransformable, EventTarget<Events & ElementEvents> {
+export interface Element<Props extends ElementProps, Events extends ElementEvents=ElementEvents> extends ITransformable, EventEmitter4<Events&ElementEvents> {
 }
 
 let elementId = 0
 /**
  * Element 类是所有可视元素的基类，提供了基本的属性和方法、变换属性、事件处理等。
  */
-export class Element<Props extends ElementProps, Events extends {}> extends Transformable<Props> implements IElement<Props> {
+export class Element<Props extends ElementProps, Events extends ElementEvents> extends Transformable<Props> implements IElement<Props,Events&ElementEvents> {
     id: number = 0;
     name: string = ''
     props: Props
@@ -23,107 +22,102 @@ export class Element<Props extends ElementProps, Events extends {}> extends Tran
     children: IElement<Props>[] | null = null
     parent: IElement<Props> | null = null
     _localBounds: BoundingRect | null = null
-    _bounds: BoundingRect | null = null
-    _owner:IApplication
+    _globalBounds: BoundingRect | null = null
+    _owner: IApplication
     constructor(props?: Props) {
         super(props as Props)
-        this.props = merge({}, ...this.defaultProps(), props||{})
-        this.name=this.props.name||`Element_${elementId}`
-        let target=new EventTarget()
-        delete target.parentNode
-        Object.assign(this,target)
+        this.props = merge({}, ...this.defaultProps(), props || {})
+        this.name = this.props.name || `Element_${elementId}`
+        Object.assign(this,  new EventEmitter4())
         this.id = elementId++
-        this.initialize()
+        this.init()
     }
 
-    initialize(): void {
+    init(): void {
 
     }
-    get visible(){
+    get visible() {
         return this.props.visible
     }
-    set visible(v:boolean) {
-        if(this.props.visible!==v) {
-            this.props.visible=v
-            this.effectFlag|=ElementEffectFlag.Style
+    set visible(v: boolean) {
+        if (this.props.visible !== v) {
+            this.props.visible = v
+            this.effectFlag |= ElementEffectFlag.Style
         }
-    } 
-    get ignore(){
+    }
+    get ignore() {
         return this.props.ignore
     }
-    set ignore(v:boolean) {
-        if(this.props.ignore!==v) {
-            this.props.ignore=v
-            this.effectFlag|=ElementEffectFlag.Style
+    set ignore(v: boolean) {
+        if (this.props.ignore !== v) {
+            this.props.ignore = v
+            this.effectFlag |= ElementEffectFlag.Style
         }
-    } 
-    get zIndex(){
+    }
+    get zIndex() {
         return this.props.zIndex
     }
-    set zIndex(v:number) {
-        if(this.props.zIndex!==v) {
-            this.props.zIndex=v
-            this.effectFlag|=ElementEffectFlag.Layout
+    set zIndex(v: number) {
+        if (this.props.zIndex !== v) {
+            this.props.zIndex = v
+            this.effectFlag |= ElementEffectFlag.Layout
         }
     }
-    get silent(){
+    get silent() {
         return this.props.silent
     }
-    set silent(v:boolean) {
-        if(this.props.silent!==v) {
-            this.props.silent=v
+    set silent(v: boolean) {
+        if (this.props.silent !== v) {
+            this.props.silent = v
         }
     }
-    set effectFlag(value:number){
-        if((this._effectFlag^value)!==0){
-            this._effectFlag=value
-            if(this._effectFlag&(ElementEffectFlag.Transform|ElementEffectFlag.Shape|ElementEffectFlag.Children)){
-                this._localBounds=null
-                this._bounds=null
-            }
+    set effectFlag(value: number) {
+        if ((this._effectFlag ^ value) !== 0) {
+            this._effectFlag = value
+            this.updateEffect()
         }
     }
-    get effectFlag(){
+    get effectFlag() {
         return this._effectFlag
     }
-    
+
     get parentNode() {
         return this.parent
     }
-    get owner(){
-        if(this.parent){
+    get owner() {
+        if (this.parent) {
             return this.parent.owner
         }
         return this._owner
     }
-    set owner(v:IApplication){
-        this._owner=v
+    set owner(v: IApplication) {
+        this._owner = v
     }
-    getObjectByName(name:string){
-        const children=this.children
-        if(children){
-            return children.find(d=>d.name===name)
+    getObjectByName(name: string) {
+        const children = this.children
+        if (children) {
+            return children.find(d => d.name === name)
         }
     }
-    protected _setProp(target:any, key: string|string, value: any): boolean{
+    protected _setProp(target: any, key: string | string, value: any): boolean {
         const oldValue = target[key]
-        if(oldValue!==value){
-            target[key]=value
+        if (oldValue !== value) {
+            target[key] = value
             return true
         }
         return false
     }
-    protected _setProps(target:any,props:any): boolean {
-        let changed=false
-        Object.keys(props).forEach(key=>{
-            if(this._setProp(target, key, props[key])){
-                changed=true
+    protected _setProps(target: any, props: any): boolean {
+        let changed = false
+        Object.keys(props).forEach(key => {
+            if (this._setProp(target, key, props[key])) {
+                changed = true
             }
         })
         return changed
     }
-    protected setProps(props:Partial<Props>):boolean{
-       return  this._setProps(this.props, props)
+    protected setProps(props: Partial<Props>): boolean {
+        return this._setProps(this.props, props)
     }
     defaultProps(): Partial<Props>[] {
         return [{
@@ -133,41 +127,46 @@ export class Element<Props extends ElementProps, Events extends {}> extends Tran
             silent: false
         }] as Partial<Props>[]
     }
+    shouldInteractive(){
+        return this.props.silent !== true&&this.props.ignore!==true
+    }
     shouldRender() {
         return this.props.ignore !== true && this.props.visible !== false
     }
     shouldAddToDisplayList() {
         return this.props.ignore !== true
     }
-    insert(el: IElement<Props>, index?: number): boolean {
+    insert(el: IElement<any>, index?: number): boolean {
         if (this.children == null) {
             this.children = []
         }
-        const children=this.children
-        index=index!==undefined?Math.max(0,Math.min(index,children.length)):children.length
-        if(el.parent===this){
+        const children = this.children
+        index = index !== undefined ? Math.max(0, Math.min(index, children.length)) : children.length
+        if (el.parent === this) {
             return false
         }
-        if(el.parent){
+        if (el.parent) {
             el.parent.remove(el)
         }
-        el.parent=this
-        this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout|ElementEffectFlag.Transform
-        children.splice(index,0,el)
+        el.parent = this
+        this.effectFlag |= ElementEffectFlag.Children | ElementEffectFlag.Layout | ElementEffectFlag.Transform
+        children.splice(index, 0, el)
+        this.emit('child:add',{el:el})
         return true
     }
-    add(el: IElement<Props>): boolean {
+    add(el: IElement<any>): boolean {
         return this.insert(el)
     }
-    remove(el: IElement<Props>): boolean {
+    remove(el: IElement<any>): boolean {
         if (!this.children) {
             return false
         }
         const index = this.children!.indexOf(el)
-        if (index !== -1) {
-            const el = this.children!.splice(index, 1)
-            this.effectFlag |= ElementEffectFlag.Children|ElementEffectFlag.Layout|ElementEffectFlag.Transform
-            el[0].parent = null
+        if (index !== -1) {        
+            const el = this.children!.splice(index, 1)[0]
+            this.emit('child:remove',{el:el})    
+            this.effectFlag |= ElementEffectFlag.Children | ElementEffectFlag.Layout | ElementEffectFlag.Transform
+            el.parent = null
             return true
         }
         return false
@@ -178,33 +177,44 @@ export class Element<Props extends ElementProps, Events extends {}> extends Tran
         }
         return false
     }
-    calcLocalBounds():BoundingRect {
+    calcLocalBounds(): BoundingRect {
         throw new Error('Method not implemented.')
     }
-    getLocalBounds(force:boolean=false): BoundingRect {
-        let _localBounds=this._localBounds
-        if(!_localBounds){
-            force=true
-            _localBounds=this._localBounds=BoundingRect.empty()
+    getLocalBounds(force: boolean = false): BoundingRect {
+        let _localBounds = this._localBounds
+        if (!_localBounds) {
+            force = true
+            _localBounds = this._localBounds = BoundingRect.empty()
         }
-        if(force){
-            let bounds=this.calcLocalBounds()
-            _localBounds.copy(bounds).applyMatrix(this.matrix)
+        if (force) {
+            let bounds = this.calcLocalBounds()
+            _localBounds.copy(bounds)
+            if(this.children&&this.children.length){
+                let tmp=BoundingRect.empty()
+                for(let i=0;i<this.children!.length;i++){
+                    let el=this.children![i]
+                    let childBounds = el.getLocalBounds()
+                    tmp.copy(childBounds)
+                    tmp.applyMatrix(el.matrix)
+                    _localBounds.union(tmp)
+                }
+              
+            }
+       
         }
         return _localBounds
     }
-    getBounds(force:boolean=false): BoundingRect {
-        let _bounds=this._bounds
-        if(!_bounds){
-            force=true
-            _bounds=this._bounds=BoundingRect.empty()
+    getGlobalBounds(force: boolean = false): BoundingRect {
+        let _globalBounds = this._globalBounds
+        if (!_globalBounds) {
+            force = true
+            _globalBounds = this._globalBounds = BoundingRect.empty()
         }
-        if(force){
-            let bounds=this.calcLocalBounds()
-            console.log('getBounds')
-            _bounds.copy(bounds).applyMatrix(this.worldMatrix)
+        if (force) {
+            let bounds = this.getLocalBounds()
+            _globalBounds.copy(bounds).applyMatrix(this.worldMatrix)
         }
-        return _bounds
+        return _globalBounds
     }
     onTransformChange(): void {
         this.effectFlag |= ElementEffectFlag.Transform
@@ -238,10 +248,39 @@ export class Element<Props extends ElementProps, Events extends {}> extends Tran
         }
         return flag
     }
+    removeAllEffectFlag(flag:number){
+        this.effectFlag&=~flag
+        const children = this.children
+        if (children) {
+            for (const child of children) {
+                child.removeAllEffectFlag(flag)
+            }
+        }
+    }
+    resetAllEffectFlag() {
+        this.effectFlag = 0
+        const children = this.children
+        if (children) {
+            for (const child of children) {
+                child.resetAllEffectFlag()
+            }
+        }
+    }
+    updateEffect() {
+        let _effectFlag=this.getAllEffectFlag()
+        // shape属性变化，更新边界框等信息
+        if (_effectFlag & ElementEffectFlag.Shape) {
+            this._localBounds=null
+        }
+        // 矩阵和结构发生变化时，应用了矩阵的边界框需要重新计算
+        if (_effectFlag & (ElementEffectFlag.Transform | ElementEffectFlag.Shape | ElementEffectFlag.Children)) {
+            this._globalBounds = null
+        }
+    }
     dispose(): void {
         this.removeAllListeners()
     }
 
 }
 
-applyMixins(Element, [EventTarget])
+applyMixins(Element, [EventEmitter4])

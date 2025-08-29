@@ -103,7 +103,10 @@ declare function angleBetweenPI2(a: Vector2Like, b: Vector2Like): number;
 declare function perpendicular<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 /**
  * 反射函数
- *
+ * 如需要计算镜面光：a光源，b法线向量 out为反射向量，一般-out要取反
+ * k=2*dot(a,n)
+ * o=a-k*n
+ * o=-o
  * @param out 输出向量，用于存储反射后的结果
  * @param a 输入向量
  * @param n 法向量
@@ -158,7 +161,7 @@ declare function scale<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Li
 declare function scaleAround<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, center: Vector2Like, scale: Vector2Like): T;
 declare function translate<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, x: number, y: number): T;
 declare function transformMat2d<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>): T;
-declare function transformMat3d<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>): T;
+declare function transformMat3<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>): T;
 declare function equals(a: Vector2Like, b: Vector2Like): boolean;
 declare function isZero(a: Vector2Like): boolean;
 declare function equalsEpsilon(a: Vector2Like, b: Vector2Like, epsilon?: number): boolean;
@@ -217,7 +220,7 @@ export declare class Vector2 extends Float32Array {
     static scaleAround: typeof scaleAround;
     static translate: typeof translate;
     static transformMat2d: typeof transformMat2d;
-    static transformMat3d: typeof transformMat3d;
+    static transformMat3: typeof transformMat3;
     static equals: typeof equals;
     static isZero: typeof isZero;
     static equalsEpsilon: typeof equalsEpsilon;
@@ -288,10 +291,10 @@ export declare class Vector2 extends Float32Array {
     scale(sx: number, sy: number): this;
     scaleAround(center: Vector2Like, scale: Vector2Like): this;
     translate(x: number, y: number): this;
-    transformMat2d(m: Vector2Like): this;
-    applyMatrix2D(m: Vector2Like): this;
-    applyMatrix3D(m: Vector2Like): this;
-    transformMat3d(m: Vector2Like): this;
+    transformMat2d(m: ArrayLike<number>): this;
+    applyMatrix2D(m: ArrayLike<number>): this;
+    applyMatrix3(m: ArrayLike<number>): this;
+    transformMat3(m: ArrayLike<number>): this;
     isFinite(): boolean;
     isZero(): boolean;
     equals(other: Vector2Like): boolean;

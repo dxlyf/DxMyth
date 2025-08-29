@@ -153,7 +153,7 @@ class NB {
   composedPath() {
     let t = this.currentTarget, n = [];
     for (; t; )
-      n.push(t), t = t.parentNode;
+      n.push(t), t = t.parent;
     return n;
   }
   preventDefault() {
@@ -180,7 +180,7 @@ function Zh(e, t) {
   return r;
 }
 class ui {
-  parentNode = null;
+  parent = null;
   _bubble_emitter = new xe();
   _capture_emitter = new xe();
   addEventListener(t, n, r) {
@@ -901,7 +901,40 @@ const IB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   merge: kA,
   zip: HA
 }, Symbol.toStringTag, { value: "Module" }));
-class CB {
+function CB() {
+  let e = [];
+  const t = {
+    add(n, r) {
+      r = { stage: 0, once: !1, ...r ?? {} };
+      let i = e.findIndex((s) => r.stage < s.stage);
+      i !== -1 ? e.splice(i, 0, { fn: n, stage: r.stage, once: r.once }) : e.push({ fn: n, stage: r.stage, once: r.once });
+      let o = !1;
+      return () => {
+        o || (o = !0, t.remove(n));
+      };
+    },
+    remove(n) {
+      e = e.filter((r) => r.fn !== n);
+    },
+    dispatch(...n) {
+      let r = !1, i = !1;
+      const o = {
+        stop: () => {
+          r = !0;
+        },
+        remove: () => {
+          i = !0;
+        }
+      };
+      e.some((s) => (s.fn(...n, o), (i || s.once) && t.remove(s.fn), r));
+    },
+    clear() {
+      e.length = 0;
+    }
+  };
+  return t;
+}
+class DB {
   // 标志要知道列表当前是否正在触发
   firing = !1;
   // 非遗忘列表的最后火值
@@ -974,7 +1007,7 @@ class CB {
     return this.fireWith(this, t), this;
   }
 }
-class DB {
+class LB {
   heap;
   compare;
   /**
@@ -1494,7 +1527,7 @@ const jO = (e, t) => {
   if (!e) return "";
   const n = t.replace(/[\W]{1}/g, "\\$&"), r = new RegExp(`^[${n}]+|[${n}]+$`, "g");
   return e.replace(r, "");
-}, LB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+}, FB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   all: EO,
   alphabetical: iO,
@@ -6048,7 +6081,7 @@ rd && (p.prototype[rd] = gn.toIterator);
  * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
  * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  */
-const FB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const jB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   add: F_,
   after: z_,
@@ -7370,7 +7403,7 @@ function Jm(e, t, n) {
   );
   return v[0].length === v[1].length ? v : Jm(v[0], v[1], l);
 }
-const jB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const BB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   angleTo: BI,
   clonePath: Di,
@@ -8236,7 +8269,7 @@ function DC(e) {
 function LC(e) {
   return e;
 }
-const BB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const zB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   Immer: r1,
   applyPatches: PC,
@@ -11529,7 +11562,7 @@ function M3(e, t) {
   return tt(t) ? t.toList() : X(t) ? t.toMap() : t.toSet();
 }
 var P3 = "5.1.3", I3 = we;
-const zB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const UB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   Collection: we,
   Iterable: I3,
@@ -12770,7 +12803,7 @@ function Tn(e, t = 1 / 0, n) {
   }
   return e;
 }
-const UB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const VB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   ARRAY_ITERATE_KEY: wi,
   EffectFlags: K3,
@@ -13093,7 +13126,7 @@ function Aw(e) {
   }
   return t._dispose.bind(t);
 }
-const VB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const qB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   Signal: Ce,
   batch: VD,
@@ -13417,7 +13450,7 @@ function nL(...e) {
 function rL(e) {
   return ju(e) && "type" in e && typeof e.type == "string";
 }
-const qB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const WB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   __DO_NOT_USE__ActionTypes: Yn,
   applyMiddleware: nL,
@@ -16695,7 +16728,7 @@ typeof __MOBX_DEVTOOLS_GLOBAL_HOOK__ == "object" && __MOBX_DEVTOOLS_GLOBAL_HOOK_
   },
   $mobx: R
 });
-const WB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const kB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   $mobx: R,
   FlowCancellationError: Hu,
@@ -17014,7 +17047,7 @@ class Bj extends mn {
     this.interceptions.done();
   }
 }
-const kB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const GB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   AsyncParallelBailHook: Dj,
   AsyncParallelHook: Cj,
@@ -17130,7 +17163,7 @@ class AA {
     this.addOptionFromInstance(t, new zj(this.context, n));
   }
 }
-function GB(...e) {
+function HB(...e) {
   return e.length === 0 ? (t) => t : e.length === 1 ? e[0] : e.reduce(
     (t, n) => (...r) => t(n(...r))
   );
@@ -17242,7 +17275,7 @@ function u_(e, t, n) {
   }
   return { r: r * 255, g: i * 255, b: o * 255 };
 }
-function HB(e, t, n) {
+function KB(e, t, n) {
   e /= 255, t /= 255, n /= 255;
   const r = Math.max(e, t, n), i = Math.min(e, t, n);
   let o = 0, s, a = r;
@@ -17290,11 +17323,11 @@ function nB(e, t, n) {
   }
   return { r: r * 255, g: i * 255, b: o * 255 };
 }
-function KB(e, t, n) {
+function YB(e, t, n) {
   const r = n + t * Math.min(n, 1 - n), i = r === 0 ? 0 : 2 * (1 - n / r);
   return { h: e, s: i, v: r };
 }
-function YB(e, t, n) {
+function XB(e, t, n) {
   const r = (2 - t) * n / 2, i = t === 0 ? t : r <= 1 ? t * n / (2 - t * n) : t * n / (2 - t);
   return { h: e, s: i, l: r };
 }
@@ -17904,7 +17937,7 @@ const Jt = (e) => e instanceof Fa ? e : new Fa(e), h_ = [], TB = (e) => {
   r: Math.random() * 255,
   g: Math.random() * 255,
   b: Math.random() * 255
-}), XB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+}), JB = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   colord: Jt,
   extend: TB,
@@ -17915,7 +17948,7 @@ export {
   Xh as AT_TARGET,
   DA as BUBBLING_PHASE,
   CA as CAPTURING_PHASE,
-  CB as Callbacks,
+  DB as Callbacks,
   nt as Color,
   Sc as Emitter4Event,
   NB as Event,
@@ -17924,31 +17957,32 @@ export {
   ja as EventPhase,
   ui as EventPropagation,
   ui as EventTarget,
-  zB as Immutable,
+  UB as Immutable,
   d_ as NONE,
   AA as Options,
-  DB as PriorityQueue,
-  jB as antvUtil,
-  XB as colord,
-  GB as compose,
+  LB as PriorityQueue,
+  CB as Signals,
+  BB as antvUtil,
+  JB as colord,
+  HB as compose,
   Wo as deepmerge,
   Oc as fastDeepEqual,
   rB as hexToRgb,
-  KB as hslToHsv,
+  YB as hslToHsv,
   u_ as hslToRgb,
-  YB as hsvToHsl,
+  XB as hsvToHsl,
   nB as hsvToRgb,
-  BB as immer,
+  zB as immer,
   iB as lerpColor,
-  FB as lodash,
+  jB as lodash,
   MB as mitt,
-  WB as mobx,
+  kB as mobx,
   IB as observable,
-  LB as radash,
-  UB as reactivity,
-  qB as redux,
+  FB as radash,
+  VB as reactivity,
+  WB as redux,
   tB as rgbToHsl,
-  HB as rgbToHsv,
-  VB as signals,
-  kB as tapable
+  KB as rgbToHsv,
+  qB as signals,
+  GB as tapable
 };

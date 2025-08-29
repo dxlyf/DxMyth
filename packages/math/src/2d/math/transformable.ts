@@ -70,6 +70,7 @@ export interface ITransformable {
     rotation: number
     readonly matrix: Matrix2D
     readonly worldMatrix: Matrix2D
+    readonly invertWorldMatrix:Matrix2D
     localMatrixDirty: boolean
     worldMatrixId: number
     parentWorldMatrixId: number
@@ -95,6 +96,7 @@ export class Transformable<Props extends TransformableProps> implements ITransfo
     pivot = ObservablePoint.create(0, 0) // 图形的轴点
     public _matrix = Matrix2D.default() // 本地矩阵
     public _matrixWorld = Matrix2D.default() // 世界矩阵
+    public _invertMatrixWorld = Matrix2D.default() // 世界矩阵逆矩阵，用于计算世界坐标到本地坐标的转换
     public localMatrixDirty = false // 本地矩阵是否需要更新
     public worldMatrixId = 0 // 当前世界矩阵每次更新的自增ID
     public parentWorldMatrixId = 0 // 父级世界矩阵ID，相同代表不需要更新
@@ -139,6 +141,10 @@ export class Transformable<Props extends TransformableProps> implements ITransfo
     get worldMatrix() {
         this.updateWorldMatrix()
         return this._matrixWorld
+    }
+    get invertWorldMatrix(){
+        this.updateWorldMatrix()
+        return this._invertMatrixWorld
     }
     setTransformWithOptions(options?: Partial<TransformableProps>) {
         if (!options) {
@@ -215,6 +221,7 @@ export class Transformable<Props extends TransformableProps> implements ITransfo
             this._matrixWorld.copy(this.matrix)
             this.parentWorldMatrixId = 0 // 没有父级，世界矩阵id为0
         }
+        this._invertMatrixWorld.copy(this._matrixWorld).invert()
         this.worldMatrixId += 1 // 每次世界矩阵更新，id加1
     }
     onUpdateTransformable = (p?: ObservablePoint) => {

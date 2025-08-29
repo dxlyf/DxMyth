@@ -8,6 +8,7 @@ type PointLike = {
     x: number;
     y: number;
 };
+export declare function calc32Shift(value: number): number;
 export declare function calcArcGoldenRatio(delta: number): number;
 export declare function calcArcSteps(sweepAngle: number): number;
 export declare function allAreFinite(args: number[]): boolean;

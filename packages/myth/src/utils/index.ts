@@ -22,7 +22,7 @@ const primitiveMap = new Set(['string', 'undefined', 'boolean', 'number', 'bigin
 export function isPrimitive(value: any): boolean {
     // return !(value!==null&&typeof value==='object')
     const type = typeof value
-    return type === null || primitiveMap.has(type)
+    return value === null || primitiveMap.has(type)
 }
 export function getType(value: any): string {
     return Object.prototype.toString.call(value).slice(8, -1)
@@ -86,10 +86,12 @@ export function merge(obj: any, ...sources: any[]): any {
 type Constructor<T = {}> = new (...args: any[]) => T;
 export function applyMixins(derivedCtor: any, baseCtors: any[]) {
     baseCtors.forEach(baseCtor => {
-        Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
-            if (name !== "constructor") {
-                derivedCtor.prototype[name] = baseCtor.prototype[name];
-            }
-        });
+       Object.defineProperties(derivedCtor.prototype, Object.getOwnPropertyDescriptors(baseCtor.prototype))
+        // debugger
+        // Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
+        //     if (name !== "constructor") {
+        //         derivedCtor.prototype[name] = baseCtor.prototype[name];
+        //     }
+        // });
     });
 }

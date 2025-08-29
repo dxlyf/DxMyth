@@ -42,3 +42,25 @@ export class StateProp<T,Context=any> implements IStateProp<T,Context>{
         return false
     }
 }
+export type StatePropsOptions<T extends Record<string,unknown>,Context>={
+    [P in keyof T]:StatePropOptions<T[P],Context>
+}
+type IStateProps<T extends Record<string,unknown>,Context>={
+    [Key in keyof T]:StateProp<T[Key],Context>
+}
+
+export function createStateProps<T extends Record<string,unknown>,Context=any>(context:Context,options:StatePropsOptions<T,Context>):IStateProps<T,Context>{
+    const result={} as IStateProps<T,Context>
+    for(const key in options){
+        result[key]=new StateProp(context,options[key])
+    }
+    return  result 
+}
+var a=createStateProps<{age:number}>({},{
+    age:{
+        getDefault(){
+            return 10
+        }
+    }
+} as const)
+

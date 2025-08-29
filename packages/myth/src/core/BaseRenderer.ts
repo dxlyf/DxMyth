@@ -1,4 +1,4 @@
-import { ProxyPath2D } from "skia-path2d";
+import { Path2D, ProxyPath2D } from "skia-path2d";
 import { IBaseRenderer,BaseRendererOptions, RenderOptions,BaseRendereEvents} from "src/types/core/BaseRenderer";
 import {EventEmitter} from '@dxyl/utils'
 import { Viewport } from "./Viewport";
@@ -85,7 +85,7 @@ export abstract class BaseRenderer<Ctx,E extends {}> extends EventEmitter<E|Base
     drawEllipse(x: number, y: number, rx: number, ry: number, xRotation: number, startAngle: number, endAngle: number, ccw: boolean): void {
         throw new Error("Method not implemented.");
     }
-    abstract drawPath(path: ProxyPath2D): void 
+    abstract drawPath(path: Path2D): void 
     abstract render(renderOptions:RenderOptions):void
     dispose(){
 

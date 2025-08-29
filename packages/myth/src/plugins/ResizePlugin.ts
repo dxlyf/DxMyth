@@ -2,6 +2,7 @@
 import {Plugin} from 'src/core/PluginManager'
 import { IApplication } from 'src/types/core/Application';
 import { getMargins } from 'src/utils/dom';
+import {ExtensionType} from 'src/extensions'
 
 declare module '../types/core/Application.ts' {
     /**
@@ -23,6 +24,7 @@ declare module '../types/core/Application.ts' {
 
 class ResizePlugin extends Plugin<IApplication> {
     static name: string='ResizePlugin'
+    static extension=ExtensionType.ApplicationPlugin
     resizeId=0
     width: number=0
     height: number=0

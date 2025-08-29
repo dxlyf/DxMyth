@@ -2,8 +2,7 @@
     "compilerOptions": {
       "allowSyntheticDefaultImports": true,
        "outDir":"./lib",
-       "declarationDir": "./lib",
-       "declaration": true,
+       "declaration": false,
        "emitDeclarationOnly": false,
        "rootDir": "./src",
       "baseUrl": "./",

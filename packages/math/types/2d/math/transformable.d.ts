@@ -33,6 +33,7 @@ export interface ITransformable {
     rotation: number;
     readonly matrix: Matrix2D;
     readonly worldMatrix: Matrix2D;
+    readonly invertWorldMatrix: Matrix2D;
     localMatrixDirty: boolean;
     worldMatrixId: number;
     parentWorldMatrixId: number;
@@ -56,6 +57,7 @@ export declare class Transformable<Props extends TransformableProps> implements 
     pivot: ObservablePoint;
     _matrix: Matrix2D;
     _matrixWorld: Matrix2D;
+    _invertMatrixWorld: Matrix2D;
     localMatrixDirty: boolean;
     worldMatrixId: number;
     parentWorldMatrixId: number;
@@ -69,6 +71,7 @@ export declare class Transformable<Props extends TransformableProps> implements 
     get hasWorldMatrixDirty(): boolean;
     get matrix(): Matrix2D;
     get worldMatrix(): Matrix2D;
+    get invertWorldMatrix(): Matrix2D;
     setTransformWithOptions(options?: Partial<TransformableProps>): void;
     setTransformFromMatrix(matrix: Matrix2D): void;
     updateMatrix(): void;

@@ -1,4 +1,4 @@
-import { ApplicationHooks, ApplicationOptions, IApplication } from "src/types/core/Application";
+import { ApplicationHooks,ApplicationEvents, ApplicationOptions, IApplication } from "src/types/core/Application";
 import { PluginManager } from "./PluginManager";
 import { IBaseRenderer } from "src/types/core/BaseRenderer";
 import { SyncHook, AsyncSeriesBailHook } from '@dxyl/tapable'
@@ -10,10 +10,14 @@ import { IElement } from "src/types/core/Element";
 import { Ticker } from "src/ticker";
 import { Viewport } from "./Viewport";
 import { getRendertList } from "./Paint";
+import { extensions,ExtensionType } from "src/extensions";
+import { EventEmitter } from "src/events";
 
 let currentViewport=new Viewport()
-export class Application implements IApplication {
-    static defaultPlugins = [RendererPlugin, ResizePlugin] as PluginConstructor<IApplication>[]
+const plugins:PluginConstructor<IApplication>[] = []
+extensions.handleByList(ExtensionType.ApplicationPlugin,plugins)
+export class Application extends EventEmitter<ApplicationEvents> implements IApplication {
+    static defaultPlugins=plugins
     options: ApplicationOptions
     pluginManager!: PluginManager<IApplication>
     renderer!: IBaseRenderer
@@ -22,6 +26,7 @@ export class Application implements IApplication {
     container: Container<any, any>
     ticker: Ticker
     constructor(options: ApplicationOptions) {
+        super()
         this.hooks = {
             renderer: new AsyncSeriesBailHook()
         }
@@ -56,11 +61,18 @@ export class Application implements IApplication {
     }
     dispose() {
         this.pluginManager.uninstall()
+        this.removeAllListeners()
     }
     update = () => {
+        this.emit('update', this.ticker.deltaTime)
         if (this.needToReRender) {
+            this.prerender()
             this.render()
+            this.postrender()
         }
+    }
+    prerender(){
+
     }
     render() {
         const container = this.container
@@ -72,6 +84,9 @@ export class Application implements IApplication {
         const renderObjects = getRendertList({ objects: displayList, viewport: currentViewport, dpr: dpr })
         this.renderer.render({ renderObjects:renderObjects })
         this.needToReRender = false
+    }
+    postrender(){
+        this.container.resetAllEffectFlag()
     }
     refresh() {
         this.needToReRender = true

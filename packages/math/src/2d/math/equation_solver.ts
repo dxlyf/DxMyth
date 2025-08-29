@@ -1,6 +1,7 @@
 // EquationSolver.ts
 
 /**
+ * 
  * 通用方程求解器，支持求解常见的代数方程：
  * - 一元一次
  * - 一元二次
@@ -254,7 +255,146 @@ export class EquationSolver {
 type Point = { x: number, y: number }
 
 
+
+type LineLike={
+    start: Point,
+    end: Point
+}
+type CircleLike={
+    center: Point,
+    radius: number
+}
+
+// 一元二次方程的求根公式
+function solveQuadraticRoot(a:number,b:number,c:number) {
+    const delta=b*b-4*a*c
+    if(delta<0) return [] // 无解
+    else if(delta==0) return [-b/(2*a)] // 一个解
+    else {
+        // 两个不同的实数解
+        let x1=-b+Math.sqrt(delta)/(2*a)
+        let x2=-b-Math.sqrt(delta)/(2*a)
+        return [x1,x2]
+    }
+}
+
+/**
+ * 直线与圆的交点
+ * line:Ax+By+C=0
+ * y=-Ax/B-C/B
+ * circle: (x-cx)^2+(y-cy)^2=r^2
+ * 代入:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 组成一元二次方程
+ * x^2-2cxx+cx^2+((-Ax/B-C/B)(-Ax/B-C/B)-2cy(-Ax/B-C/B)+cy^2)
+    x^2-2cxx+cx^2+(A^2x^2/B^2+2ACx/B^2+C^2/B^2+2cyAx/B+2cyC/B+cy^2)
+    
+ * @param line 
+ * @param circle 
+ * @returns 
+ */
+
 export class LineEquation {
+     static create(a:number,b:number,c:number){
+        return new this(a,b,c)
+     }
+     static fromLine(start:Point,end:Point){
+        const dx=end.x-start.x
+        const dy=end.y-start.y
+        const A=dy
+        const B=-dx
+        const C=end.x*start.y-end.y*start.x //dx*line.start.y+dy*line.start.x
+        return this.create(A,B,C)
+     }
+     /**
+     * (x-x0)(y1-y0)=(y-y0)(x1-x0)
+     * 
+     * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
+     */
+     static fromTwoPoints(p0: Point, p1: Point): LineEquation {
+        const A = p0.y - p1.y;
+        const B = p1.x - p0.x;
+        const C = p0.x * p1.y - p1.x * p0.y;
+        return this.create(A, B, C);
+    }
+    /**
+     * 创建：通过斜率和截距 y = m*x + b
+     */
+    static fromSlopeIntercept(m: number, b: number): LineEquation {
+        // 转换为一般式： -m*x + y - b = 0
+        return this.create(-m, 1, -b);
+    }
+
+    /**
+     * 创建：通过点和斜率
+     */
+    static fromPointSlope(p: Point, m: number): LineEquation {
+        // y - y0 = m(x - x0) => mx - y + (y0 - m*x0) = 0
+        return this.create(-m, 1, m * p.x - p.y);
+    }
+    /**
+     * 创建：截距式（x/a + y/b = 1）
+     * @param a x轴截距 ≠ 0
+     * @param b y轴截距 ≠ 0
+     */
+    static fromIntercepts(a: number, b: number): LineEquation {
+        // x/a + y/b = 1 => b*x + a*y - a*b = 0
+        if (a === 0 || b === 0) throw new Error("a and b must be non-zero");
+        const A = b;
+        const B = a;
+        const C = -a * b;
+        return this.create(A, B, C);
+    }
+
+    /**
+     * 创建：点向式，给定点 p 和方向向量 v
+     * @param p 点 p(x0, y0)
+     * @param v 方向向量 v(vx, vy)
+     */
+    static fromPointDirection(p: Point, v: Point): LineEquation {
+        // 方向向量 (vx, vy) 垂直的法向量为 (-vy, vx)
+        const A = -v.y;
+        const B = v.x;
+        const C = -(A * p.x + B * p.y);
+        return this.create(A, B, C);
+    }
+
+    /**
+     * 创建：法向式，通过一个法向量和一点
+     * @param n 法向量 n(A, B)
+     * @param p 点 p(x0, y0)
+     */
+    static fromNormalThroughPoint(n: Point, p: Point): LineEquation {
+        // 法向式：A(x - x0) + B(y - y0) = 0 → Ax + By + C = 0
+        const A = n.x;
+        const B = n.y;
+        const C = -(A * p.x + B * p.y);
+        return this.create(A, B, C);
+    }
+
+    /**
+     * 创建：交点式，给定 x、y 轴交点
+     * 即与 x 轴交于 (a, 0)，与 y 轴交于 (0, b)
+     */
+    static fromXYIntercepts(a: number, b: number): LineEquation {
+        return this.fromIntercepts(a, b); // 与截距式相同
+    }
+
+    /**
+     * 求两直线的交点（无交点返回 null）
+     */
+    static intersection(l1: LineEquation, l2: LineEquation): Point | null {
+        const D = l1.A * l2.B - l2.A * l1.B;
+        if (Math.abs(D) < 1e-8) return null; // 平行或重合
+
+        const Dx = -l1.C * l2.B + l2.C * l1.B;
+        const Dy = -l1.A * l2.C + l2.A * l1.C;
+
+        return {
+            x: Dx / D,
+            y: Dy / D
+        };
+    }
+
+
     A: number;
     B: number;
     C: number;
@@ -268,82 +408,7 @@ export class LineEquation {
         this.C = C;
     }
 
-    /**
-     * (x-x0)(y1-y0)=(y-y0)(x1-x0)
-     * 
-     * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
-     */
-    static fromTwoPoints(p0: Point, p1: Point): LineEquation {
-        const A = p0.y - p1.y;
-        const B = p1.x - p0.x;
-        const C = p0.x * p1.y - p1.x * p0.y;
-        return new LineEquation(A, B, C);
-    }
-
-    /**
-     * 创建：通过斜率和截距 y = m*x + b
-     */
-    static fromSlopeIntercept(m: number, b: number): LineEquation {
-        // 转换为一般式： -m*x + y - b = 0
-        return new LineEquation(-m, 1, -b);
-    }
-
-    /**
-     * 创建：通过点和斜率
-     */
-    static fromPointSlope(p: Point, m: number): LineEquation {
-        // y - y0 = m(x - x0) => mx - y + (y0 - m*x0) = 0
-        return new LineEquation(-m, 1, m * p.x - p.y);
-    }
-    /**
-     * 创建：截距式（x/a + y/b = 1）
-     * @param a x轴截距 ≠ 0
-     * @param b y轴截距 ≠ 0
-     */
-    static fromIntercepts(a: number, b: number): LineEquation {
-        // x/a + y/b = 1 => b*x + a*y - a*b = 0
-        if (a === 0 || b === 0) throw new Error("a and b must be non-zero");
-        const A = b;
-        const B = a;
-        const C = -a * b;
-        return new LineEquation(A, B, C);
-    }
-
-    /**
-     * 创建：点向式，给定点 p 和方向向量 v
-     * @param p 点 p(x0, y0)
-     * @param v 方向向量 v(vx, vy)
-     */
-    static fromPointDirection(p: Point, v: Point): LineEquation {
-        // 方向向量 (vx, vy) 垂直的法向量为 (-vy, vx)
-        const A = -v.y;
-        const B = v.x;
-        const C = -(A * p.x + B * p.y);
-        return new LineEquation(A, B, C);
-    }
-
-    /**
-     * 创建：法向式，通过一个法向量和一点
-     * @param n 法向量 n(A, B)
-     * @param p 点 p(x0, y0)
-     */
-    static fromNormalThroughPoint(n: Point, p: Point): LineEquation {
-        // 法向式：A(x - x0) + B(y - y0) = 0 → Ax + By + C = 0
-        const A = n.x;
-        const B = n.y;
-        const C = -(A * p.x + B * p.y);
-        return new LineEquation(A, B, C);
-    }
-
-    /**
-     * 创建：交点式，给定 x、y 轴交点
-     * 即与 x 轴交于 (a, 0)，与 y 轴交于 (0, b)
-     */
-    static fromXYIntercepts(a: number, b: number): LineEquation {
-        return this.fromIntercepts(a, b); // 与截距式相同
-    }
-
-
+   
     /**
      * 获取斜率（若为垂直线返回 Infinity）
      */
@@ -395,7 +460,7 @@ export class LineEquation {
      */
     parallelThrough(p: Point): LineEquation {
         const C = -(this.A * p.x + this.B * p.y);
-        return new LineEquation(this.A, this.B, C);
+        return (this.constructor as typeof LineEquation).create(this.A, this.B, C);
     }
 
     /**
@@ -405,29 +470,154 @@ export class LineEquation {
         const A = this.B;
         const B = -this.A;
         const C = -(A * p.x + B * p.y);
-        return new LineEquation(A, B, C);
+        return  (this.constructor as typeof LineEquation).create(A, B, C);
     }
-
-    /**
-     * 求两直线的交点（无交点返回 null）
-     */
-    static intersection(l1: LineEquation, l2: LineEquation): Point | null {
-        const D = l1.A * l2.B - l2.A * l1.B;
-        if (Math.abs(D) < 1e-8) return null; // 平行或重合
-
-        const Dx = -l1.C * l2.B + l2.C * l1.B;
-        const Dy = -l1.A * l2.C + l2.A * l1.C;
-
-        return {
-            x: Dx / D,
-            y: Dy / D
-        };
+    getLineIntersection(line: LineLike) {
+        const [A1,B1,C1]=this.toArray()
+        const [A2,B2,C2]=LineEquation.fromLine(line.start,line.end).toArray()
+        // 不相交
+        if(A1*B2-B1*A2===0){
+            return
+        }
+        if(B1==0&&A1!==0){
+            const x=-C1/A1
+            const y=(-A2*x-C2)/B2
+            return {
+                x,
+                y
+            }
+        }
+        if(B2==0&&A2!==0){
+            const x=-C2/A2
+            const y=(-A1*x-C1)/B1
+            return {
+                x,
+                y
+            }
+        }
+        const x=(B2*C1-B1*C2)/(A2*B1-A1*B2)
+        const y=(-A1*x-C1)/B1
+        return {x,y}
     }
-
+     getCircleIntersection(line: LineLike, circle: CircleLike) {
+        const [A1,B1,C1]=[this.A,this.B,this.C]
+        let cx=circle.center.x,cy=circle.center.y,r=circle.radius
+    
+        let A2=A1*A1+B1*B1
+        let B2=2*(-B1*B1*cx+A1*C1+cy*A1*B1)
+        let C2=cx*cx*B1*B1+C1*C1+2*cy*B1*C1+B1*B1*cy*cy-B1*B1*r*r
+        let x0=solveQuadraticRoot(A2,B2,C2)
+        return x0.map(x=>{
+            let y=(-A1*x-C1)/B1
+            return {x,y}
+        })
+    }
+    toArray(){
+        return [this.A,this.B,this.C]
+    }
     /**
      * 将直线转换为字符串形式 Ax + By + C = 0
      */
     toString(): string {
         return `${this.A}x + ${this.B}y + ${this.C} = 0`;
     }
+}
+
+export class CircleEquation{
+
+    static create(cx:number,cy:number,r:number){
+        return new CircleEquation(cx,cy,r)
+    }
+    // 一般式: x² + y² + Dx + Ey + F = 0
+    static fromGeneral(D:number,E:number,F:number){
+        return new CircleEquation(D/-2,E/-2,Math.sqrt(F))
+    }
+    cx:number
+    cy:number
+    r:number
+    constructor(cx:number,cy:number,r:number){
+        this.cx=cx
+        this.cy=cy
+        this.r=r
+    }
+    isPointOnCircle(p:Point,elipson=1e-6):boolean{
+        return Math.pow(p.x-this.cx,2)+Math.pow(p.y-this.cy,2)<=Math.pow(this.r,2)
+    }
+    toGeneral(){
+        let D=-2*this.cx
+        let E=-2*this.cy
+        let F=this.cx*this.cx+this.cy*this.cy-this.r*this.r
+        return [D,E,F]
+    }
+    circleIntersection(circle:CircleEquation){
+        const [D1,E1,F1]=this.toGeneral() // 圆的一般方程
+        const [D2,E2,F2]=circle.toGeneral()
+        //转为直线方程:Ax+By+C=0
+        let A=D1-D2,B=E1-E2,C=F1-F2
+        // 圆标准方程:(x-cx)^2+(y-cy)^2=r^2 
+        // y=(-Ax/B-C/B) 代入标准方程:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 
+        // 得到一元二次方程:Ax²+Bx+C=0
+        // 求根式解一元二次方程:-b+sqrt(b²-4ac)/2a 或 -b-sqrt(b²-4ac)/2a
+        let BB=B*B,AA=A*A,CC=C*C
+        let A2=BB+AA
+        let B2=2*(-this.cx*BB+A*C+this.cy*A*B)
+        let C2=(this.cx**2)*BB+CC+2*this.cy*B*C+BB*(this.cy**2)-BB*(this.r**2)
+        return solveQuadraticRoot(A2,B2,C2).map(x=>{
+            return {
+                x,
+                y:(-A*x-C)/B
+            }
+        })
+    }
+    
+}
+
+
+export class EllipseEquation{
+
+    static create(cx:number,cy:number,r:number){
+        return new CircleEquation(cx,cy,r)
+    }
+    // 一般式: Ax² +Bxy+ Cy² + Dx + Ey + F = 0
+    static fromGeneral(D:number,E:number,F:number){
+        return new CircleEquation(D/-2,E/-2,Math.sqrt(F))
+    }
+    cx:number
+    cy:number
+    r:number
+    constructor(cx:number,cy:number,r:number){
+        this.cx=cx
+        this.cy=cy
+        this.r=r
+    }
+    isPointOnCircle(p:Point,elipson=1e-6):boolean{
+        return Math.pow(p.x-this.cx,2)+Math.pow(p.y-this.cy,2)<=Math.pow(this.r,2)
+    }
+    toGeneral(){
+        let D=-2*this.cx
+        let E=-2*this.cy
+        let F=this.cx*this.cx+this.cy*this.cy-this.r*this.r
+        return [D,E,F]
+    }
+    circleIntersection(circle:CircleEquation){
+        const [D1,E1,F1]=this.toGeneral() // 圆的一般方程
+        const [D2,E2,F2]=circle.toGeneral()
+        //转为直线方程:Ax+By+C=0
+        let A=D1-D2,B=E1-E2,C=F1-F2
+        // 圆标准方程:(x-cx)^2+(y-cy)^2=r^2 
+        // y=(-Ax/B-C/B) 代入标准方程:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 
+        // 得到一元二次方程:Ax²+Bx+C=0
+        // 求根式解一元二次方程:-b+sqrt(b²-4ac)/2a 或 -b-sqrt(b²-4ac)/2a
+        let BB=B*B,AA=A*A,CC=C*C
+        let A2=BB+AA
+        let B2=2*(-this.cx*BB+A*C+this.cy*A*B)
+        let C2=(this.cx**2)*BB+CC+2*this.cy*B*C+BB*(this.cy**2)-BB*(this.r**2)
+        return solveQuadraticRoot(A2,B2,C2).map(x=>{
+            return {
+                x,
+                y:(-A*x-C)/B
+            }
+        })
+    }
+    
 }

@@ -1,31 +1,34 @@
-import {Application,Rect} from '../../src'
-import {ApplicationOptions} from '../../src/types/core/Application'
-
-const app=new Application({
-    resizeTo:window,
-    canvas:document.getElementById('myCanvas') as HTMLCanvasElement,
-    renderMode:'canvas'
+import { Application, Rect, Container, Circle, Path } from '../../src'
+import { ApplicationOptions } from '../../src/types/core/Application'
+import { Matrix2D } from '../../src/math/Matrix2d'
+import { Vector2 } from '../../src/math/Vec2'
+const app = new Application({
+    resizeTo: window,
+    canvas: document.getElementById('myCanvas') as HTMLCanvasElement,
+    renderMode: 'canvas'
 })
-async function main(){
+async function main() {
     await app.init()
-
-
-    const  rect=new Rect({
-        shape:{
-            x:0,
-            y:0,
-            width:100,
-            height:100
-        },
-        style:{
-            fillStyle:'#ff0000'
-        },
-        position:{x:100,y:100},
-
+    let p = new Path({
+        style: {
+            fillStyle:null,
+            strokeStyle: 'blue',
+            lineWidth: 10,
+            //strokeDashArray:[5,5]
+        }
+    })
+    p.rect(100, 100, 100, 100)
+    p.on('pointerdown',e=>{
+        console.log('path',e.target)
+  
         
     })
-    app.add(rect)
-    app.render()
+    app.container.on('pointerdown',e=>{
+        console.log('container',e)
+    })
+    app.add(p)
+    app.refresh()
+
 
 }
 main()

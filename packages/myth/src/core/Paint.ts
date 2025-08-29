@@ -4,7 +4,6 @@ import { Pattern } from "src/image/Pattern";
 import { IDisplayObject } from "src/types/core/DisplayObject";
 import { IPaint, PaintColor, PaintStyle, PaintType, RenderObject } from "src/types/core/Paint";
 import { IViewport } from "src/types/core/Viewport";
-import { Viewport } from "./Viewport";
 
 // 
 export function isValidStyle(style: PaintColor): boolean {
@@ -56,7 +55,7 @@ export function getStrokePaint(object: IDisplayObject) {
     }
     const paint: IPaint = {
         ...getPaintType(strokeStyle),
-        style: PaintStyle.Fill,
+        style: PaintStyle.Stroke,
         lineCap,
         lineJoin,
         width: lineWidth,

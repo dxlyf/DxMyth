@@ -1,7 +1,5 @@
+import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-import { BoundingRect } from "src/math/BoundingRect";
-import { IBaseRenderer } from "src/types/core/BaseRenderer";
-import { IViewport } from "src/types/core/Viewport";
 export type RectShapeProps={
     x?:number,
     y?:number,
@@ -19,18 +17,9 @@ export class Rect extends DisplayObject<RectShapeProps>{
             } as RectShapeProps
         }]
     }
-    calcLocalBounds(): BoundingRect {
-        const bounds=BoundingRect.default()
-        const shape=this.shape as Required<RectShapeProps>
-        bounds.fromRect(shape.x,shape.y,shape.width,shape.height)
-        return bounds
-    }
-    isInViewport(viewport:IViewport): boolean {
-        return viewport.intersect(this.getBounds())
-    }
-    render(renderer: IBaseRenderer): void {
-        const shape=this.shape as Required<RectShapeProps>
-        renderer.drawRect(shape.x,shape.y,shape.width,shape.height)
+    buildPath(path:Path2D): void {
+        path.getPath().reset()
+        path.rect(this.shape.x,this.shape.y,this.shape.width,this.shape.height)
     }
     
 }

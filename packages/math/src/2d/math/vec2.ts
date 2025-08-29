@@ -1,4 +1,3 @@
-
 export type Vector2Like = number[] | Float32Array | Vector2
 export type Vector2Point={x:number, y:number}
 
@@ -211,16 +210,20 @@ function perpendicular<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like
 }
 /**
  * 反射函数
- *
+ * 如需要计算镜面光：a光源，b法线向量 out为反射向量，一般-out要取反
+ * k=2*dot(a,n)
+ * o=a-k*n
+ * o=-o
  * @param out 输出向量，用于存储反射后的结果
  * @param a 输入向量
  * @param n 法向量
  * @returns 返回输出向量 out
  */
 function reflect<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, n: Vector2Like) {
-    const dot = 2 * (a[0] * n[0] + a[1] * n[1]);
-    out[0] = a[0] - dot * n[0];
-    out[1] = a[1] - dot * n[1];
+    const projLen=dot(a,normalize(n,n))
+    const k = 2 * projLen
+    out[0] = a[0] - k * n[0];
+    out[1] = a[1] - k * n[1];
     return out
 }
  /**
@@ -398,13 +401,15 @@ function translate<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, 
     return out
 }
 function transformMat2d<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>) {
-    out[0] = a[0] * m[0] + a[1] * m[2] + m[4];
-    out[1] = a[0] * m[1] + a[1] * m[3] + m[5];
+    const x=a[0],y=a[1]
+    out[0] = x * m[0] + y * m[2] + m[4];
+    out[1] = x * m[1] + y* m[3] + m[5];
     return out
 }
-function transformMat3d<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>) {
-    out[0] = a[0] * m[0] + a[1] * m[4] + m[8];
-    out[1] = a[0] * m[1] + a[1] * m[5] + m[9];
+function transformMat3<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, m: ArrayLike<number>) {
+    const x=a[0],y=a[1]
+    out[0] = x * m[0] + y * m[3] + m[6];
+    out[1] = x * m[1] + y * m[4] + m[7];
     return out
 }
 function equals(a: Vector2Like, b: Vector2Like) {
@@ -488,7 +493,7 @@ export class Vector2 extends Float32Array {
     static scaleAround = scaleAround
     static translate = translate
     static transformMat2d = transformMat2d
-    static transformMat3d = transformMat3d
+    static transformMat3 = transformMat3
     static equals = equals
     static isZero = isZero
     static equalsEpsilon = equalsEpsilon
@@ -703,17 +708,17 @@ export class Vector2 extends Float32Array {
     translate(x: number, y: number) { // 向量平移，传入一个向量，返回新的向量
         return translate(this, this, x, y); // 返回新的向量
     }
-    transformMat2d(m: Vector2Like) { // 向量变换，传入一个矩阵，返回新的向量
+    transformMat2d(m: ArrayLike<number>) { // 向量变换，传入一个矩阵，返回新的向量
         return transformMat2d(this, this, m); // 返回新的向量
     }
-    applyMatrix2D(m: Vector2Like) { // 向量变换，传入一个矩阵，返回新的向量
+    applyMatrix2D(m: ArrayLike<number>) { // 向量变换，传入一个矩阵，返回新的向量
         return this.transformMat2d(m); // 返回新的向量
     }
-    applyMatrix3D(m: Vector2Like) { // 向量变换，传入一个矩阵，返回新的向量
-        return this.transformMat3d(m); // 返回新的向量
+    applyMatrix3(m: ArrayLike<number>) { // 向量变换，传入一个矩阵，返回新的向量
+        return this.transformMat3(m); // 返回新的向量
     }
-    transformMat3d(m: Vector2Like) { // 向量变换，传入一个矩阵，返回新的向量
-        return transformMat3d(this, this, m); // 返回新的向量
+    transformMat3(m: ArrayLike<number>) { // 向量变换，传入一个矩阵，返回新的向量
+        return transformMat3(this, this, m); // 返回新的向量
     }
     isFinite(){
         return isFinite(this.x) && isFinite(this.y); // 返回标量
@@ -746,6 +751,6 @@ export class Vector2 extends Float32Array {
         return this
     }
     toArray() { // 向量转数组，返回一个数组
-        return [this[0], this[1]]; // 返回数组
+        return Array.from(this); // 返回数组
     }
 }

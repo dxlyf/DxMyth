@@ -67,9 +67,7 @@ export declare class Emitter4Event<D> implements IEmitter4Event<D> {
     stopPropagation(): void;
     stopImmediatePropagation(): void;
 }
-export declare class EventEmitter4<E extends {
-    [K in keyof E]: any[];
-}> implements EventTarget {
+export declare class EventEmitter4<E extends Record<string, any[]>> implements EventTarget {
     parent?: EventTarget | null;
     _listeners?: EventListener;
     _listenersNs?: Map<string, Map<string, number>>;

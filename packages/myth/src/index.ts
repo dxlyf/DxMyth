@@ -1,4 +1,11 @@
+export * from './plugins'
+export * from './input'
 export * from './core/Application'
-
-
+export * from './core/Container'
 export * from './shapes/Rect'
+export * from './shapes/Circle'
+export * from './shapes/Ellipse'
+export * from './shapes/Line'
+export * from './shapes/Polygon'
+export * from './shapes/Polyline'
+export * from './shapes/Path'

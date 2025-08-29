@@ -13,5 +13,4 @@ export type StatePropOptions<T,Context=any>={
     equals?(a:T,b:T):boolean
     shouldUpdate?(a:T,b:T):boolean
     set?(this:IStateProp<T,Context>,value:T):void
-    get():T
 }

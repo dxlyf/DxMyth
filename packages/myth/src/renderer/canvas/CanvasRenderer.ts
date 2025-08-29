@@ -1,4 +1,4 @@
-import { ProxyPath2D } from "skia-path2d";
+import { Path2D, ProxyPath2D } from "skia-path2d";
 import { BaseRenderer } from "src/core/BaseRenderer";
 import { getRendertList } from "src/core/Paint";
 import { Color } from "src/image/Color";
@@ -18,8 +18,8 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
     createContext(): CanvasRenderingContext2D {
         return this.canvas.getContext('2d')!;
     }
-    drawPath(path: ProxyPath2D): void {
-        throw new Error("Method not implemented.");
+    drawPath(path: Path2D): void {
+        path.toCanvas(this.ctx)
     }
     drawRect(x: number, y: number, w: number, h: number): void {
         this.ctx.rect(x,y,w,h)
@@ -72,7 +72,8 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
             ctx.save()
             ctx.beginPath()
             ctx.transform(matrix.a,matrix.b,matrix.c,matrix.d,matrix.e,matrix.f)
-            object.render(this)
+            object.buildRenderPath()
+            object._fillPath.toCanvas(ctx)
             paints.forEach(paint=>{
                 this.applyPaint(object,paint)
             })

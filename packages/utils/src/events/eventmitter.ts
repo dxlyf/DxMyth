@@ -301,7 +301,7 @@ export class Emitter4Event<D> implements IEmitter4Event<D> {
 const _eventName = '_listeners'
 const _eventName_capture = '_listeners_capture'
 const _eventNs = '_listenersNs'
-export class EventEmitter4<E extends { [K in keyof E]: any[] }> implements EventTarget {
+export class EventEmitter4<E extends Record<string,any[]>> implements EventTarget {
     parent?: EventTarget | null;
     _listeners?: EventListener
     _listenersNs?: Map<string, Map<string, number>>
@@ -318,7 +318,7 @@ export class EventEmitter4<E extends { [K in keyof E]: any[] }> implements Event
         return this
     }
     createEvent<T extends Extract<keyof E, string>,D extends E[T]>(type: T,data:D[0]) {
-        return Emitter4Event.create(type,data)
+        return Emitter4Event.create<T,D[0]>(type,data)
     }
     emitBubble(e:IEmitter4Event) {
         return dispatchBubbleEvent(this as any, _eventName, _eventName_capture, _eventNs, e)
@@ -338,4 +338,3 @@ export class EventEmitter4<E extends { [K in keyof E]: any[] }> implements Event
         return this
     }
 }
-

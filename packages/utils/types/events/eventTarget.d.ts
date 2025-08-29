@@ -45,7 +45,7 @@ export interface EventTarget<Events extends Record<string, any> = {}> {
     emit<K extends Extract<keyof Events, string>>(e: Event<Events[K], K>): void;
 }
 export declare class EventTarget<Events extends Record<string, any> = {}> {
-    parentNode: EventTarget | null;
+    parent: EventTarget | null;
     private _bubble_emitter;
     private _capture_emitter;
     addEventListener<K extends keyof Events>(type: K, fn: EventCallback<Events[K]>, options?: EventOptions | boolean): void;

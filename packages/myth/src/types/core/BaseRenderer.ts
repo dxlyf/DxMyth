@@ -1,8 +1,8 @@
-import {ProxyPath2D} from 'skia-path2d'
-import {IContainer,ContainerProps} from './Container'
+import {Path2D} from 'skia-path2d'
 import { IViewport } from './Viewport';
 import { ColorValue } from 'src/image/Color';
 import { RenderObject } from './Paint';
+import { EventEmitter } from 'src/events';
 
 export interface BaseRendererOptions{
     canvas:HTMLCanvasElement;
@@ -12,7 +12,7 @@ export interface BaseRendererOptions{
     backgroundColor?:ColorValue
 }
 
-export interface IBaseRenderer<Context=any> extends Renderer2DContext{
+export interface IBaseRenderer<Context=any> extends EventEmitter<BaseRendereEvents>,Renderer2DContext{
     ctx:Context;
     viewport:IViewport
     setSize(width:number,height:number,updateStyle?:boolean):void;
@@ -36,6 +36,6 @@ export interface Renderer2DContext{
     drawRect(x: number, y: number, w: number, h: number): void;
     drawCircle(x: number, y: number, r: number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawEllipse(x: number, y: number, rx: number,ry:number,xRotation:number,startAngle:number,endAngle:number,ccw:boolean): void;
-    drawPath(path: ProxyPath2D): void;
+    drawPath(path: Path2D): void;
 }
 

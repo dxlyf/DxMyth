@@ -4,8 +4,12 @@ import { IContainer } from "./Container";
 import { IElement } from "./Element";
 import { PluginConstructor } from "./Plugin";
 import type {AsyncSeriesBailHook} from '@dxyl/tapable'
+import { EventEmitter } from "src/events";
 
-export interface IApplication{
+export type ApplicationEvents={
+   update:[deltaTime:number]
+}
+export interface IApplication extends EventEmitter<ApplicationEvents>{
     hooks:ApplicationHooks
     options:ApplicationOptions
     renderer:IBaseRenderer

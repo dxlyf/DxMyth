@@ -57,7 +57,7 @@ export class Event<T=any,E extends Extract<keyof Record<string,any>,string>=''> 
         let composePath:EventTarget[] = []
         while (current) {
             composePath.push(current)
-            current = current.parentNode
+            current = current.parent
         }
         return composePath
     }
@@ -106,7 +106,7 @@ export interface EventTarget<Events extends Record<string,any>={}>{
 
 }
 export class EventTarget<Events extends Record<string,any>={}>  {
-    parentNode:EventTarget|null=null
+    parent:EventTarget|null=null
     private _bubble_emitter = new EventEmitter()
     private _capture_emitter = new EventEmitter()
 

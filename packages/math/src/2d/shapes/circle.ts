@@ -1,4 +1,5 @@
 import {BoundingRect} from '../math/bounding_rect'
+import {Vector2} from '../math/vec2'
 const boundingBox=BoundingRect.default()
 export class Circle{
     constructor(public cx:number,public cy:number,public radius:number) {
@@ -37,6 +38,44 @@ export class Circle{
      */
     getCircumference() {
         return 2 * Math.PI * this.radius;
+    }
+    /**
+     *  a = (r₁² - r₂² + d²) / (2d)
+     * 圆c0和圆c1的交点，线段p0-p1是两个圆的公共弦。
+     * P是两个圆的交点,并且在公共弦上
+     * Q是c0c1两个圆心的连线,与交点连成的公共弦线，垂直于公共弦。
+     * 设直线三角形:c0QP,c1QP
+     * d=|c1-c0|
+     * 邻边与对边长度:a=|P-Q| b=|Q-c0|  
+     * r0^2=a^2+b^2
+     * r1^2=(d-b)^2+a^2
+     * r0^2-r1^2=a^2+b^2-((d-b)^2+a^2)
+     * r0^2-r1^2=a^2+b^2-d^2+2db-b^2-a^2
+       r0^2-r1^2=-d^2+2db
+       r0^2-r1^2+d^2=2db
+       (r0^2-r1^2+d^2)/2d=b
+     * @param circle 
+     * @returns 
+     */
+    intersectionFromCircle(circle:Circle){
+        const c0=Vector2.create(this.cx, this.cy)
+        const c1=Vector2.create(circle.cx, circle.cy)
+        const delta=Vector2.sub(Vector2.default(),c1, c0)
+        const dir=delta.clone().normalize()
+        const r0=this.radius
+        const r1=circle.radius
+        const len=delta.magnitude()
+      //  const middle_t0=(r0-r1+len)/(2*len)
+        if(len<=r0+r1) {
+            const rootAxis_len=(r0*r0-r1*r1+len*len)/(2*len)
+        
+            const rootAxis_center=dir.clone().multiplyScalar(rootAxis_len).add(c0)
+            const h=r0*r0-rootAxis_len*rootAxis_len
+            const p0=dir.clone().ccw().multiplyScalar(h).add(rootAxis_center)
+            const p1=dir.clone().cw().multiplyScalar(h).add(rootAxis_center)
+            return [p0, p1]
+        }
+        return []
     }
     distanceTo(x:number,y:number) {
         return Math.sqrt((x - this.cx) ** 2 + (y - this.cy) ** 2);
