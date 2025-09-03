@@ -6,10 +6,13 @@ export type EventHandleOptions={
     proxyHandler?: EventEmitter,
     handle?: (e:Event)=>void
 }
+/**
+ * 事件处理基类，用于封装原生DOM事件的监听和分发。
+ */
 export abstract class EventHandle<T extends string,E extends Event> extends EventEmitter<T> {
-    proxyHandler: EventEmitter
     options:EventHandleOptions
-    constructor(public app:IApplication, options:EventHandleOptions) {
+    _bounds: DOMRect
+    constructor(public app:IApplication, options?:EventHandleOptions) {
         super()
         this.options=Object.assign({
             proxyHandler:this
@@ -17,6 +20,15 @@ export abstract class EventHandle<T extends string,E extends Event> extends Even
     }
     get domElement(){
         return this.options.domElement
+    }
+    get proxyHandler(){
+        return this.options.proxyHandler
+    }
+    get bounds() {
+        if (!this._bounds) {
+            this._bounds = this.domElement.getBoundingClientRect()
+        }
+        return this._bounds
     }
     abstract getDomEventNames(): readonly string[]
     mapEvent(e:E){
@@ -38,6 +50,15 @@ export abstract class EventHandle<T extends string,E extends Event> extends Even
         for (let eventName of this.getDomEventNames()) {
             this.domElement.removeEventListener(eventName  as any, this.handle, false)
         }
+    }
+    onUpdate(){
+
+    }
+    onResize(){
+        this._bounds=null
+    }
+    destroy(){
+        this.detachEvents()
     }
 
 }

@@ -6,7 +6,8 @@
 enum ExtensionType
 {
     ApplicationPlugin = 'ApplicationPlugin',
-    Interactive='Interactive'
+    Interactive='Interactive',
+    Font='font'
 }
 
 /**

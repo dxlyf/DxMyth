@@ -3,7 +3,7 @@ import {DisplayObjectStyleProps, IDisplayObject} from 'src/types/core/DisplayObj
 import {DisplayObjectProps,DisplayObjectEvents} from 'src/types/core/DisplayObject'
 import { ElementEffectFlag } from 'src/constants'
 import { IBaseRenderer } from 'src/types/core/BaseRenderer'
-import { FillRule, LineCap, LineJoin } from 'src/types/core/Paint'
+import { FillRule, LineCap, LineJoin, PaintStyle, RenderObject } from 'src/types/core/Paint'
 import { IViewport } from 'src/types/core/Viewport'
 import { isValidStyle } from './Paint'
 import {Path2D,PathStroker,PathStrokeDash} from 'skia-path2d'
@@ -113,7 +113,7 @@ export abstract class DisplayObject<ShapeProps extends{},Events extends DisplayO
         return BoundingRect.empty()
     }
     buildRenderPath(){
-        if(this.effectFlag&ElementEffectFlag.Shape||!this._fillPath){
+        if(this.effectFlag&ElementEffectFlag.Shape&&(this.hasFill()||this.hasStroke())||!this._fillPath){
             if(!this._fillPath){
                 this._fillPath=Path2D.default()
             }
@@ -146,7 +146,13 @@ export abstract class DisplayObject<ShapeProps extends{},Events extends DisplayO
         }
         this.effectFlag&=~ElementEffectFlag.Shape
     }
-    render(renderer:IBaseRenderer):void{
+    render(renderer:IBaseRenderer,renderObject:RenderObject):void{
+        const {object,paints}=renderObject
+        this.buildRenderPath()
+        renderer.drawPath(object._fillPath)
+        paints.forEach(paint=>{
+            renderer.drawPaint(paint)
+        })
     }
     abstract buildPath(path:Path2D):void;
 }

@@ -24,11 +24,5 @@ import { HookAsyncCallback } from "./types";
 			})
 		})
 	}
-	tapAsync(): void {
-		throw new Error("tapAsync is not supported on a SyncHook");
-	}
-	tapPromise(): void {
-		throw new Error("tapPromise is not supported on a SyncHook");
-	}
 }
 export default AsyncSeriesBailHook;

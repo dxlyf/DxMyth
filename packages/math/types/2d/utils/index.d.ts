@@ -142,4 +142,71 @@ export declare function floorPrecision(value: number, p: number): number;
 export declare function ceilPrecision(value: number, p: number): number;
 export declare function bSplineBasis(i: number, k: number, t: number, knots: number[]): number;
 export declare function bSplineCurve(controlPoints: number[][], degree: number, knots: number[], t: number): number[];
+/**
+ * 二维点接口
+ */
+interface Point {
+    x: number;
+    y: number;
+}
+/**
+ * 贝塞尔曲线极值查找类
+ */
+export declare class BezierExtremaFinder {
+    /**
+     * 查找贝塞尔曲线在指定维度上的极值参数
+     * @param controlPoints 控制点数组
+     * @param dimension 维度 ('x' 或 'y')
+     * @returns 极值对应的参数 t 数组
+     */
+    static findExtremaParameters(controlPoints: Point[], dimension: 'x' | 'y'): number[];
+    /**
+     * 查找贝塞尔曲线的所有极值点（包括x和y方向）
+     * @param controlPoints 控制点数组
+     * @returns 极值点数组（包含参数t和对应的点坐标）
+     */
+    static findAllExtrema(controlPoints: Point[]): Array<{
+        t: number;
+        point: Point;
+    }>;
+    /**
+     * 计算贝塞尔曲线在参数t处的点
+     * @param controlPoints 控制点数组
+     * @param t 参数 [0, 1]
+     * @returns 曲线上的点
+     */
+    static evaluateBezier(controlPoints: Point[], t: number): Point;
+    /**
+     * 求解多项式方程的实根（使用数值方法）
+     * @param coefficients 多项式系数，从高次到低次
+     * @returns 在 [0, 1] 区间内的实根数组
+     */
+    private static findPolynomialRoots;
+    /**
+     * 求解二次方程
+     */
+    private static solveQuadratic;
+    /**
+     * 求解三次方程（使用Cardano公式）
+     */
+    private static solveCubic;
+    /**
+     * 使用牛顿迭代法数值求解多项式根
+     */
+    private static solvePolynomialNumerically;
+    /**
+     * 牛顿迭代法
+     */
+    private static newtonRaphson;
+    /**
+     * 计算多项式及其导数在某点的值
+     */
+    private static evaluatePolynomialAndDerivative;
+    /**
+     * 计算二项式系数 C(n, k)
+     */
+    private static binomialCoefficient;
+}
+export declare function solveQuadratic(a: number, b: number, c: number): number[];
+export declare function solveCubic(a: number, b: number, c: number, d: number): number[];
 export {};

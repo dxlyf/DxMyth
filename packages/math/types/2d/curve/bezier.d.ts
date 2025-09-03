@@ -59,10 +59,19 @@ export declare function conicBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2
 export declare function getRationalBezierPointWithBernstein(points: Vector2[], weight: number[], t: number): Vector2;
 /**
  * 获取贝塞尔曲线的曲率
+ * 曲率表示: 曲率=|F'x*F''y-F'y*F''x|/[(F'x^2+F'y^2)^(3/2)]
+    曲率: 曲率是曲线在某一点处的弯曲程度的度量，通常用来描述曲线在该点附近的变化速度。
+    对于二次和三次贝塞尔曲线来说，其曲率可以通过计算曲线的导数（即一阶导数）和二阶导数的叉积来得到。
     曲率半径=1/k
 */
 export declare function bezierCurvatureAt(points: Vector2[], t: number): number;
+/**
+ * 二次贝塞尔曲线，使用矩阵计算
+ */
 export declare function quadBezierWithMatrixAt(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2;
+/**
+ * 三次贝塞尔曲线，使用矩阵计算
+ */
 export declare function cubicBezierWithMatrixAt(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2;
 export declare function quadraticBezierAt(v0: number, v1: number, v2: number, t: number): number;
 /**
@@ -137,6 +146,40 @@ export declare function chopBezierAt(points: Vector2[], t?: number): {
     right: Vector2[];
 };
 export declare function chopQuadBezierAt(p0: Vector2, p1: Vector2, p2: Vector2, t?: number): Vector2[];
+export declare function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2): Vector2[];
+/***
+ * p=(x,y)
+ * d(t)=p.y =y0+(y1-y0)*t=p.y
+   t=(p.y-p0.y)/(p1.y-p0.y) t{0,1}之间,表示p.y在p0.y和p1.y之间
+   x=x0+(x1-x0)*t
+   x>p.x
+ */
+export declare function windLine(p: Vector2, p0: Vector2, p1: Vector2): number;
+/***
+ * 发出一条射线与二次贝塞尔曲线交点
+ * 假始射线是一条水平线，从左向右发射，与二次贝塞尔曲线交点
+   由于射线的y值是固定的，所以只需要y计算出t
+   rayY=py
+   quat(t)=py =p0.y(1-t)^2+2*p1.y*t*(1-t)+p2.y*t^2=py
+   // 得到一个一元二次方程,再解一元二次方程得到t值即可。
+   At^2+Bt+C=0
+   A=(p0.y-2*p1.y+p2.y)
+   B=2(-p0.y+p1.y)
+   C=p0.y-py
+   t0=(-B+Math.sqrt(B*B-4*A*C))/(2*A)
+   t1=(-B-Math.sqrt(B*B-4*A*C))/(2*A)
+
+   对于每一个在 [0, 1] 区间内的实根 t_i，我们将其代入 X(t_i)，计算出交点的 X 坐标。
+    如果 X(t_i) > P_test.x，说明这个交点在射线的右侧，它是一个有效交叉点。
+    如果 X(t_i) <= P_test.x，则忽略（交点在左侧，不算穿越）。
+ */
+export declare function windQuadBezier(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): number;
+/**
+ * At^3+Bt^2+Ct+D=0
+
+ * ( -Y0 + 3Y1 - 3Y2 + Y3 ) * t³ + ( 3Y0 - 6Y1 + 3Y2 ) * t² + ( -3Y0 + 3Y1 ) * t + ( Y0 - Py ) = 0
+*/
+export declare function windCubicBezier(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): number;
 export declare function chopQuadBezierAtMaxCurature(src: Vector2[], dst: Vector2[]): Vector2[];
 export declare function chopCubicBezierAt(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t?: number): Vector2[];
 export declare function pointOnSegmentDistance(x: number, y: number, x1: number, y1: number, x2: number, y2: number): number;
@@ -243,3 +286,10 @@ export declare function cubicProjectPoint(x0: number, y0: number, x1: number, y1
  * 计算三次贝塞尔曲线长度
  */
 export declare function cubicLength(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, iteration: number): number;
+/**
+ * 查找与p最近的曲线上的点
+ * @param p
+ * @param controlPoints
+ * @returns
+ */
+export declare function findClosestTNewton(p: Vector2, controlPoints: Vector2[]): number;

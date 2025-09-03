@@ -12,6 +12,13 @@ export declare class Line {
     getDelta(out?: Vector2): Vector2;
     getCenter(out?: Vector2): Vector2;
     distanceTo(x: number, y: number): number;
+    pointLineSquareDistance(x: number, y: number): number;
+    pointLineDistance(x: number, y: number): number;
+    toGeneralFormula(): {
+        A: number;
+        B: number;
+        C: number;
+    };
     /**
      * 直线参数方程(x,y)=(x0+at, y0+bt) (a,b)是单位向量
      * 线段上的点参数方程:(x,y)=(x0+(x1-x0)t, y0+(y1-y0)t)
@@ -39,6 +46,21 @@ export declare class Line {
        v=(AE-CD)/d
     */
     intersectionFromLine(line: Line, out?: Vector2): Vector2;
+    intersectionFromCirlce(circle: {
+        cx: number;
+        cy: number;
+        r: number;
+    }): Vector2[];
+    /**
+     * t:长度,d:方向
+     * x=p0+dt=bounds.left
+     * t=(bounds.left-p0)/d
+     * @param box
+     */
+    intersectionFromAABB(box: {
+        min: Vector2;
+        max: Vector2;
+    }): Vector2[];
     /**
      * y=xk+b b=y-xk
      * 适用所有直线

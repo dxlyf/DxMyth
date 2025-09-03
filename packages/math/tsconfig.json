@@ -39,5 +39,5 @@
       }
     },
     "include": ["src"],
-    "exclude": ["./src/2d/utils/*.js"]
+    "exclude": ["./src/2d/utils/*.js","./src/utils/algebra-js/*.js"]
   }

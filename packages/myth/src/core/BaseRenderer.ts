@@ -4,7 +4,7 @@ import {EventEmitter} from '@dxyl/utils'
 import { Viewport } from "./Viewport";
 
 
-export abstract class BaseRenderer<Ctx,E extends {}> extends EventEmitter<E|BaseRendereEvents> implements IBaseRenderer<Ctx> {
+export abstract class BaseRenderer<Ctx> extends EventEmitter<BaseRendereEvents> implements IBaseRenderer<Ctx> {
     ctx: Ctx;
     canvas:HTMLCanvasElement
     options:BaseRendererOptions

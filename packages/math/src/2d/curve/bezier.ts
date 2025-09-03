@@ -1,7 +1,7 @@
 import { BoundingRect } from '../math/bounding_rect'
 import { Vector2 } from '../math/vec2'
-import { nCr, factorial, clamp } from 'src/2d/utils'
-import {mat3,vec3,mat4, vec4} from 'gl-matrix'
+import { nCr, factorial, clamp,solveCubic,solveQuadratic } from 'src/2d/utils'
+import { mat3, vec3, mat4, vec4 } from 'gl-matrix'
 
 const mathSqrt = Math.sqrt;
 const EPSILON_NUMERIC = 1e-4;
@@ -52,8 +52,8 @@ export class QuadBezier {
         const count = computeQuadExtremas([this.p0, this.p1, this.p2], extrenas)
         return count
     }
-    fatten(tessellationTolerance=1){
-        return flattenQuadBezier(this.p0, this.p1, this.p2,tessellationTolerance)
+    fatten(tessellationTolerance = 1) {
+        return flattenQuadBezier(this.p0, this.p1, this.p2, tessellationTolerance)
     }
 }
 export class CubicBezier {
@@ -104,8 +104,8 @@ export class CubicBezier {
         const count = computeCubicExtremas([this.p0, this.p1, this.p2, this.p3], extrenas)
         return count
     }
-    fatten(tessellationTolerance=1){
-        return flattenCubicBezier(this.p0, this.p1, this.p2, this.p3,tessellationTolerance)
+    fatten(tessellationTolerance = 1) {
+        return flattenCubicBezier(this.p0, this.p1, this.p2, this.p3, tessellationTolerance)
 
     }
 }
@@ -147,17 +147,18 @@ export function getBezierPointWithDeCasteljau(points: Vector2[], t: number): Vec
     }
     return result[0]
 }
-export function conicBezierAt(p0: number, p1: number, p2: number, weight: number = 1,t:number) {
-    const w=(4*weight)/(3*(1+weight))
-    const c1p=p0+(p1-p0)*w
-    const c2p=p2+(p1-p2)*w
-    return cubicBezierAt(p0,c1p,c2p,p2,t)
+// 圆锥曲线，使用三次贝塞尔曲线近似表示圆锥曲线
+export function conicBezierAt(p0: number, p1: number, p2: number, weight: number = 1, t: number) {
+    const w = (4 * weight) / (3 * (1 + weight))
+    const c1p = p0 + (p1 - p0) * w
+    const c2p = p2 + (p1 - p2) * w
+    return cubicBezierAt(p0, c1p, c2p, p2, t)
 }
-export function conicBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2, weight: number = 1,t:number): Vector2 {
-    const w=(4*weight)/(3*(1+weight))
-    const c1p=Vector2.lerp(Vector2.default(), p0, p1, w)
-    const c2p=Vector2.lerp(Vector2.default(), p1, p2, w)
-    return cubicBezierPointAt(p0,c1p,c2p,p2,t)
+export function conicBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2, weight: number = 1, t: number): Vector2 {
+    const w = (4 * weight) / (3 * (1 + weight))
+    const c1p = Vector2.lerp(Vector2.default(), p0, p1, w)
+    const c2p = Vector2.lerp(Vector2.default(), p1, p2, w)
+    return cubicBezierPointAt(p0, c1p, c2p, p2, t)
 }
 /**
  * 如conicTo(p0, p1,p2, weight)=getRationalBezierPointWithBernstein([p0,p1,p2],[1,weight,1])
@@ -186,6 +187,9 @@ export function getRationalBezierPointWithBernstein(points: Vector2[], weight: n
 
 /** 
  * 获取贝塞尔曲线的曲率
+ * 曲率表示: 曲率=|F'x*F''y-F'y*F''x|/[(F'x^2+F'y^2)^(3/2)]
+    曲率: 曲率是曲线在某一点处的弯曲程度的度量，通常用来描述曲线在该点附近的变化速度。
+    对于二次和三次贝塞尔曲线来说，其曲率可以通过计算曲线的导数（即一阶导数）和二阶导数的叉积来得到。
     曲率半径=1/k
 */
 export function bezierCurvatureAt(points: Vector2[], t: number) {
@@ -197,32 +201,37 @@ export function bezierCurvatureAt(points: Vector2[], t: number) {
 
     return numerator / denominator
 }
-
+/**
+ * 二次贝塞尔曲线，使用矩阵计算
+ */
 export function quadBezierWithMatrixAt(p0: Vector2, p1: Vector2, p2: Vector2, t: number) {
-        const m=mat3.fromValues(1,-2,1,
-                                0,2,-2,
-                                0,0,1)
-        const vt=vec3.fromValues(1,t,t*t)
-        const r=vec3.transformMat3(vec3.create(), vt,m)
-        const px=vec3.fromValues(p0.x, p1.x, p2.x)
-        const py=vec3.fromValues(p0.y, p1.y, p2.y)
-        return Vector2.create(vec3.dot(r,px), vec3.dot(r,py))
+    const m = mat3.fromValues(1, -2, 1,
+        0, 2, -2,
+        0, 0, 1)
+    const vt = vec3.fromValues(1, t, t * t)
+    const r = vec3.transformMat3(vec3.create(), vt, m)
+    const px = vec3.fromValues(p0.x, p1.x, p2.x)
+    const py = vec3.fromValues(p0.y, p1.y, p2.y)
+    return Vector2.create(vec3.dot(r, px), vec3.dot(r, py))
 }
-export function cubicBezierWithMatrixAt(p0: Vector2, p1: Vector2, p2: Vector2,p3:Vector2, t: number) {
-    const m=mat4.fromValues(1,-3,3,-1,
-                            0,3,-6,3,
-                            0,0,3,-3,
-                            0,0,0,1)
-    const vt=vec4.fromValues(1,t,t*t,t*t*t)
-    const r=vec4.transformMat4(vec3.create(), vt,m)
-    const px=vec4.fromValues(p0.x, p1.x, p2.x,p3.x)
-    const py=vec4.fromValues(p0.y, p1.y, p2.y,p3.y)
-    return Vector2.create(vec4.dot(r,px), vec4.dot(r,py))
+/**
+ * 三次贝塞尔曲线，使用矩阵计算
+ */
+export function cubicBezierWithMatrixAt(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number) {
+    const m = mat4.fromValues(1, -3, 3, -1,
+        0, 3, -6, 3,
+        0, 0, 3, -3,
+        0, 0, 0, 1)
+    const vt = vec4.fromValues(1, t, t * t, t * t * t)
+    const r = vec4.transformMat4(vec3.create(), vt, m)
+    const px = vec4.fromValues(p0.x, p1.x, p2.x, p3.x)
+    const py = vec4.fromValues(p0.y, p1.y, p2.y, p3.y)
+    return Vector2.create(vec4.dot(r, px), vec4.dot(r, py))
 }
 
-export function quadraticBezierAt(v0:number, v1:number,v2:number,t:number){
+export function quadraticBezierAt(v0: number, v1: number, v2: number, t: number) {
     const _tt = t * t, _1t = 1 - t, _1tt = _1t * _1t
-    return v0 * _1tt + 2  * t * _1t*v1 +  _tt*v2
+    return v0 * _1tt + 2 * t * _1t * v1 + _tt * v2
 }
 /**
  * 根据二次贝塞尔曲线上的参数 t 计算对应的点
@@ -239,9 +248,9 @@ export function quadraticBezierPointAt(p0: Vector2, p1: Vector2, p2: Vector2, t:
     const y = p0.y * _1tt + 2 * _1t * t * p1.y + _tt * p2.y
     return Vector2.create(x, y)
 }
-export function cubicBezierAt(v0:number,v1:number,v2:number,v3:number, t: number) {
+export function cubicBezierAt(v0: number, v1: number, v2: number, v3: number, t: number) {
     const _tt = t * t, _ttt = _tt * t, _1t = 1 - t, _1tt = _1t * _1t, _1ttt = _1tt * _1t;
-    return v0 * _1ttt + 3  * t * _1tt*v1 + 3*_1t*_tt*v2+_ttt*v3
+    return v0 * _1ttt + 3 * t * _1tt * v1 + 3 * _1t * _tt * v2 + _ttt * v3
 }
 /**
  * 根据贝塞尔曲线的四个控制点和一个时间参数 t，计算贝塞尔曲线上的点
@@ -386,19 +395,18 @@ export function getBezierDerivativeControlPoints(points: Vector2[]): Vector2[] {
     }
     return result
 }
-export function chopBezierBetween(points: Vector2[], t0: number, t1: number):Vector2[] {
-    if(t0===0&&t1===1)return points
+export function chopBezierBetween(points: Vector2[], t0: number, t1: number): Vector2[] {
+    if (t0 === 0 && t1 === 1) return points
 
-    if(t0===0){
-        return chopBezierAt(points,t1).left
+    if (t0 === 0) {
+        return chopBezierAt(points, t1).left
     }
-    if(t1===1){
-        return chopBezierAt(points,t0).right
+    if (t1 === 1) {
+        return chopBezierAt(points, t0).right
     }
-    const right=chopBezierAt(points,t0).right
-    return chopBezierAt(right,t1).left
+    const right = chopBezierAt(points, t0).right
+    return chopBezierAt(right, t1).left
 }
-
 /**
  * N阶贝塞尔曲线细分（使用德卡斯特里奥算法）
  * @param {Array} points - 控制点数组，格式 [{x, y}, ...]
@@ -436,7 +444,90 @@ export function chopQuadBezierAt(p0: Vector2, p1: Vector2, p2: Vector2, t: numbe
     const v2 = v0.clone().lerp(v1, t)
     return [p0, v0, v2, v1, p2]
 }
-// 二次贝塞尔曲线细分最大曲率点
+// 根据极值细分二次贝塞尔曲线
+export function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2) {
+    let tValue: number[] = []
+    findQuadExtrema(p0.y, p1.y, p2.y, tValue)
+    if (tValue.length > 0) {
+        const t = tValue[0]
+        return chopQuadBezierAt(p0, p1, p2, t)
+    }
+    return []
+}
+/***
+ * p=(x,y)
+ * d(t)=p.y =y0+(y1-y0)*t=p.y
+   t=(p.y-p0.y)/(p1.y-p0.y) t{0,1}之间,表示p.y在p0.y和p1.y之间
+   x=x0+(x1-x0)*t
+   x>p.x
+ */
+export function windLine(p: Vector2,p0:Vector2,p1:Vector2): number {
+    let wind=0
+    if(p.y>p0.y!==p.y>=p1.y&&p.x<(p0.x+(p1.x-p0.x)*(p.y-p0.y))/(p1.y-p0.y)){
+        wind++
+    }
+    return wind
+}
+
+/***
+ * 发出一条射线与二次贝塞尔曲线交点
+ * 假始射线是一条水平线，从左向右发射，与二次贝塞尔曲线交点
+   由于射线的y值是固定的，所以只需要y计算出t
+   rayY=py
+   quat(t)=py =p0.y(1-t)^2+2*p1.y*t*(1-t)+p2.y*t^2=py
+   // 得到一个一元二次方程,再解一元二次方程得到t值即可。
+   At^2+Bt+C=0
+   A=(p0.y-2*p1.y+p2.y)
+   B=2(-p0.y+p1.y)
+   C=p0.y-py
+   t0=(-B+Math.sqrt(B*B-4*A*C))/(2*A)
+   t1=(-B-Math.sqrt(B*B-4*A*C))/(2*A)
+
+   对于每一个在 [0, 1] 区间内的实根 t_i，我们将其代入 X(t_i)，计算出交点的 X 坐标。
+    如果 X(t_i) > P_test.x，说明这个交点在射线的右侧，它是一个有效交叉点。
+    如果 X(t_i) <= P_test.x，则忽略（交点在左侧，不算穿越）。
+ */
+export function windQuadBezier(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): number {
+    const A = p0.y - 2 * p1.y + p2.y
+    const B = 2 * (p1.y - p0.y)
+    const C = p0.y - p.y
+    const roots=solveQuadratic(A,B,C)
+    let wind = 0
+    for (const t of roots) {
+        if(t>=0&&t<=1){
+            const x = quadraticBezierAt(p0.x, p1.x, p2.x, t)
+            if (p.x > x) {
+                wind++
+            }
+        }
+
+    }
+    return wind
+}
+/** 
+ * At^3+Bt^2+Ct+D=0
+
+ * ( -Y0 + 3Y1 - 3Y2 + Y3 ) * t³ + ( 3Y0 - 6Y1 + 3Y2 ) * t² + ( -3Y0 + 3Y1 ) * t + ( Y0 - Py ) = 0
+*/
+export function windCubicBezier(p: Vector2, p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): number {
+    const A=-p0.y+3*p1.y-3*p2.y+p3.y
+    const B=3*p0.y-6*p1.y+3*p2.y
+    const C=-3*p0.y+3*p1.y
+    const D=p0.y-p.y    
+
+    let wind = 0
+    const roots=solveCubic(A,B,C,D)
+    for(let t of roots){
+        if(t>=0&&t<=1){
+            let x=cubicBezierAt(p0.x, p1.x, p2.x, p3.x, t)
+            if(x>p.x){
+                wind++
+            }
+        }
+    }
+    return wind
+}
+// 根据最大曲率点细分二次贝塞尔曲线
 export function chopQuadBezierAtMaxCurature(src: Vector2[], dst: Vector2[]) {
     const t = findQuadMaxCurvature(src[0], src[1], src[2])
     if (t > 0 && t < 1) {
@@ -866,25 +957,25 @@ export function computeQuadExtremas(src: Vector2[], extremas: Vector2[]) {
  * @returns  极值点个数
  */
 export function computeCubicExtremas(src: Vector2[], extremas: Vector2[]) {
-    let ts: number[] = [0,0,0,0], tmp: number[] = [];
-    let n = 0,tmp_n=0
-    if ((tmp_n=findCubicExtrema(src[0].x, src[1].x, src[2].x, src[3].x, tmp)) > 0) {
-        if(tmp_n==1){
+    let ts: number[] = [0, 0, 0, 0], tmp: number[] = [];
+    let n = 0, tmp_n = 0
+    if ((tmp_n = findCubicExtrema(src[0].x, src[1].x, src[2].x, src[3].x, tmp)) > 0) {
+        if (tmp_n == 1) {
             ts[0] = tmp[0]
         }
-        if(tmp_n==2){
+        if (tmp_n == 2) {
             ts[1] = tmp[1]
         }
-        n+=tmp_n
+        n += tmp_n
     }
-    if((tmp_n=findCubicExtrema(src[0].y, src[1].y, src[2].y, src[3].y, tmp)) > 0) {
-        if(tmp_n==1){
+    if ((tmp_n = findCubicExtrema(src[0].y, src[1].y, src[2].y, src[3].y, tmp)) > 0) {
+        if (tmp_n == 1) {
             ts[n] = tmp[0]
         }
-        if(tmp_n==2){
-            ts[n+1] = tmp[1]
+        if (tmp_n == 2) {
+            ts[n + 1] = tmp[1]
         }
-        n+=tmp_n
+        n += tmp_n
     }
     for (let i = 0; i < n; ++i) {
         extremas[i] = getBezierPointWithDeCasteljau(src, ts[i]);
@@ -910,13 +1001,13 @@ export function computeCubicExtremas(src: Vector2[], extremas: Vector2[]) {
  */
 export function quadraticProjectPoint(
     x0: number, y0: number, x1: number, y1: number, x2: number, y2: number,
-    x: number, y: number, out: Vector2|null
+    x: number, y: number, out: Vector2 | null
 ): number {
     // http://pomax.github.io/bezierinfo/#projections
-    let t: number=0;
+    let t: number = 0;
     let interval = 0.005;
     let d = Infinity;
-    const _v0=Vector2.create(x, y),_v1=Vector2.default(),_v2=Vector2.default();
+    const _v0 = Vector2.create(x, y), _v1 = Vector2.default(), _v2 = Vector2.default();
 
     // 先粗略估计一下可能的最小距离的 t 值
     // PENDING
@@ -1008,10 +1099,10 @@ export function quadraticLength(
  */
 export function cubicProjectPoint(
     x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number,
-    x: number, y: number, out: Vector2|null
+    x: number, y: number, out: Vector2 | null
 ): number {
     // http://pomax.github.io/bezierinfo/#projections
-    let t=0;
+    let t = 0;
     let interval = 0.005;
     let d = Infinity;
     let prev;
@@ -1019,7 +1110,7 @@ export function cubicProjectPoint(
     let d1;
     let d2;
 
-    const _v0=Vector2.create(x,y), _v1=Vector2.default(),_v2=Vector2.default();
+    const _v0 = Vector2.create(x, y), _v1 = Vector2.default(), _v2 = Vector2.default();
 
     // 先粗略估计一下可能的最小距离的 t 值
     // PENDING
@@ -1104,4 +1195,48 @@ export function cubicLength(
     }
 
     return d;
+}
+
+
+function findRootNewton(p:Vector2, controlPoints:Vector2[], initialT = 0.5, tolerance = 1e-6, maxIterations = 100) {
+    let t = initialT;
+    const derivCP = getBezierDerivativeControlPoints(controlPoints);
+    const secondDerivCP = getBezierDerivativeControlPoints(derivCP);
+    for (let i = 0; i < maxIterations; i++) {
+        const Bt = getBezierPointWithDeCasteljau(controlPoints,t);
+        const dBt = getBezierPointWithDeCasteljau(derivCP,t);
+        const d2Bt = getBezierPointWithDeCasteljau(secondDerivCP,t);
+        const B_minus_P = { x: Bt.x - p.x, y: Bt.y - p.y };
+        const f = B_minus_P.x * dBt.x + B_minus_P.y * dBt.y;
+        if (Math.abs(f) < tolerance) break;
+        const fPrime = (dBt.x * dBt.x + dBt.y * dBt.y) + (B_minus_P.x * d2Bt.x + B_minus_P.y * d2Bt.y);
+        if (Math.abs(fPrime) < 1e-12) break;
+        t -= f / fPrime;
+        t = Math.max(0, Math.min(1, t));
+    }
+    return t;
+}
+/**
+ * 查找与p最近的曲线上的点
+ * @param p 
+ * @param controlPoints 
+ * @returns 
+ */
+export function findClosestTNewton(p:Vector2, controlPoints:Vector2[]) {
+    const candidates = [0, 1];
+    for (let i = 0; i <= 10; i++) {
+        const t = i / 10;
+        candidates.push(findRootNewton(p, controlPoints, t));
+    }
+    let minDist = Infinity, bestT = 0;
+    candidates.forEach(t => {
+        const Bt = getBezierPointWithDeCasteljau(controlPoints,t);
+        const dx = Bt.x - p.x, dy = Bt.y - p.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < minDist) {
+            minDist = distSq;
+            bestT = t;
+        }
+    });
+    return bestT;
 }

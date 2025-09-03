@@ -1,0 +1,42 @@
+{
+  "name": "@dxyl/font",
+  "version": "1.0.0",
+  "description": "font parse",
+  "publishConfig": {
+    "access": "public"
+ },
+  "keywords": [
+    "graphic",
+    "util"
+  ],
+  "exports":{
+    "./opentype":{
+      "types":"./dist/opentype/index.d.ts",
+      "import":"./dist/opentype/index.js",
+      "default":"./dist/opentype/index.umd.js"
+    }
+  },
+  "files": [
+    "package.json",
+    "readme.md",
+    "dist",
+    "types",
+    "lib"
+  ],
+  "homepage": "https://github.com/dxlyf/DxMyth",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dxlyf/DxMyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlyf/DxMyth/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --port=8428",
+    "build": "vite build"
+  },
+  "dependencies": {
+  
+  }
+}

@@ -97,8 +97,8 @@ class u {
     this.callIntercept("call", e, o ? r : void 0);
     const m = this.taps, k = m.length;
     let d = 0;
-    const x = (a) => a ? (this.callIntercept("error", e, r || void 0), s(a), !0) : !1, P = (a) => d >= k || (t === "Bail" || t === "Loop") && a !== void 0 ? (t == "Waterfall" && (a = e[0]), a !== void 0 ? this.callIntercept("result", [a], r || void 0) : this.callIntercept("done"), s(null, t == "Normal" ? void 0 : a), !0) : !1, n = (a, f) => {
-      if (x(a))
+    const x = (l) => l ? (this.callIntercept("error", e, r || void 0), s(l), !0) : !1, P = (l) => d >= k || (t === "Bail" || t === "Loop") && l !== void 0 ? (t == "Waterfall" && (l = e[0]), l !== void 0 ? this.callIntercept("result", [l], r || void 0) : this.callIntercept("done"), s(null, t == "Normal" ? void 0 : l), !0) : !1, n = (l, f) => {
+      if (x(l))
         return;
       if (t == "Loop" && f !== void 0) {
         d = 0, n(null);
@@ -151,15 +151,15 @@ class u {
     let r = this.taps.length, m = this.taps, k = 0, d = r, x = new Array(r);
     const P = this.needContext(), n = P ? {} : void 0;
     this.callIntercept("call", s, P ? n : void 0);
-    let a = !1;
+    let l = !1;
     const f = (i) => {
-      a || (this.callIntercept("error", s, n || void 0), o(i), a = !0);
+      l || (this.callIntercept("error", s, n || void 0), o(i), l = !0);
     }, c = (i) => {
-      a || (t == "Waterfall" && (i = s[0]), i !== void 0 ? this.callIntercept("result", [i], n || void 0) : this.callIntercept("done"), o(null, t == "Normal" ? void 0 : i), a = !0);
-    }, p = (i) => (l, w) => {
-      if (!a) {
-        if (x[i] = { err: l, result: w }, d--, l) {
-          f(l);
+      l || (t == "Waterfall" && (i = s[0]), i !== void 0 ? this.callIntercept("result", [i], n || void 0) : this.callIntercept("done"), o(null, t == "Normal" ? void 0 : i), l = !0);
+    }, p = (i) => (a, w) => {
+      if (!l) {
+        if (x[i] = { err: a, result: w }, d--, a) {
+          f(a);
           return;
         }
         if (t == "Bail" && w !== void 0) {
@@ -172,19 +172,19 @@ class u {
         }
       }
     }, S = (i) => {
-      let l = m[i], w;
-      this.callIntercept("tap", [l], n || void 0);
+      let a = m[i], w;
+      this.callIntercept("tap", [a], n || void 0);
       try {
-        switch (l.type) {
+        switch (a.type) {
           case "sync":
-            l.context ? w = l.fn(n, ...s) : w = l.fn(...s), p(i)(null, w);
+            a.context ? w = a.fn(n, ...s) : w = a.fn(...s), p(i)(null, w);
             break;
           case "async":
-            l.context ? l.fn(n, ...s, p(i + 1)) : l.fn(...s, p(i));
+            a.context ? a.fn(n, ...s, p(i + 1)) : a.fn(...s, p(i));
             return;
           case "promise":
             let y;
-            l.context ? y = l.fn(n, ...s) : y = l.fn(...s), y && typeof y.then == "function" && typeof y.catch == "function" ? y.then((A) => {
+            a.context ? y = a.fn(n, ...s) : y = a.fn(...s), y && typeof y.then == "function" && typeof y.catch == "function" ? y.then((A) => {
               p(i)(null, A);
             }).catch((A) => {
               f(A);
@@ -429,12 +429,6 @@ class O extends u {
         e(r);
       });
     });
-  }
-  tapAsync() {
-    throw new Error("tapAsync is not supported on a SyncHook");
-  }
-  tapPromise() {
-    throw new Error("tapPromise is not supported on a SyncHook");
   }
 }
 class W extends u {

@@ -5,6 +5,7 @@ import type {IStateProp} from './StateProps'
 import type { IApplication } from './Application';
 import { ITransformable } from 'src/math/Transformable';
 import {EventEmitter4,Emitter4Event} from 'src/events'
+import { InteractivePointerEvents } from '../events/InteractivePointerEvent';
 export interface ElementProps extends TransformableProps{
     name?:string
     draggable?:boolean; // 是否可拖拽
@@ -25,15 +26,13 @@ export type MergeEvents<A extends Record<string, any[]>, B extends Record<string
   };
 
 export type ElementEvents={
-    'pointerdown':[Emitter4Event<{e:PointerEvent,x:number,y:number}>]
-
     'child:add':[{
         el:IElement<any>
     }]
     'child:remove':[{
         el:IElement<any>
     }]
-}
+}&InteractivePointerEvents
 export type ElementStateProps={
 
 }

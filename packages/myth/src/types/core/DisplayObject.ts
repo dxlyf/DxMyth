@@ -3,7 +3,7 @@
 import { Renderer2DContext } from './BaseRenderer'
 import {ElementEvents,IElement,ElementProps} from './Element'
 import { IViewport } from './Viewport'
-import {FillRule,LineJoin,PaintColor,LineCap} from './Paint'
+import {FillRule,LineJoin,PaintColor,LineCap, RenderObject} from './Paint'
 import {Path2D} from 'skia-path2d'
 export  type DisplayObjectStyleProps={
     firstFill?:boolean
@@ -17,7 +17,9 @@ export  type DisplayObjectStyleProps={
     fillRule?:FillRule
     lineDashOffset?:number
     lineDash?:number[]
-
+    fontSize?:number
+    fontFamily?:string
+    fontWeight?:string|number
 
 }
 
@@ -40,7 +42,7 @@ export interface IDisplayObject<Props extends DisplayObjectProps=DisplayObjectPr
    contains(x:number,y:number):boolean; // 是否包含点(x,y)
    buildPath(path:Path2D):void; // 构建路径，子类重写此方法
    buildRenderPath():void; // 构建渲染路径,比如stroke dash
-   render(renderer:Renderer2DContext):void // 渲染方法，传入渲染器上下文
+   render(renderer:Renderer2DContext,renderObject:RenderObject):void // 渲染方法，传入渲染器上下文
    
     
 }

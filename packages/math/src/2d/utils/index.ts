@@ -553,3 +553,313 @@ export function bSplineCurve(controlPoints:number[][], degree:number, knots:numb
 
     return point;
 }
+
+/**
+ * 二维点接口
+ */
+interface Point {
+    x: number;
+    y: number;
+  }
+  
+  /**
+   * 贝塞尔曲线极值查找类
+   */
+  export class BezierExtremaFinder {
+    /**
+     * 查找贝塞尔曲线在指定维度上的极值参数
+     * @param controlPoints 控制点数组
+     * @param dimension 维度 ('x' 或 'y')
+     * @returns 极值对应的参数 t 数组
+     */
+    public static findExtremaParameters(
+      controlPoints: Point[],
+      dimension: 'x' | 'y'
+    ): number[] {
+      const n = controlPoints.length - 1; // 曲线阶数
+      if (n < 1) return [];
+      
+      // 获取指定维度的坐标值数组
+      const coords = controlPoints.map(p => p[dimension]);
+      
+      // 计算导数曲线的控制点
+      const derivativePoints: number[] = [];
+      for (let i = 0; i < n; i++) {
+        derivativePoints.push(n * (coords[i + 1] - coords[i]));
+      }
+      
+      // 求解导数多项式的根
+      return this.findPolynomialRoots(derivativePoints);
+    }
+    
+    /**
+     * 查找贝塞尔曲线的所有极值点（包括x和y方向）
+     * @param controlPoints 控制点数组
+     * @returns 极值点数组（包含参数t和对应的点坐标）
+     */
+    public static findAllExtrema(controlPoints: Point[]): Array<{t: number, point: Point}> {
+      const extrema: Array<{t: number, point: Point}> = [];
+      
+      // 查找x方向的极值参数
+      const xExtremaParams = this.findExtremaParameters(controlPoints, 'x');
+      // 查找y方向的极值参数
+      const yExtremaParams = this.findExtremaParameters(controlPoints, 'y');
+      
+      // 合并并去重参数
+      const allParams = [...new Set([...xExtremaParams, ...yExtremaParams])]
+        .filter(t => t >= 0 && t <= 1)
+        .sort((a, b) => a - b);
+      
+      // 计算每个参数对应的点
+      for (const t of allParams) {
+        extrema.push({
+          t,
+          point: this.evaluateBezier(controlPoints, t)
+        });
+      }
+      
+      return extrema;
+    }
+    
+    /**
+     * 计算贝塞尔曲线在参数t处的点
+     * @param controlPoints 控制点数组
+     * @param t 参数 [0, 1]
+     * @returns 曲线上的点
+     */
+    public static evaluateBezier(controlPoints: Point[], t: number): Point {
+      const n = controlPoints.length - 1;
+      let x = 0;
+      let y = 0;
+      
+      for (let i = 0; i <= n; i++) {
+        const binomial = this.binomialCoefficient(n, i);
+        const term = binomial * Math.pow(1 - t, n - i) * Math.pow(t, i);
+        x += term * controlPoints[i].x;
+        y += term * controlPoints[i].y;
+      }
+      
+      return { x, y };
+    }
+    
+    /**
+     * 求解多项式方程的实根（使用数值方法）
+     * @param coefficients 多项式系数，从高次到低次
+     * @returns 在 [0, 1] 区间内的实根数组
+     */
+    private static findPolynomialRoots(coefficients: number[]): number[] {
+      if (coefficients.length === 0) return [];
+      
+      // 对于低阶多项式，使用解析解
+      switch (coefficients.length) {
+        case 1: // 常数项，无根或无穷根
+          return Math.abs(coefficients[0]) < 1e-10 ? [0.5] : [];
+        
+        case 2: // 线性方程: a*x + b = 0
+          const root1 = -coefficients[1] / coefficients[0];
+          return root1 >= 0 && root1 <= 1 ? [root1] : [];
+        
+        case 3: // 二次方程: a*x² + b*x + c = 0
+          return this.solveQuadratic(
+            coefficients[0],
+            coefficients[1],
+            coefficients[2]
+          );
+        
+        case 4: // 三次方程
+          return this.solveCubic(
+            coefficients[0],
+            coefficients[1],
+            coefficients[2],
+            coefficients[3]
+          );
+        
+        default:
+          // 对于高阶多项式，使用数值方法（如牛顿迭代法）
+          return this.solvePolynomialNumerically(coefficients);
+      }
+    }
+    
+    /**
+     * 求解二次方程
+     */
+    private static solveQuadratic(a: number, b: number, c: number): number[] {
+      if (Math.abs(a) < 1e-10) {
+        // 退化为线性方程
+        return this.solveQuadratic(1, b, c);
+      }
+      
+      const discriminant = b * b - 4 * a * c;
+      const roots: number[] = [];
+      
+      if (discriminant > 0) {
+        const sqrtDiscriminant = Math.sqrt(discriminant);
+        const root1 = (-b + sqrtDiscriminant) / (2 * a);
+        const root2 = (-b - sqrtDiscriminant) / (2 * a);
+        
+        if (root1 >= 0 && root1 <= 1) roots.push(root1);
+        if (root2 >= 0 && root2 <= 1 && Math.abs(root1 - root2) > 1e-10) {
+          roots.push(root2);
+        }
+      } else if (Math.abs(discriminant) < 1e-10) {
+        // 重根
+        const root = -b / (2 * a);
+        if (root >= 0 && root <= 1) roots.push(root);
+      }
+      
+      return roots;
+    }
+    
+    /**
+     * 求解三次方程（使用Cardano公式）
+     */
+    private static solveCubic(a: number, b: number, c: number, d: number): number[] {
+      // 实现三次方程求根公式...
+      // 这里使用数值方法作为替代
+      return this.solvePolynomialNumerically([a, b, c, d]);
+    }
+    
+    /**
+     * 使用牛顿迭代法数值求解多项式根
+     */
+    private static solvePolynomialNumerically(coefficients: number[]): number[] {
+      const roots: number[] = [];
+      const n = coefficients.length - 1;
+      
+      // 在 [0, 1] 区间内采样多个起点进行迭代
+      const samplePoints = 20;
+      for (let i = 0; i <= samplePoints; i++) {
+        const startT = i / samplePoints;
+        const root = this.newtonRaphson(coefficients, startT);
+        
+        if (root !== null && 
+            root >= 0 && root <= 1 &&
+            !roots.some(r => Math.abs(r - root) < 1e-8)) {
+          roots.push(root);
+        }
+      }
+      
+      return roots;
+    }
+    
+    /**
+     * 牛顿迭代法
+     */
+    private static newtonRaphson(coefficients: number[], initialGuess: number): number | null {
+      let x = initialGuess;
+      const maxIterations = 50;
+      const tolerance = 1e-10;
+      
+      for (let i = 0; i < maxIterations; i++) {
+        const [fx, dfx] = this.evaluatePolynomialAndDerivative(coefficients, x);
+        
+        if (Math.abs(fx) < tolerance) {
+          return x;
+        }
+        
+        if (Math.abs(dfx) < tolerance) {
+          break; // 导数为零，无法继续迭代
+        }
+        
+        x = x - fx / dfx;
+        
+        // 如果超出 [0, 1] 范围，提前终止
+        if (x < 0 || x > 1) {
+          break;
+        }
+      }
+      
+      return null;
+    }
+    
+    /**
+     * 计算多项式及其导数在某点的值
+     */
+    private static evaluatePolynomialAndDerivative(coefficients: number[], x: number): [number, number] {
+      let fx = 0;
+      let dfx = 0;
+      const n = coefficients.length - 1;
+      
+      for (let i = 0; i <= n; i++) {
+        const power = n - i;
+        const term = coefficients[i] * Math.pow(x, power);
+        fx += term;
+        
+        if (power > 0) {
+          dfx += coefficients[i] * power * Math.pow(x, power - 1);
+        }
+      }
+      
+      return [fx, dfx];
+    }
+    
+    /**
+     * 计算二项式系数 C(n, k)
+     */
+    private static binomialCoefficient(n: number, k: number): number {
+      if (k < 0 || k > n) return 0;
+      if (k === 0 || k === n) return 1;
+      
+      k = Math.min(k, n - k);
+      let result = 1;
+      
+      for (let i = 1; i <= k; i++) {
+        result = result * (n - k + i) / i;
+      }
+      
+      return result;
+    }
+  }
+  export function solveQuadratic(a: number, b: number, c: number): number[] {
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return []; // 无实数解
+    let roots: number[] = [];
+    if (discriminant === 0) {
+      // 一个根
+      roots.push(-b / (2 * a));
+    } else {
+      // 两个根
+      const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+      const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+      roots.push(root1);
+      roots.push(root2);
+  }
+  return roots
+}
+ //卡尔丹公式（Cardano's formula）
+  export function solveCubic(a: number, b: number, c: number, d: number): number[] {
+    if (a === 0) throw new Error("Not a cubic equation");
+  
+    // 转换成主三次形式 y^3 + py + q = 0
+    const p = (3 * a * c - b * b) / (3 * a * a);
+    const q = (2 * b * b * b - 9 * a * b * c + 27 * a * a * d) / (27 * a * a * a);
+  
+    const discriminant = (q / 2) ** 2 + (p / 3) ** 3;
+    const roots: number[] = [];
+  
+    if (discriminant > 0) {
+      // 一个实根，两个复根
+      const sqrtDisc = Math.sqrt(discriminant);
+      const u = Math.cbrt(-q / 2 + sqrtDisc);
+      const v = Math.cbrt(-q / 2 - sqrtDisc);
+      const y = u + v;
+      roots.push(y - b / (3 * a));
+    } else if (discriminant === 0) {
+      // 重根情况
+      const u = Math.cbrt(-q / 2);
+      roots.push(2 * u - b / (3 * a));
+      roots.push(-u - b / (3 * a));
+    } else {
+      // 三个实根
+      const r = 2 * Math.sqrt(-p / 3);
+      const theta = Math.acos((3 * q) / (2 * p) * Math.sqrt(-3 / p)) / 3;
+  
+      for (let k = 0; k < 3; k++) {
+        const y = r * Math.cos(theta - (2 * Math.PI * k) / 3);
+        roots.push(y - b / (3 * a));
+      }
+    }
+  
+    return roots;
+  }
+  

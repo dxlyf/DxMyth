@@ -2,7 +2,7 @@
 
 
 import Lexer from './lexer'
-import   Expression  from './expressions'
+import   {Expression}  from './expressions'
 import    Fraction  from './fractions'
 import   Equation  from './equations'
 

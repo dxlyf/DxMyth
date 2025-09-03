@@ -1,4 +1,4 @@
-import { Application, Rect, Container, Circle, Path } from '../../src'
+import { Application, Rect, Container, Circle, Path,Text} from '../../src'
 import { ApplicationOptions } from '../../src/types/core/Application'
 import { Matrix2D } from '../../src/math/Matrix2d'
 import { Vector2 } from '../../src/math/Vec2'
@@ -18,14 +18,32 @@ async function main() {
         }
     })
     p.rect(100, 100, 100, 100)
-    p.on('pointerdown',e=>{
-        console.log('path',e.target)
-  
-        
+    p.on('pointerenter',e=>{
+        console.log('path','enter')
     })
-    app.container.on('pointerdown',e=>{
-        console.log('container',e)
+    p.on('pointerleave',e=>{
+        console.log('path','leave')
     })
+
+    let text=new Text({
+        style:{
+            fontSize:14,
+            fillStyle:'red'
+        },
+        shape:{
+            text:'hello world'
+        },
+        position:{x:100,y:400}
+    })
+    text.on('pointerenter',e=>{
+        console.log('text','enter')
+    })
+    text.on('pointerleave',e=>{
+        console.log('text','leave')
+    })
+    app.add(text)
+
+
     app.add(p)
     app.refresh()
 

@@ -5,7 +5,5 @@ declare class AsyncSeriesBailHook<T extends any[], Result> extends Hook<T, Resul
     call(..._args: T): Result | undefined;
     callAsync(..._args: [...T, HookAsyncCallback<Result | undefined>]): void;
     promise(..._args: T): Promise<Result | undefined>;
-    tapAsync(): void;
-    tapPromise(): void;
 }
 export default AsyncSeriesBailHook;

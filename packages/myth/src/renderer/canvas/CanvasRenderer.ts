@@ -1,16 +1,12 @@
-import { Path2D, ProxyPath2D } from "skia-path2d";
+import { Path2D } from "skia-path2d";
 import { BaseRenderer } from "src/core/BaseRenderer";
-import { getRendertList } from "src/core/Paint";
 import { Color } from "src/image/Color";
 import { BaseRendererOptions, RenderOptions } from "src/types/core/BaseRenderer";
 import { IPaint, PaintStyle, PaintType } from "src/types/core/Paint";
-import { resetCanvasDefaultStyle } from "./utils";
-import { Viewport } from "src/core/Viewport";
 import { IDisplayObject } from "src/types/core/DisplayObject";
 
 
-const currentViewport=new Viewport();
-export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
+export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D>{
     renderMode='canvas'
     constructor(options:Partial<BaseRendererOptions>){
         super(options)
@@ -24,9 +20,19 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
     drawRect(x: number, y: number, w: number, h: number): void {
         this.ctx.rect(x,y,w,h)
     }
-    applyPaint(obj:IDisplayObject,paint:IPaint){
+    drawPaint(paint:IPaint){
+        this.applyPaint(paint)
+        switch(paint.style){
+            case PaintStyle.Fill:
+                this.ctx.fill(paint.fillRule)
+                break;
+            case PaintStyle.Stroke:
+                this.ctx.stroke()
+                break;
+        }
+    }
+    applyPaint(paint:IPaint){
         const ctx=this.ctx
-       
         if(paint.style===PaintStyle.Fill){
             if(paint.type===PaintType.Color){
                 ctx.fillStyle=paint.color!.toCssRGB()
@@ -35,7 +41,6 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
             }else if(paint.type===PaintType.Pattern){
                 ctx.fillStyle=paint.pattern!.toCanvasPattern(ctx)
             }
-            ctx.fill(paint.fillRule)
         }else if(paint.style===PaintStyle.Stroke){
             if(paint.type===PaintType.Color){
                 ctx.strokeStyle=paint.color!.toCssRGB()
@@ -48,7 +53,6 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
             ctx.lineCap=paint.lineCap!
             ctx.lineWidth=paint.width!
             ctx.miterLimit=paint.miterLimit!
-            ctx.stroke()
         }
     }
     render(renderOptions:RenderOptions){
@@ -72,12 +76,7 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D,{}>{
             ctx.save()
             ctx.beginPath()
             ctx.transform(matrix.a,matrix.b,matrix.c,matrix.d,matrix.e,matrix.f)
-            object.buildRenderPath()
-            object._fillPath.toCanvas(ctx)
-            paints.forEach(paint=>{
-                this.applyPaint(object,paint)
-            })
-            //resetCanvasDefaultStyle(ctx)
+            object.render(this,renderObject)
             ctx.restore()
         })
         ctx.restore()

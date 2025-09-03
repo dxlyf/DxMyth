@@ -10,3 +10,15 @@ export interface IInteractivePointerEvent<T=any> extends Emitter4Event<T> {
     offsetPoint: Vector2;
     deltaPoint: Vector2;
 }
+export type InteractivePointerEvents={
+    click:[IInteractivePointerEvent]
+    dblclick:[IInteractivePointerEvent]
+    pointerdown:[IInteractivePointerEvent]
+    pointermove:[IInteractivePointerEvent]    
+    pointerenter:[IInteractivePointerEvent]
+    pointerleave:[IInteractivePointerEvent]
+    dragstart:[IInteractivePointerEvent]  
+    drag:[IInteractivePointerEvent]  
+    dragend:[IInteractivePointerEvent]    
+    pointerup:[IInteractivePointerEvent]    
+}

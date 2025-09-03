@@ -565,7 +565,7 @@ function setNormalUnitNormal(
     normal: Vector2,
     unit_normal: Vector2,
 ): boolean {
-    if (!unit_normal.setLengthFromPoint((after.x - before.x) * scale, (after.y - before.y) * scale, 1)) {
+    if (!Vector2.setLength(unit_normal,(after.x - before.x) * scale, (after.y - before.y) * scale, 1)) {
         return false;
     }
 

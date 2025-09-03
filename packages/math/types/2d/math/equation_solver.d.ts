@@ -1,4 +1,5 @@
 /**
+ *
  * 通用方程求解器，支持求解常见的代数方程：
  * - 一元一次
  * - 一元二次
@@ -93,19 +94,35 @@ type Point = {
     x: number;
     y: number;
 };
+type LineLike = {
+    start: Point;
+    end: Point;
+};
+type CircleLike = {
+    center: Point;
+    radius: number;
+};
+/**
+ * 直线与圆的交点
+ * line:Ax+By+C=0
+ * y=-Ax/B-C/B
+ * circle: (x-cx)^2+(y-cy)^2=r^2
+ * 代入:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 组成一元二次方程
+ * x^2-2cxx+cx^2+((-Ax/B-C/B)(-Ax/B-C/B)-2cy(-Ax/B-C/B)+cy^2)
+    x^2-2cxx+cx^2+(A^2x^2/B^2+2ACx/B^2+C^2/B^2+2cyAx/B+2cyC/B+cy^2)
+    
+ * @param line
+ * @param circle
+ * @returns
+ */
 export declare class LineEquation {
-    A: number;
-    B: number;
-    C: number;
+    static create(a: number, b: number, c: number): LineEquation;
+    static fromLine(start: Point, end: Point): LineEquation;
     /**
-     * 通过一般式 Ax + By + C = 0 构造直线
-     */
-    constructor(A: number, B: number, C: number);
-    /**
-     * (x-x0)(y1-y0)=(y-y0)(x1-x0)
-     *
-     * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
-     */
+    * (x-x0)(y1-y0)=(y-y0)(x1-x0)
+    *
+    * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
+    */
     static fromTwoPoints(p0: Point, p1: Point): LineEquation;
     /**
      * 创建：通过斜率和截距 y = m*x + b
@@ -139,6 +156,17 @@ export declare class LineEquation {
      */
     static fromXYIntercepts(a: number, b: number): LineEquation;
     /**
+     * 求两直线的交点（无交点返回 null）
+     */
+    static intersection(l1: LineEquation, l2: LineEquation): Point | null;
+    A: number;
+    B: number;
+    C: number;
+    /**
+     * 通过一般式 Ax + By + C = 0 构造直线
+     */
+    constructor(A: number, B: number, C: number);
+    /**
      * 获取斜率（若为垂直线返回 Infinity）
      */
     getSlope(): number;
@@ -170,13 +198,46 @@ export declare class LineEquation {
      * 构造与当前直线垂直，经过给定点的直线
      */
     perpendicularThrough(p: Point): LineEquation;
-    /**
-     * 求两直线的交点（无交点返回 null）
-     */
-    static intersection(l1: LineEquation, l2: LineEquation): Point | null;
+    getLineIntersection(line: LineLike): {
+        x: number;
+        y: number;
+    };
+    getCircleIntersection(line: LineLike, circle: CircleLike): {
+        x: number;
+        y: number;
+    }[];
+    toArray(): number[];
     /**
      * 将直线转换为字符串形式 Ax + By + C = 0
      */
     toString(): string;
+}
+export declare class CircleEquation {
+    static create(cx: number, cy: number, r: number): CircleEquation;
+    static fromGeneral(D: number, E: number, F: number): CircleEquation;
+    cx: number;
+    cy: number;
+    r: number;
+    constructor(cx: number, cy: number, r: number);
+    isPointOnCircle(p: Point, elipson?: number): boolean;
+    toGeneral(): number[];
+    circleIntersection(circle: CircleEquation): {
+        x: number;
+        y: number;
+    }[];
+}
+export declare class EllipseEquation {
+    static create(cx: number, cy: number, r: number): CircleEquation;
+    static fromGeneral(D: number, E: number, F: number): CircleEquation;
+    cx: number;
+    cy: number;
+    r: number;
+    constructor(cx: number, cy: number, r: number);
+    isPointOnCircle(p: Point, elipson?: number): boolean;
+    toGeneral(): number[];
+    circleIntersection(circle: CircleEquation): {
+        x: number;
+        y: number;
+    }[];
 }
 export {};

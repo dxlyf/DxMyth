@@ -1,7 +1,7 @@
 import {Path2D} from 'skia-path2d'
 import { IViewport } from './Viewport';
 import { ColorValue } from 'src/image/Color';
-import { RenderObject } from './Paint';
+import { IPaint, RenderObject } from './Paint';
 import { EventEmitter } from 'src/events';
 
 export interface BaseRendererOptions{
@@ -37,5 +37,7 @@ export interface Renderer2DContext{
     drawCircle(x: number, y: number, r: number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawEllipse(x: number, y: number, rx: number,ry:number,xRotation:number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawPath(path: Path2D): void;
+    drawPaint(paint:IPaint):void;
+    applyPaint(paint:IPaint):void;
 }
 
