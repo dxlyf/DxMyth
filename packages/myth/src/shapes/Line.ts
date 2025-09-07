@@ -1,13 +1,13 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type LineShapeProps={
     x0?:number,
     y0?:number,
     x1?:number,
     y1?:number
 }
-export class Line extends DisplayObject<LineShapeProps>{
+export class Line extends DisplayObject<DisplayObjectProps<LineShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{

@@ -1,12 +1,13 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type RectShapeProps={
     x?:number,
     y?:number,
     width?:number,
     height?:number
 }
-export class Rect extends DisplayObject<RectShapeProps>{
+export class Rect extends DisplayObject<DisplayObjectProps<RectShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{

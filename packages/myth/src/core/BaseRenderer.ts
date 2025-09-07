@@ -87,6 +87,10 @@ export abstract class BaseRenderer<Ctx> extends EventEmitter<BaseRendereEvents> 
     }
     abstract drawPath(path: Path2D): void 
     abstract render(renderOptions:RenderOptions):void
+    abstract drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+    abstract drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
+    abstract drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
+
     dispose(){
 
     }

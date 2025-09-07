@@ -30,12 +30,8 @@ export class Element<Props extends ElementProps, Events extends ElementEvents> e
         this.name = this.props.name || `Element_${elementId}`
         Object.assign(this,  new EventEmitter4())
         this.id = elementId++
-        this.init()
     }
 
-    init(): void {
-
-    }
     get visible() {
         return this.props.visible
     }

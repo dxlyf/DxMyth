@@ -1,10 +1,10 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type PolygonShapeProps={
    points:number[]
 }
-export class Polygon extends DisplayObject<PolygonShapeProps>{
+export class Polygon extends DisplayObject<DisplayObjectProps<PolygonShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{

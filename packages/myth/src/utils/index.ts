@@ -1,3 +1,6 @@
+const toString=Function.prototype.toString.call.bind(Object.prototype.toString);
+const toFunctionString=Function.prototype.toString.call.bind(Function.prototype.toString);
+const objectFuncString='function Object() { [native code] }'
 export function defaults(obj: any, ...defaults: any[]) {
     for (let i = 0; i < defaults.length; i++) {
         const def = defaults[i]
@@ -30,6 +33,18 @@ export function getType(value: any): string {
 export function isObjectLike(value: any): boolean {
     return value !== null && (typeof value === 'object' || typeof value === 'function')
 }
+export function isPlainObject(value: any): boolean {
+    const type=toString(value)
+    if(type!=='[object Object]') return false
+
+    const proto = Object.getPrototypeOf(value)
+    if (proto === null) return true
+    const constructor=proto.constructor
+    if(!constructor){
+        return true
+    }
+    return toFunctionString(constructor)===objectFuncString
+}
 export function isArray(value: any): boolean {
     return Array.isArray(value)
 }
@@ -47,8 +62,10 @@ export function assignDeep(obj: any, ...sources: any[]): any {
                 obj[key] = srcValue
             } else if (isArray(srcValue)) {
                 obj[key] = assignDeep(isArray(objValue) ? objValue : [], srcValue)
-            } else if (isObjectLike(srcValue)) {
+            } else if (isPlainObject(srcValue)) {
                 obj[key] = assignDeep(isObjectLike(objValue) ? objValue : {}, srcValue)
+            }else{
+                obj[key] = srcValue
             }
         })
     }
@@ -73,8 +90,10 @@ export function assignDeepWith(obj: any, sources: any[], callback?: AssignDeepCa
                 obj[key] = srcValue
             } else if (isArray(srcValue)) {
                 obj[key] = assignDeepWith(isArray(objValue) ? objValue : [], [srcValue],callback,keyPath)
-            } else if (isObjectLike(srcValue)) {
+            } else if (isPlainObject(srcValue)) {
                 obj[key] = assignDeepWith(isObjectLike(objValue) ? objValue : {}, [srcValue],callback,keyPath)
+            }else{
+                obj[key] = srcValue
             }
         })
     }

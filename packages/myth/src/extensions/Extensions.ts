@@ -1,3 +1,6 @@
+/** 
+ * @ref https://github.com/pixijs/pixijs/blob/dev/src/extensions/Extensions.ts
+*/
 /**
  * Collection of valid extension types.
  * @category extensions
@@ -5,9 +8,10 @@
  */
 enum ExtensionType
 {
-    ApplicationPlugin = 'ApplicationPlugin',
-    Interactive='Interactive',
-    Font='font'
+    Renderer='Renderer', // 渲染器
+    ApplicationPlugin = 'ApplicationPlugin',// 应用插件
+    Interactive='Interactive', // 图层交互
+    Font='font' // 字体文本渲解析
 }
 
 /**

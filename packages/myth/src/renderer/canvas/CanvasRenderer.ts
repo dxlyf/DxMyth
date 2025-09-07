@@ -1,4 +1,4 @@
-import { Path2D } from "skia-path2d";
+import { Path2D,Matrix2D } from "skia-path2d";
 import { BaseRenderer } from "src/core/BaseRenderer";
 import { Color } from "src/image/Color";
 import { BaseRendererOptions, RenderOptions } from "src/types/core/BaseRenderer";
@@ -19,6 +19,12 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D>{
     }
     drawRect(x: number, y: number, w: number, h: number): void {
         this.ctx.rect(x,y,w,h)
+    }
+    drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+    drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(image: CanvasImageSource, ...args:any[]): void {
+        this.ctx.drawImage(image,...args as [number,number])
     }
     drawPaint(paint:IPaint){
         this.applyPaint(paint)
@@ -74,9 +80,41 @@ export class CanvasRenderer extends BaseRenderer<CanvasRenderingContext2D>{
             const {object,paints}=renderObject
             const matrix=object.worldMatrix
             ctx.save()
-            ctx.beginPath()
+            const clipShape=object.props.clipShape
+            if(clipShape){
+                let clipMatrix=clipShape.worldMatrix
+                if(!clipShape._fillPath){
+                    clipShape.buildRenderPath()
+                }
+                ctx.save()
+              //  ctx.transform(clipMatrix.a,clipMatrix.b,clipMatrix.c,clipMatrix.d,clipMatrix.e,clipMatrix.f)
+                if(object.hasFill()&&clipShape._fillPath){
+                    let clipPath=clipShape._fillPath.getPath().clone()
+                    let m=Matrix2D.fromRows(clipMatrix.a,clipMatrix.b,clipMatrix.c,clipMatrix.d,clipMatrix.e,clipMatrix.f)
+                    clipPath.transform(m)
+                    ctx.clip(clipPath.toPath2D(),object.style.fillRule)
+                }
+            //    clipMatrix=clipShape.invertWorldMatrix
+              //  ctx.transform(clipMatrix.a,clipMatrix.b,clipMatrix.c,clipMatrix.d,clipMatrix.e,clipMatrix.f)
+               // ctx.restore()
+              
+            }
             ctx.transform(matrix.a,matrix.b,matrix.c,matrix.d,matrix.e,matrix.f)
+       
+            const clipPath=object.props.clipPath
+            if(clipPath){
+                ctx.save()
+                ctx.clip(clipPath.toPath2D(),object.props.clipPathFillRule!)
+              
+            }
+            ctx.beginPath()
             object.render(this,renderObject)
+            if(clipShape){
+               ctx.restore()
+            }
+            if(clipPath){
+                ctx.restore()
+            }
             ctx.restore()
         })
         ctx.restore()

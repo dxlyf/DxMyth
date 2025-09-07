@@ -37,7 +37,11 @@ export interface Renderer2DContext{
     drawCircle(x: number, y: number, r: number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawEllipse(x: number, y: number, rx: number,ry:number,xRotation:number,startAngle:number,endAngle:number,ccw:boolean): void;
     drawPath(path: Path2D): void;
+    drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+    drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
     drawPaint(paint:IPaint):void;
     applyPaint(paint:IPaint):void;
 }
+
 

@@ -1,6 +1,6 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type CircleShapeProps={
     cx?:number,
     cy?:number,
@@ -10,7 +10,7 @@ export type CircleShapeProps={
     ccw?:boolean
 
 }
-export class Circle extends DisplayObject<CircleShapeProps>{
+export class Circle extends DisplayObject<DisplayObjectProps<CircleShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{

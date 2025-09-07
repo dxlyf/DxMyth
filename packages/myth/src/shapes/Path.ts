@@ -2,11 +2,10 @@ import { Path2D,ProxyPath2D } from "skia-path2d";
 import { ElementEffectFlag } from "src/constants";
 import { DisplayObject } from "src/core/DisplayObject";
 import { DisplayObjectProps } from "src/types/core/DisplayObject";
-
 export type PathShapeProps={
 
 }
-export class Path extends DisplayObject<PathShapeProps>{
+export class Path extends DisplayObject<DisplayObjectProps<PathShapeProps>>{
     proxyPath=new ProxyPath2D()
     constructor(props:DisplayObjectProps<PathShapeProps>){
         super(props)

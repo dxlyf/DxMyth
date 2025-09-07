@@ -1,4 +1,5 @@
 
+
 type GL = WebGL2RenderingContext;
 
 export type ShaderProgramConfig = {
@@ -40,6 +41,13 @@ export type UniformInfos = Record<string, UniformInfo>
 export type AttributeInfos = Record<string, AttributeInfo>
 
 export type PrecisionType = 'lowp' | 'mediump' | 'highp';
+
+export type CreateProgramFactoryConfig={
+
+}
+export function createProgramFactory(factoryConfig:CreateProgramFactoryConfig){
+        
+}
 /**
      * 创建 WebGL 程序
      * @param {GL} gl WebGL2 上下文

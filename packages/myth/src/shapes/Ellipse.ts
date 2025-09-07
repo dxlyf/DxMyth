@@ -1,6 +1,6 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type EllipseShapeProps={
     cx?:number,
     cy?:number,
@@ -12,7 +12,7 @@ export type EllipseShapeProps={
     ccw?:boolean
 
 }
-export class Ellipse extends DisplayObject<EllipseShapeProps>{
+export class Ellipse extends DisplayObject<DisplayObjectProps<EllipseShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{

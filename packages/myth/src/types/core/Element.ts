@@ -45,7 +45,6 @@ export interface IElement<Props extends ElementProps,E extends ElementEvents=Ele
     children: IElement<Props>[]|null;
     parent: IElement<Props>|null; // 父元素
     owner:IApplication;// 祖先
-    init():void; // 初始化，在构造函数中调用
     defaultProps():Partial<Props>[]; // 默认属性，用于初始化时合并到props中
    // getStateProps():Record<string,IStateProp<any,any>>;
     shouldInteractive():boolean; // 是否可以交互，如silent

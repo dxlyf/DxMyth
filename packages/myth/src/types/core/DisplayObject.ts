@@ -4,7 +4,7 @@ import { Renderer2DContext } from './BaseRenderer'
 import {ElementEvents,IElement,ElementProps} from './Element'
 import { IViewport } from './Viewport'
 import {FillRule,LineJoin,PaintColor,LineCap, RenderObject} from './Paint'
-import {Path2D} from 'skia-path2d'
+import {Path2D, ProxyPath2D} from 'skia-path2d'
 export  type DisplayObjectStyleProps={
     firstFill?:boolean
     opacity?:number
@@ -23,9 +23,12 @@ export  type DisplayObjectStyleProps={
 
 }
 
-export type DisplayObjectProps<ShapeProps extends {}={},StyleProps extends DisplayObjectStyleProps=DisplayObjectStyleProps>={
+export type DisplayObjectProps<ShapeProps extends {}={},StyleProps extends {}=DisplayObjectStyleProps>={
     style?:StyleProps
     shape?:ShapeProps
+    clipShape?:IDisplayObject // 裁剪图形，相对世界坐标系
+    clipPath?:ProxyPath2D // 相对目标坐标系
+    clipPathFillRule?:FillRule
 }&ElementProps
 
 export interface DisplayObjectEvents extends ElementEvents{
@@ -40,6 +43,8 @@ export interface IDisplayObject<Props extends DisplayObjectProps=DisplayObjectPr
    setStyle(styles:Props['style']):void // 设置样式
    isInViewport(viewport:IViewport):boolean // 是否在视口内，用于渲染优化
    contains(x:number,y:number):boolean; // 是否包含点(x,y)
+   hasFill():boolean
+   hasStroke():boolean
    buildPath(path:Path2D):void; // 构建路径，子类重写此方法
    buildRenderPath():void; // 构建渲染路径,比如stroke dash
    render(renderer:Renderer2DContext,renderObject:RenderObject):void // 渲染方法，传入渲染器上下文

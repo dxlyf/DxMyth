@@ -3,10 +3,10 @@ import { DisplayObject } from "src/core/DisplayObject";
 
 import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type TextShapeProps={
-    text?:string
+    text:string
 }
 
-export class Text extends DisplayObject<TextShapeProps>{
+export class Text extends DisplayObject<DisplayObjectProps<TextShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             silent:true,

@@ -14,18 +14,15 @@ const tmp_vec0=Vector2.default()
 /**
  * 容器类，用于管理子元素。
  */
-export abstract class DisplayObject<ShapeProps extends{},Events extends DisplayObjectEvents=DisplayObjectEvents> extends Element<DisplayObjectProps<ShapeProps>,Events> implements IDisplayObject<DisplayObjectProps<ShapeProps>>{
+export abstract class DisplayObject<Props extends DisplayObjectProps,Events extends DisplayObjectEvents=DisplayObjectEvents> extends Element<Props,Events> implements IDisplayObject<Props>{
     type: string='DisplayObject'
     _fillPath:Path2D
     _strokePath:Path2D
-    init(): void {
-        super.init()
-    }
     get style(){
-        return this.props.style!
+        return this.props.style! as Props['style']
     }
     get shape(){
-        return this.props.shape! 
+        return this.props.shape! as Props['shape']
     }
     defaultProps(){
         return [...super.defaultProps(),{
@@ -39,9 +36,9 @@ export abstract class DisplayObject<ShapeProps extends{},Events extends DisplayO
                 fillRule:FillRule.NonZero,
                 firstFill:true
             } 
-        } as DisplayObjectProps<ShapeProps>]
+        } as Props]
     }
-    setShape(shape: Partial<ShapeProps>): void {
+    setShape(shape: Partial<Props['shape']>): void {
        if( this._setProps(this.shape,shape)){
         this.effectFlag!=ElementEffectFlag.Shape
        }
@@ -154,5 +151,5 @@ export abstract class DisplayObject<ShapeProps extends{},Events extends DisplayO
             renderer.drawPaint(paint)
         })
     }
-    abstract buildPath(path:Path2D):void;
+    buildPath(path:Path2D):void{};
 }

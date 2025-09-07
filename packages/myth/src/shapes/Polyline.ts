@@ -1,10 +1,10 @@
 import { Path2D } from "skia-path2d";
 import { DisplayObject } from "src/core/DisplayObject";
-
+import { DisplayObjectProps } from "src/types/core/DisplayObject";
 export type PolylineShapeProps={
    points:number[]
 }
-export class Polyline extends DisplayObject<PolylineShapeProps>{
+export class Polyline extends DisplayObject<DisplayObjectProps<PolylineShapeProps>>{
     defaultProps() {
         return [...super.defaultProps(),{
             shape:{
