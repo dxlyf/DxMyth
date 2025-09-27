@@ -1,6 +1,6 @@
 {
   "name": "@dxyl/math",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Collected many useful mathematical tools",
   "publishConfig": {
     "access": "public"
@@ -12,10 +12,19 @@
   "main": "./dist/index.umd.js",
   "module": "./dist/index.es.js",
   "types": "./types/index.d.ts",
+  "exports":{
+    ".":{
+      "types":"./types/index.d.ts",
+      "import":"./dist/index.es.js",
+      "default":"./dist/index.umd.js"
+    },
+    "./lib/*":"./lib/*"
+  },
   "files": [
     "package.json",
     "types",
     "readme.md",
+    "lib",
     "dist"
   ],
   "homepage": "https://github.com/dxlyf/DxMyth",

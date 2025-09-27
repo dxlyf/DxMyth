@@ -1,0 +1,38 @@
+{
+  "name": "@dxyl/sdf",
+  "version": "1.0,0",
+  "description": "Collected many useful noise",
+  "publishConfig": {
+    "access": "public"
+ },
+  "keywords": [
+    "graphic",
+    "noise"
+  ],
+  "exports":{
+    "./*":"./src/*"
+  },
+  "files": [
+    "package.json",
+    "readme.md",
+    "dist",
+    "types",
+    "src"
+  ],
+  "homepage": "https://github.com/dxlyf/DxMyth",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dxlyf/DxMyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlyf/DxMyth/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --port=8428",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4"
+  }
+}

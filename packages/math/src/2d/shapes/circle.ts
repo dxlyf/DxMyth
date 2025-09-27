@@ -54,6 +54,26 @@ export class Circle{
        r0^2-r1^2=-d^2+2db
        r0^2-r1^2+d^2=2db
        (r0^2-r1^2+d^2)/2d=b
+
+       方法2:圆1 c0 r0,圆2 c1 r1
+       (x-c0.x)^2+(y-c0.y)^2=r0^2
+       (x-c1.x)^2+(y-c1.y)^2=r1^2
+   
+       转换为线性直线方程
+        (x-c0.x)^2+(y-c0.y)^2-r0^2=0
+        (x-c1.x)^2+(y-c1.y)^2-r1^2=0
+        A=2(c1.x-c0.x)
+        B=2(c1.y-c0.y)
+        C=c0.x^2-c1.x^2+c0.y^2-c1.y^2-r0^2+r1^2
+        Ax+By+C=0
+        // 要么解直线方程与贺圆的联立方程
+        // 要么求c0到直线的距离,如果距离大于r0,则无交点
+        // d=|Ax0+By0+C|/sqrt(A^2+B^2)
+        // 如果距离等于r0,则相切,如果距离小于r0,则有两个交点
+        n0=normalize(c1-c0)
+        p=c0+n0*d 
+        a=sqrt(r0^2-d^2)
+        q=p+ccw(n0)a
      * @param circle 
      * @returns 
      */

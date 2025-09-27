@@ -1,4 +1,4 @@
-import { clamp } from "../utils";
+import { clamp } from "../math/utils";
 import { Vector2} from "../math/vec2";
 import { BoundingRect } from '../math/bounding_rect'
 function pointOnSegmentDistance(x: number, y: number, x0: number, y0: number, x1: number, y1: number) {

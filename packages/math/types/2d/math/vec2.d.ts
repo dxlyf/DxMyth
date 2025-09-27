@@ -254,6 +254,7 @@ export declare class Vector2 extends Float32Array {
     multiplyScalar(scalar: number): this;
     div(other: Vector2Like): this;
     divide(other: Vector2Like): this;
+    divideScalar(scalar: number): this;
     divideVectors(a: Vector2Like, b: Vector2Like): this;
     dot(other: Vector2Like): number;
     cross(other: Vector2Like): number;

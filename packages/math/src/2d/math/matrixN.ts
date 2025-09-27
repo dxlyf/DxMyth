@@ -1,5 +1,4 @@
 type MatrixNData = Float32Array | number[];
-
 // 行主序的矩阵类
 export class MatrixN {
     readonly n: number;

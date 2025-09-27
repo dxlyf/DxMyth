@@ -3,7 +3,7 @@
 
 import { Vector2 } from '../math/vec2'
 import {Matrix2D} from '../math/mat2d'
-import { clamp } from 'src/2d/utils';
+import { clamp } from 'src/2d/math/utils';
 export const SCALAR_MAX = 3.402823466e+38;
 
 export const SCALAR_NEARLY_ZERO = 1.0 / (1 << 12) 

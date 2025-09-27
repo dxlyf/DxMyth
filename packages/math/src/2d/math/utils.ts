@@ -1,0 +1,1204 @@
+export const PI = Math.PI;
+export const PI2 = Math.PI * 2;
+export const PI_2 = Math.PI * 0.5;
+export const BEZIER_CIRCLE_GOLDEN_RATIO = 4 / 3 * (Math.sqrt(2) - 1) // 黄金分割率
+export const DEGREES_RADIAN = PI / 180
+export const INVERT_DEGREES_RADIAN = 1 / DEGREES_RADIAN
+
+type PointLike = { x: number; y: number };
+export function findIndexRight<T=any>(arr: T[], predicate: (value: T, index: number, obj: T[]) => boolean, thisArg?: any) {
+    for (let i = arr.length - 1; i >= 0; i--) {
+        if (predicate.call(thisArg, arr[i], i, arr)) {
+            return i;
+        }
+    }
+}
+export function calc32Shift(value: number) {
+    return 31 - Math.clz32(value)
+}
+//  计算贝塞尔曲线圆弧的黄金分割率
+export function calcArcGoldenRatio(delta: number): number {
+    return 4 / 3 * Math.tan(delta / 4)
+}
+// 四分之一圆分分段数
+export function calcArcSteps(sweepAngle: number): number {
+    return Math.ceil(Math.abs(sweepAngle) / PI);
+}
+
+// Math functions
+export function allAreFinite(args: number[]) {
+    for (var i = 0; i < args.length; i++) {
+        if (args[i] !== undefined && !Number.isFinite(args[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+export function equalsEpsilon(a: number, b: number, epsilon: number = 0.00001): boolean {
+    return Math.abs(a - b) <= epsilon;
+}
+
+export function radiansToDegrees(radians: number): number {
+    return radians * (180 / Math.PI);
+}
+export function degreesToRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+}
+export function sqrt(n: number): number {
+    return Math.sqrt(n);
+}
+export function pow(base: number, exponent: number): number {
+    return Math.pow(base, exponent);
+}
+
+export function abs(n: number): number {
+    return Math.abs(n);
+}
+export function min(n1: number, n2: number): number {
+    return Math.min(n1, n2);
+}
+export function max(n1: number, n2: number): number {
+    return Math.max(n1, n2);
+}
+
+export function usignfactorial(n: number): number {
+    if (n < 0) return -1;
+    let result = 1;
+    for (let i = 2; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}
+// 组合 C(n,r) = n! / (r!(n-r)!)
+
+export function fast_nCr(n: number, r: number): number {
+    if (r > n) return 0;
+    let result = 1;
+    for (let i = 1; i <= r; i++) {
+        result *= (n - i + 1) / i;
+    }
+    return result;
+}
+// 排列 P(n,r) = n! / (n-r)!
+export function fast_nPr(n: number, r: number): number {
+    if (r > n) return 0;
+    let result = 1;
+    for (let i = 1; i <= r; i++) {
+        result *= (n - i + 1);
+    }
+    return result;
+}
+
+
+export function lerp(start: number, end: number, t: number) {
+    return start * (1 - t) + end * t;
+}
+export function inverseLerp(start: number, end: number, value: number) {
+    return (value - start) / (end - start);
+}
+// 平滑插值
+export function smoothstep(start: number, end: number, amount: number) {
+    const t = clamp((amount - start) / (end - start), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+export function easeInOut(start: number, end: number, amount: number) {
+    const t = clamp((amount - start) / (end - start), 0, 1);
+    return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+}
+export function easeIn(start: number, end: number, amount: number) {
+    const t = clamp((amount - start) / (end - start), 0, 1);
+    return t * t * t;
+}
+export function easeOut(start: number, end: number, amount: number) {
+    const t = clamp((amount - start) / (end - start), 0, 1);
+    return (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+}
+// 定义一个可扩展的构造函数类型
+type Constructor<T = {}> = new (...args: any[]) => T;
+type AnyFunction = (...args: any[]) => any;
+type Mixin<T extends AnyFunction> = InstanceType<ReturnType<T>>;
+
+// 定义 Mixin 创建函数
+export function createMixin<M>(mixin: M) {
+    return <T extends Constructor>(Base: T) => {
+        return class extends Base {
+            constructor(...args: any[]) {
+                super(...args);
+                Object.assign(this, mixin);
+            }
+        } as T & Constructor<M>;
+    };
+}
+
+// 三态函数，判断两个double在eps精度下的大小关系
+export function dcmp(x: number, eps = 1e-6) {
+    if (Math.abs(x) < eps) {
+        return 0;
+    }
+    return x < 0 ? -1 : 1;
+}
+// 德卡斯特劳贝塞尔曲线
+export const deCasteljauBezier = (out: PointLike, controls: PointLike[], t: number) => {
+    const n = controls.length - 1
+    const c = controls.map(d => ({ x: d.x, y: d.y }))
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n - i; j++) {
+            c[j].x = (1 - t) * c[j].x + t * c[j + 1].x
+            c[j].y = (1 - t) * c[j].y + t * c[j + 1].y
+        }
+    }
+    out.x = c[0].x
+    out.y = c[0].y
+    return out
+}
+// 伯恩斯坦多项求贝塞尔曲线
+
+export const bezier = (out: PointLike, controls: PointLike[], t: number) => {
+    const n = controls.length - 1
+    let x = 0, y = 0
+    for (let i = 0; i <= n; i++) {
+        let b = bernstein(n, i, t)
+        x += b * controls[i].x
+        y += b * controls[i].y
+
+    }
+    out.x = x
+    out.y = y
+    return out
+}
+// 有理贝塞尔曲线
+
+export const rationalBezier = (out: PointLike, controls: PointLike[], weight: number[], t: number) => {
+    const n = controls.length - 1
+    let x = 0, y = 0
+    for (let i = 0; i <= n; i++) {
+        let b = bernstein(n, i, t) * weight[i]
+        x += b * controls[i].x / b
+        y += b * controls[i].y / b
+
+    }
+    out.x = x
+    out.y = y
+    return out
+}
+// 求一个函数的导数
+// 数值微分，求近似导数
+// 中心差分= ∫'(x)=dy/dx
+// dy=dx*∫'(x)
+export const centralDifference = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args.map(d => d + h)) - fn(...args.map(d => d - h))) / (2 * h)
+}
+// 求导
+// 计算 d/dx f(x)
+export function derivative(f: (x: number) => number, x: number, h: number = 1e-5) {
+    return (f(x + h) - f(x - h)) / (2 * h);
+}
+// 多变量偏导 d/dx, d/dy, d/dt
+// 示例
+// const g = (x, y) => x ** 2 + y ** 3;
+// console.log(partialDerivative(g, 0, [2, 3])); // ∂g/∂x ≈4
+export function partialDerivative(f: (...args: number[]) => number, varIndex: number, point: number[], h = 1e-5) {
+    const shifted = [...point];
+    shifted[varIndex] += h;
+    const fPlus = f(...shifted);
+    shifted[varIndex] -= 2 * h;
+    const fMinus = f(...shifted);
+    return (fPlus - fMinus) / (2 * h);
+}
+
+
+/**
+ * 计算梯形面积
+ * @param {number} x0 - 边起点的 x 坐标
+ * @param {number} y0 - 边起点的 y 坐标
+ * @param {number} x1 - 边终点的 x 坐标
+ * @param {number} y1 - 边终点的 y 坐标
+ * @returns {number} - 返回有符号面积
+ */
+export function computeEdgeContribution(x0: number, y0: number, x1: number, y1: number) {
+    // 忽略水平边
+    if (y0 === y1) return 0;
+
+    // 确保 y0 < y1
+    if (y0 > y1) {
+        [x0, x1] = [x1, x0];
+        [y0, y1] = [y1, y0];
+    }
+
+    // 计算交点的 x 坐标
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    // 计算梯形的面积
+    const area = (x0 + x1) * dy / 2;
+
+    // 根据边的方向确定符号
+    return dx > 0 ? area : -area;
+}
+// 前向差分
+export const forwardDifferential = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args.map(d => d + h)) - fn(...args)) / h
+}
+// 后向差分
+export const backwardDifferential = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args) - fn(...args.map(d => d - h))) / h
+}
+export const degreesToRadian = (degrees: number) => {
+    return degrees * DEGREES_RADIAN
+}
+export const radianToDegrees = (radian: number) => {
+    return radian * INVERT_DEGREES_RADIAN
+}
+/**
+ * 
+ * @param value 映射值
+ * @param inMin 定义域domain 输入
+ * @param inMax 
+ * @param outMin 值域range 输出
+ * @param outMax 
+ * @returns 
+ */
+export function map(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
+    return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+}
+
+export const sign = (x: number) => {
+    return x > 0 ? 1 : x === 0 ? 0 : -1
+}
+export const absSign = (x: number) => {
+    return x > 0 ? 1 : x === 0 ? Object.is(x, 0) ? 1 : -1 : -1
+}
+export const random = (min: number, max: number) => {
+    return min + (max - min) * Math.random()
+}
+export const randomFloor = (min: number, max: number) => {
+    return Math.floor(min + (max - min) * Math.random())
+}
+export const randomCeil = (min: number, max: number) => {
+    return Math.ceil(min + (max - min) * Math.random())
+}
+export const randomRound = (min: number, max: number) => {
+    return Math.round(min + (max - min) * Math.random())
+}
+export const fract = (v: number) => {
+    return v - Math.trunc(v)
+}
+
+// 向上取模 10%100=-90  -10%100=-10 
+// 返回的永远是负数
+export const ceilMod = (v: number, m: number) => {
+    return v - Math.ceil(v / m) * m
+}
+
+// 向下取模 10%100=10 -10%100=90
+// 返回的永远是正数
+export const floorMod = (v: number, m: number) => {
+    return v - Math.floor(v / m) * m
+}
+// 10%100=10  -10%100=-10 
+export const truncMod = (v: number, m: number) => {
+    return v - Math.trunc(v / m) * m
+}
+
+// 给定偏移和缩放和单位，计算起始坐标值
+// 用于标尺或网格的计算起点坐标值
+export const calcStartCoordinateValue = (unit: number, offset: number, scalar: number) => {
+    //  const scalarUnit=unit*scalar
+    // return offset>0?offset-scalarUnit:offset
+    //return offset-Math.ceil(offset/scalarUnit)*scalarUnit
+    return ceilMod(offset, unit * scalar)
+}
+// 计算起始刻度值
+export const calcStartGraduationValue = (unit: number, offset: number, scalar: number) => {
+    // return Math.floor(-offset/(unit*scalar))*unit
+    return -Math.ceil(offset / (unit * scalar)) * unit
+}
+// 计算缩放
+export const calcScalePan = (out: PointLike, oldScale: number, newScale: number, offset: PointLike, origin: PointLike) => {
+    const scale = newScale / oldScale
+    const dx = offset.x - origin.x
+    const dy = offset.y - origin.y
+    // // 相对原点，进行缩放平移
+    out.x = origin.x + dx * scale
+    out.y = origin.y + dy * scale
+    return out
+}
+// 生成刻度
+export const generateGraduations = (options: { width: number, height: number, tickSplitHeight: number, tickMarkHeight: number, rulerUnit: number, offset: number, scaleFactor: number, tickSplitStep: number }) => {
+    const { width, height, tickSplitHeight, tickMarkHeight, rulerUnit, offset, tickSplitStep, scaleFactor } = options
+    const tickValues: { value: number, x: number, y: number }[] = []
+    const tickLines: { x0: number, y0: number, x1: number, y1: number }[] = []
+    let scaleRulerUnit = rulerUnit * scaleFactor
+    const splitCount = Math.ceil(width / scaleRulerUnit);
+    const step = scaleRulerUnit / tickSplitStep; // 每个小废度坐标的步进
+    // 刻度起始坐标
+    let start = calcStartCoordinateValue(rulerUnit, offset, scaleFactor)
+    let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    // 废度起始值
+    let startGraduatedValue = calcStartGraduationValue(rulerUnit, offset, scaleFactor)
+    // 大刻度
+    for (let i = 0; i <= splitCount; i++) {
+        // 小刻度
+        for (let k = 0; k < tickSplitStep; k++) {
+            const isSplitMark = k === 0
+            x0 = Math.round(start)
+            x1 = Math.round(start)
+            y0 = height
+            y1 = height - (isSplitMark ? tickMarkHeight : tickSplitHeight)
+            tickLines.push({
+                x0,
+                y0,
+                x1,
+                y1
+            })
+            if (isSplitMark) {
+                // 添加刻度值
+                tickValues.push({
+                    x: x0,
+                    y: y1,
+                    value: startGraduatedValue
+                })
+            }
+            start += step;
+        }
+        startGraduatedValue += rulerUnit;
+    }
+}
+/**
+ *      mat2d.translate(m, m, [mx, my])//设置原点
+        mat2d.scale(m, m, [zoom / oldZoom, zoom / oldZoom])
+        mat2d.translate(m, m, [-mx, -my])
+       let xy = vec2.transformMat2d([], [x, y], m);
+ * @param out 
+ * @param mouse 
+ * @param oldScale 
+ * @param newScale 
+ * @param offset 
+ * @returns 
+ */
+export const wheelToScaleArtboard = (out: PointLike, oldScale: number, newScale: number, offset: PointLike, mouse: PointLike) => {
+    out.x = mouse.x - (mouse.x - offset.x) * (newScale / oldScale)
+    out.y = mouse.y - (mouse.y - offset.y) * (newScale / oldScale)
+    return out
+}
+
+export const divmod = (dividend: number, divisor: number) => {
+    let quotient = Math.trunc(dividend / divisor)
+    let remainder = dividend % divisor
+    if (remainder < 0) {
+        quotient--
+        remainder += divisor
+    }
+    return [quotient, remainder]
+}
+export const divmod2 = (dividend: number, divisor: number) => {
+    let quotient = Math.floor(dividend / divisor)
+    let remainder = dividend - quotient * divisor
+    return [quotient, remainder]
+}
+// mod(a,b)=a%b
+export const mod = (v: number, m: number) => {
+    return v - Math.trunc(v / m) * m
+}
+// 正数向上取整，负数向下取整
+// 2%10=-8 -2%10=-2
+export const modUp = (a: number, b: number) => {
+    return a - Math.ceil(a / b) * b
+}
+// 正数向下取整，负数向向取整
+// -2%10 8 2%10=2 remainder
+export const modDown = (a: number, b: number) => {
+    return a - Math.floor(a / b) * b
+}
+export const clamp = (v: number, min: number, max: number) => {
+    return Math.max(Math.min(v, max), min)
+}
+export const clamp01 = (v: number) => {
+    return Math.max(Math.min(v, 1), 0)
+}
+export const interpolate = (start: number, end: number, t: number) => {
+    return start + (end - start) * t
+}
+
+export const mix = (edge0: number, edge1: number, t: number) => {
+    return edge0 * (1 - t) + edge1 * t
+}
+export const smoonthstep = (edge1: number, edge2: number, value: number) => {
+    const t = clamp((value - edge1) / (edge2 - edge1), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+export const step = (edge: number, value: number) => {
+    return value < edge ? 0 : 1;
+}
+export const swap = (arr: any[], from: any, to: any) => {
+    let t = arr[from]
+    arr[from] = arr[to]
+    arr[to] = t
+}
+
+export const isFinite = (x: any) => {
+    return Number.isFinite(x)
+}
+// 阶乘
+export const factorial = (x: number): number => {
+    const sign = Math.sign(1 / x)
+    const absValue = Math.abs(x)
+    if (absValue <= 1) {
+        return sign;
+    }
+    return x * factorial(absValue - 1)
+}
+export const fastFactorial = (x: number): number => {
+    if (x <= 1) {
+        return 1;
+    }
+    return x * fastFactorial(x - 1)
+}
+// 求和
+export const sum = (i: number, n: number, add: (sum: number, index: number, len: number) => number) => {
+    let sum = 0
+    for (; i <= n; i++) {
+        sum += add(sum, i, n)
+    }
+    return sum;
+}
+// 伯恩斯坦基函数
+export const bernstein = (n: number, i: number, t: number) => {
+    return nCr(n, i) * Math.pow(t, i) * Math.pow(1 - t, n - i)
+}
+
+// 置换考虑排序 abc 有几种置换: 3!=6
+export const substitution = (n: number) => {
+    // n!
+    return factorial(n)
+}
+// 排列
+/**
+ * n!/(n-r)! 或 (r~n)!
+ * 排队问题。
+    排班问题。
+    生成所有可能的顺序。
+ * @param {*} n 
+ * @param {*} r 
+ * @returns 
+ */
+export const nPr = (n: number, r: number) => {
+    // n!/(n-r)! =((n-r)~n)!
+    return factorial(n) / factorial(n - r)
+}
+// 组合，不考虑顺序
+/**
+ * 选择团队成员。
+计算彩票中奖概率。
+从菜单中选择固定数量的菜品。
+
+ * @param {*} n 
+ * @param {*} r 
+ * @returns 
+ */
+export const nCr = (n: number, r: number) => {
+    //n!/(n-r)!*r!
+    // return nPr(n,r)/factorial(r)
+    return factorial(n) / (factorial(n - r) * factorial(r))
+}
+
+// Helper: Compute combination C(n, k) 
+// 组合等同nCr
+export function combination(n: number, k: number) {
+    if (k > n) return 0;
+    let result = 1;
+    for (let i = 1; i <= k; i++) {
+        result *= (n - i + 1) / i; // ((n-k)~n)!/k！// 排列数/置换数
+    }
+    return result;
+}
+// 四舍五入到指定精度
+export function roundPrecision(value: number, p: number) {
+    return Math.round(value * Math.pow(10, p)) * 1 / Math.pow(10, p)
+}
+export function truncPrecision(value: number, p: number) {
+    return Math.trunc(value * Math.pow(10, p)) * 1 / Math.pow(10, p)
+}
+export function floorPrecision(value: number, p: number) {
+    return Math.floor(value * Math.pow(10, p)) * 1 / Math.pow(10, p)
+}
+export function ceilPrecision(value: number, p: number) {
+    return Math.ceil(value * Math.pow(10, p)) * 1 / Math.pow(10, p)
+}
+// 计算B样条基函数
+export function bSplineBasis(i: number, k: number, t: number, knots: number[]) {
+    if (k === 1) {
+        return (t >= knots[i] && t < knots[i + 1]) ? 1 : 0;
+    } else {
+        const denom1 = knots[i + k - 1] - knots[i];
+        const denom2 = knots[i + k] - knots[i + 1];
+        let term1 = 0;
+        let term2 = 0;
+
+        if (denom1 !== 0) {
+            term1 = ((t - knots[i]) / denom1) * bSplineBasis(i, k - 1, t, knots);
+        }
+
+        if (denom2 !== 0) {
+            term2 = ((knots[i + k] - t) / denom2) * bSplineBasis(i + 1, k - 1, t, knots);
+        }
+
+        return term1 + term2;
+    }
+}
+
+// 计算B样条曲线上的点
+export function bSplineCurve(controlPoints: number[][], degree: number, knots: number[], t: number) {
+    const n = controlPoints.length - 1;
+    let point = [0, 0];
+
+    for (let i = 0; i <= n; i++) {
+        const basis = bSplineBasis(i, degree + 1, t, knots);
+        point[0] += controlPoints[i][0] * basis;
+        point[1] += controlPoints[i][1] * basis;
+    }
+
+    return point;
+}
+
+/**
+ * 二维点接口
+ */
+interface Point {
+    x: number;
+    y: number;
+}
+
+/**
+ * 贝塞尔曲线极值查找类
+ */
+export class BezierExtremaFinder {
+    /**
+     * 查找贝塞尔曲线在指定维度上的极值参数
+     * @param controlPoints 控制点数组
+     * @param dimension 维度 ('x' 或 'y')
+     * @returns 极值对应的参数 t 数组
+     */
+    public static findExtremaParameters(
+        controlPoints: Point[],
+        dimension: 'x' | 'y'
+    ): number[] {
+        const n = controlPoints.length - 1; // 曲线阶数
+        if (n < 1) return [];
+
+        // 获取指定维度的坐标值数组
+        const coords = controlPoints.map(p => p[dimension]);
+
+        // 计算导数曲线的控制点
+        const derivativePoints: number[] = [];
+        for (let i = 0; i < n; i++) {
+            derivativePoints.push(n * (coords[i + 1] - coords[i]));
+        }
+
+        // 求解导数多项式的根
+        return this.findPolynomialRoots(derivativePoints);
+    }
+
+    /**
+     * 查找贝塞尔曲线的所有极值点（包括x和y方向）
+     * @param controlPoints 控制点数组
+     * @returns 极值点数组（包含参数t和对应的点坐标）
+     */
+    public static findAllExtrema(controlPoints: Point[]): Array<{ t: number, point: Point }> {
+        const extrema: Array<{ t: number, point: Point }> = [];
+
+        // 查找x方向的极值参数
+        const xExtremaParams = this.findExtremaParameters(controlPoints, 'x');
+        // 查找y方向的极值参数
+        const yExtremaParams = this.findExtremaParameters(controlPoints, 'y');
+
+        // 合并并去重参数
+        const allParams = [...new Set([...xExtremaParams, ...yExtremaParams])]
+            .filter(t => t >= 0 && t <= 1)
+            .sort((a, b) => a - b);
+
+        // 计算每个参数对应的点
+        for (const t of allParams) {
+            extrema.push({
+                t,
+                point: this.evaluateBezier(controlPoints, t)
+            });
+        }
+
+        return extrema;
+    }
+
+    /**
+     * 计算贝塞尔曲线在参数t处的点
+     * @param controlPoints 控制点数组
+     * @param t 参数 [0, 1]
+     * @returns 曲线上的点
+     */
+    public static evaluateBezier(controlPoints: Point[], t: number): Point {
+        const n = controlPoints.length - 1;
+        let x = 0;
+        let y = 0;
+
+        for (let i = 0; i <= n; i++) {
+            const binomial = this.binomialCoefficient(n, i);
+            const term = binomial * Math.pow(1 - t, n - i) * Math.pow(t, i);
+            x += term * controlPoints[i].x;
+            y += term * controlPoints[i].y;
+        }
+
+        return { x, y };
+    }
+
+    /**
+     * 求解多项式方程的实根（使用数值方法）
+     * @param coefficients 多项式系数，从高次到低次
+     * @returns 在 [0, 1] 区间内的实根数组
+     */
+    private static findPolynomialRoots(coefficients: number[]): number[] {
+        if (coefficients.length === 0) return [];
+
+        // 对于低阶多项式，使用解析解
+        switch (coefficients.length) {
+            case 1: // 常数项，无根或无穷根
+                return Math.abs(coefficients[0]) < 1e-10 ? [0.5] : [];
+
+            case 2: // 线性方程: a*x + b = 0
+                const root1 = -coefficients[1] / coefficients[0];
+                return root1 >= 0 && root1 <= 1 ? [root1] : [];
+
+            case 3: // 二次方程: a*x² + b*x + c = 0
+                return this.solveQuadratic(
+                    coefficients[0],
+                    coefficients[1],
+                    coefficients[2]
+                );
+
+            case 4: // 三次方程
+                return this.solveCubic(
+                    coefficients[0],
+                    coefficients[1],
+                    coefficients[2],
+                    coefficients[3]
+                );
+
+            default:
+                // 对于高阶多项式，使用数值方法（如牛顿迭代法）
+                return this.solvePolynomialNumerically(coefficients);
+        }
+    }
+
+    /**
+     * 求解二次方程
+     */
+    private static solveQuadratic(a: number, b: number, c: number): number[] {
+        if (Math.abs(a) < 1e-10) {
+            // 退化为线性方程
+            return this.solveQuadratic(1, b, c);
+        }
+
+        const discriminant = b * b - 4 * a * c;
+        const roots: number[] = [];
+
+        if (discriminant > 0) {
+            const sqrtDiscriminant = Math.sqrt(discriminant);
+            const root1 = (-b + sqrtDiscriminant) / (2 * a);
+            const root2 = (-b - sqrtDiscriminant) / (2 * a);
+
+            if (root1 >= 0 && root1 <= 1) roots.push(root1);
+            if (root2 >= 0 && root2 <= 1 && Math.abs(root1 - root2) > 1e-10) {
+                roots.push(root2);
+            }
+        } else if (Math.abs(discriminant) < 1e-10) {
+            // 重根
+            const root = -b / (2 * a);
+            if (root >= 0 && root <= 1) roots.push(root);
+        }
+
+        return roots;
+    }
+
+    /**
+     * 求解三次方程（使用Cardano公式）
+     */
+    private static solveCubic(a: number, b: number, c: number, d: number): number[] {
+        // 实现三次方程求根公式...
+        // 这里使用数值方法作为替代
+        return this.solvePolynomialNumerically([a, b, c, d]);
+    }
+
+    /**
+     * 使用牛顿迭代法数值求解多项式根
+     */
+    private static solvePolynomialNumerically(coefficients: number[]): number[] {
+        const roots: number[] = [];
+        const n = coefficients.length - 1;
+
+        // 在 [0, 1] 区间内采样多个起点进行迭代
+        const samplePoints = 20;
+        for (let i = 0; i <= samplePoints; i++) {
+            const startT = i / samplePoints;
+            const root = this.newtonRaphson(coefficients, startT);
+
+            if (root !== null &&
+                root >= 0 && root <= 1 &&
+                !roots.some(r => Math.abs(r - root) < 1e-8)) {
+                roots.push(root);
+            }
+        }
+
+        return roots;
+    }
+
+    /**
+     * 牛顿迭代法
+     */
+    private static newtonRaphson(coefficients: number[], initialGuess: number): number | null {
+        let x = initialGuess;
+        const maxIterations = 50;
+        const tolerance = 1e-10;
+
+        for (let i = 0; i < maxIterations; i++) {
+            const [fx, dfx] = this.evaluatePolynomialAndDerivative(coefficients, x);
+
+            if (Math.abs(fx) < tolerance) {
+                return x;
+            }
+
+            if (Math.abs(dfx) < tolerance) {
+                break; // 导数为零，无法继续迭代
+            }
+
+            x = x - fx / dfx;
+
+            // 如果超出 [0, 1] 范围，提前终止
+            if (x < 0 || x > 1) {
+                break;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 计算多项式及其导数在某点的值
+     */
+    private static evaluatePolynomialAndDerivative(coefficients: number[], x: number): [number, number] {
+        let fx = 0;
+        let dfx = 0;
+        const n = coefficients.length - 1;
+
+        for (let i = 0; i <= n; i++) {
+            const power = n - i;
+            const term = coefficients[i] * Math.pow(x, power);
+            fx += term;
+
+            if (power > 0) {
+                dfx += coefficients[i] * power * Math.pow(x, power - 1);
+            }
+        }
+
+        return [fx, dfx];
+    }
+
+    /**
+     * 计算二项式系数 C(n, k)
+     */
+    private static binomialCoefficient(n: number, k: number): number {
+        if (k < 0 || k > n) return 0;
+        if (k === 0 || k === n) return 1;
+
+        k = Math.min(k, n - k);
+        let result = 1;
+
+        for (let i = 1; i <= k; i++) {
+            result = result * (n - k + i) / i;
+        }
+
+        return result;
+    }
+}
+export function solveQuadratic(a: number, b: number, c: number): number[] {
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return []; // 无实数解
+    let roots: number[] = [];
+    if (discriminant === 0) {
+        // 一个根
+        roots.push(-b / (2 * a));
+    } else {
+        // 两个根
+        const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+        const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+        roots.push(root1);
+        roots.push(root2);
+    }
+    return roots
+}
+//卡尔丹公式（Cardano's formula）
+export function solveCubic(a: number, b: number, c: number, d: number): number[] {
+    if (a === 0) throw new Error("Not a cubic equation");
+
+    // 转换成主三次形式 y^3 + py + q = 0
+    const p = (3 * a * c - b * b) / (3 * a * a);
+    const q = (2 * b * b * b - 9 * a * b * c + 27 * a * a * d) / (27 * a * a * a);
+
+    const discriminant = (q / 2) ** 2 + (p / 3) ** 3;
+    const roots: number[] = [];
+
+    if (discriminant > 0) {
+        // 一个实根，两个复根
+        const sqrtDisc = Math.sqrt(discriminant);
+        const u = Math.cbrt(-q / 2 + sqrtDisc);
+        const v = Math.cbrt(-q / 2 - sqrtDisc);
+        const y = u + v;
+        roots.push(y - b / (3 * a));
+    } else if (discriminant === 0) {
+        // 重根情况
+        const u = Math.cbrt(-q / 2);
+        roots.push(2 * u - b / (3 * a));
+        roots.push(-u - b / (3 * a));
+    } else {
+        // 三个实根
+        const r = 2 * Math.sqrt(-p / 3);
+        const theta = Math.acos((3 * q) / (2 * p) * Math.sqrt(-3 / p)) / 3;
+
+        for (let k = 0; k < 3; k++) {
+            const y = r * Math.cos(theta - (2 * Math.PI * k) / 3);
+            roots.push(y - b / (3 * a));
+        }
+    }
+
+    return roots;
+}
+/**
+ * 使用Cardano公式求解三次方程 ax³ + bx² + cx + d = 0
+ * @param {number} a - 三次项系数
+ * @param {number} b - 二次项系数
+ * @param {number} c - 一次项系数
+ * @param {number} d - 常数项
+ * @returns {number[]} 实数根数组（可能有1-3个根）
+ */
+export function solveCubicEpsilon(a: number, b: number, c: number, d: number, epsilon = 1e-10): number[] {
+    // 处理特殊情况
+    if (Math.abs(a) < epsilon) {
+        // 退化为二次方程
+        return solveQuadraticEpsilon(b, c, d);
+    }
+
+    // 归一化系数
+    const A = b / a;
+    const B = c / a;
+    const C = d / a;
+
+    // 消去二次项：令 x = y - A/3
+    const p = B - A * A / 3;
+    const q = (2 * A * A * A) / 27 - (A * B) / 3 + C;
+
+    // 计算判别式
+    const discriminant = (q * q) / 4 + (p * p * p) / 27;
+
+    let roots = [];
+
+    if (discriminant > 0) {
+        // 一个实根，两个共轭复根
+        const sqrtD = Math.sqrt(discriminant);
+        const u = Math.cbrt(-q / 2 + sqrtD);
+        const v = Math.cbrt(-q / 2 - sqrtD);
+        const realRoot = u + v - A / 3;
+        roots.push(realRoot);
+    }
+    else if (Math.abs(discriminant) < epsilon) {
+        // 三个实根，至少两个相等
+        if (Math.abs(p) < epsilon && Math.abs(q) < epsilon) {
+            // 三重根
+            const tripleRoot = -A / 3;
+            roots = [tripleRoot, tripleRoot, tripleRoot];
+        } else {
+            // 一个单根和一个二重根
+            const u = Math.cbrt(-q / 2);
+            const root1 = 2 * u - A / 3;
+            const root2 = -u - A / 3;
+            roots = [root1, root2, root2];
+        }
+    }
+    else {
+        // 三个不同的实根（不可约情况）
+        const phi = Math.acos(-q / 2 * Math.sqrt(-27 / (p * p * p)));
+        const r = 2 * Math.sqrt(-p / 3);
+
+        for (let k = 0; k < 3; k++) {
+            const root = r * Math.cos((phi - 2 * Math.PI * k) / 3) - A / 3;
+            roots.push(root);
+        }
+    }
+
+    // 过滤NaN并排序
+    return roots.filter(root => !isNaN(root))
+        .sort((a, b) => a - b);
+}
+
+/**
+ * 求解二次方程 ax² + bx + c = 0
+ */
+export function solveQuadraticEpsilon(a: number, b: number, c: number, epsilon = 1e-10) {
+    if (Math.abs(a) < epsilon) {
+        // 退化为一次方程
+        if (Math.abs(b) < epsilon) {
+            return []; // 无解或无穷多解
+        }
+        return [-c / b];
+    }
+
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) {
+        return []; // 无实根
+    }
+    else if (Math.abs(discriminant) < epsilon) {
+        return [-b / (2 * a)]; // 重根
+    }
+    else {
+        const sqrtD = Math.sqrt(discriminant);
+        return [
+            (-b - sqrtD) / (2 * a),
+            (-b + sqrtD) / (2 * a)
+        ];
+    }
+}
+
+/**
+ * 求解四次方程 ax⁴ + bx³ + cx² + dx + e = 0
+ * 使用Ferrari方法
+ */
+export function solveQuarticEpsilon(a:number, b:number, c:number, d:number, e:number, epsilon = 1e-12): number[] {
+    if (Math.abs(a) < epsilon) {
+        return solveCubicEpsilon(b, c, d, e); // 退化为三次方程
+    }
+    
+    // 归一化系数
+    const A = b / a;
+    const B = c / a;
+    const C = d / a;
+    const D = e / a;
+    
+    // 消去三次项：令 x = y - A/4
+    const p = B - (3 * A * A) / 8;
+    const q = C - (A * B) / 2 + (A * A * A) / 8;
+    const r = D - (A * C) / 4 + (A * A * B) / 16 - (3 * A * A * A * A) / 256;
+    
+    // 求解辅助三次方程
+    const cubicRoots = solveCubicEpsilon(
+        1,
+        -p / 2,
+        -r,
+        (p * r) / 2 - (q * q) / 8
+    );
+    
+    // 选择实根
+    const z = cubicRoots.find(root => !isNaN(root) && isFinite(root));
+    
+    if (z === undefined) {
+        throw new Error('无法找到合适的实根');
+    }
+    
+    // 计算中间变量
+    const sqrt2z = Math.sqrt(2 * z);
+    const term1 = Math.sqrt(z * z - r);
+    const term2 = q / (2 * sqrt2z);
+    
+    // 四个可能的根
+    const roots = [];
+    
+    // 第一种组合
+    const sqrt1 = Math.sqrt(z + term1 - term2);
+    const sqrt2 = Math.sqrt(z - term1 - term2);
+    roots.push(-A/4 + (sqrt2z + sqrt1 + sqrt2)/2);
+    roots.push(-A/4 + (sqrt2z - sqrt1 - sqrt2)/2);
+    
+    // 第二种组合
+    const sqrt3 = Math.sqrt(z + term1 + term2);
+    const sqrt4 = Math.sqrt(z - term1 + term2);
+    roots.push(-A/4 + (-sqrt2z + sqrt3 + sqrt4)/2);
+    roots.push(-A/4 + (-sqrt2z - sqrt3 - sqrt4)/2);
+    
+    // 过滤有效根
+    return roots.filter(root => 
+        !isNaN(root) && isFinite(root)
+    ).sort((a, b) => a - b);
+}
+
+
+//  二分法（Bisection Method）
+export function bisection(f: (a: any) => number, a: any, b: any, tolerance = 1e-10, maxIterations = 1000) {
+    if (f(a) * f(b) >= 0) {
+        throw new Error('函数在区间端点同号');
+    }
+
+    let iteration = 0;
+    while ((b - a) > tolerance && iteration < maxIterations) {
+        const c = (a + b) / 2;
+        if (Math.abs(f(c)) < tolerance) return c;
+
+        if (f(a) * f(c) < 0) {
+            b = c;
+        } else {
+            a = c;
+        }
+        iteration++;
+    }
+    return (a + b) / 2;
+}
+// 牛顿迭代法（Newton-Raphson Method）
+export function newtonRaphson(f: (a: any) => number, df: (a: any) => number, x0: any, tolerance = 1e-10, maxIterations = 100) {
+    let x = x0;
+    for (let i = 0; i < maxIterations; i++) {
+        const fx = f(x);
+        if (Math.abs(fx) < tolerance) return x;
+
+        const dfx = df(x);
+        if (Math.abs(dfx) < tolerance) {
+            throw new Error('导数为零，无法继续迭代');
+        }
+
+        x = x - fx / dfx;
+    }
+    return x;
+}
+// 割线法（Secant Method）
+export function secant(f: (a: any) => number, x0: any, x1: any, tolerance = 1e-10, maxIterations = 100) {
+    let xPrev = x0;
+    let x = x1;
+
+    for (let i = 0; i < maxIterations; i++) {
+        const fPrev = f(xPrev);
+        const fCurrent = f(x);
+
+        if (Math.abs(fCurrent) < tolerance) return x;
+
+        const denominator = fCurrent - fPrev;
+        if (Math.abs(denominator) < tolerance) {
+            throw new Error('除零错误');
+        }
+
+        const xNext = x - fCurrent * (x - xPrev) / denominator;
+        xPrev = x;
+        x = xNext;
+    }
+    return x;
+}
+/**
+ * 布伦特方法求根 - 结合二分法、割线法和逆二次插值
+ * @param {Function} f - 目标函数
+ * @param {number} a - 区间左端点
+ * @param {number} b - 区间右端点
+ * @param {number} tolerance - 容差
+ * @param {number} maxIterations - 最大迭代次数
+ * @returns {number} 根的近似值
+ */
+export function brentMethod(f:(x:number)=>number, a:number, b:number, tolerance = 1e-10, maxIterations = 100) {
+    /**
+ * 逆二次插值
+ */
+    function inverseQuadraticInterpolation(a:number, b:number, c:number, fa:number, fb:number, fc:number) {
+        const L0 = a * fb * fc / ((fa - fb) * (fa - fc));
+        const L1 = b * fa * fc / ((fb - fa) * (fb - fc));
+        const L2 = c * fa * fb / ((fc - fa) * (fc - fb));
+        return L0 + L1 + L2;
+    }
+
+    /**
+     * 割线法
+     */
+    function secantMethod(a:number, b:number, fa:number, fb:number) {
+        return b - fb * (b - a) / (fb - fa);
+    }
+
+    let fa = f(a);
+    let fb = f(b);
+
+    // 检查区间端点
+    if (fa * fb >= 0) {
+        throw new Error('函数在区间端点同号，无法保证有根');
+    }
+
+    // 确保 |f(b)| < |f(a)|
+    if (Math.abs(fa) < Math.abs(fb)) {
+        [a, b] = [b, a];
+        [fa, fb] = [fb, fa];
+    }
+
+    let c = a;
+    let fc = fa;
+    let d = c;
+    let mflag = true;
+    let s = 0;
+    let fs = 0;
+
+    for (let iter = 0; iter < maxIterations; iter++) {
+        // 检查是否收敛
+        if (Math.abs(fb) < tolerance || Math.abs(b - a) < tolerance) {
+            return b;
+        }
+
+        if (Math.abs(fa - fc) > tolerance && Math.abs(fb - fc) > tolerance) {
+            // 尝试逆二次插值
+            s = inverseQuadraticInterpolation(a, b, c, fa, fb, fc);
+        } else {
+            // 使用割线法
+            s = secantMethod(a, b, fa, fb);
+        }
+
+        // 检查插值结果是否可接受
+        const condition1 = (s - b) * (s - (3 * a + b) / 4) > 0;
+        const condition2 = mflag && Math.abs(s - b) >= Math.abs(b - c) / 2;
+        const condition3 = !mflag && Math.abs(s - b) >= Math.abs(c - d) / 2;
+        const condition4 = mflag && Math.abs(b - c) < tolerance;
+        const condition5 = !mflag && Math.abs(c - d) < tolerance;
+
+        if (condition1 || condition2 || condition3 || condition4 || condition5) {
+            // 使用二分法
+            s = (a + b) / 2;
+            mflag = true;
+        } else {
+            mflag = false;
+        }
+
+        // 计算f(s)
+        fs = f(s);
+        d = c;
+        c = b;
+        fc = fb;
+
+        // 更新区间
+        if (fa * fs < 0) {
+            b = s;
+            fb = fs;
+        } else {
+            a = s;
+            fa = fs;
+        }
+
+        // 确保 |f(b)| < |f(a)|
+        if (Math.abs(fa) < Math.abs(fb)) {
+            [a, b] = [b, a];
+            [fa, fb] = [fb, fa];
+        }
+    }
+
+    throw new Error('达到最大迭代次数仍未收敛');
+}
+
+/*
+周期函数:y = A sin(Bx + C) + D
+频率 =  1/周期
+周期 =  1/频率
+振幅是A
+周期是2π/B
+相移是−C/B
+垂直移位是D
+
+**/
+export function periodicFunction(a:number,b:number,c:number,d:number){
+    return (x:number)=>{
+        return a*Math.sin(b*x+c)+d
+    }
+}

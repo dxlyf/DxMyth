@@ -597,6 +597,9 @@ export class Vector2 extends Float32Array {
     divide(other: Vector2Like) { // 向量除法，传入另一个向量，返回新的向量
         return divide(this, this, other); // 返回新的向量
     }
+    divideScalar(scalar: number) { 
+        return multiplyScalar(this, this, 1/scalar);
+    }
     divideVectors(a: Vector2Like, b: Vector2Like) { 
         return divide(this, a, b); // 返回新的向量
     }
@@ -636,12 +639,14 @@ export class Vector2 extends Float32Array {
     angle() { // 向量角度，返回一个标量
         return angle(this); // 返回标量
     }
+    // 计算两个向量之间的夹角[0,PI]
     angleTo(other: Vector2Like) { // 向量夹角，传入另一个向量，返回一个标量
         return angleToUnsigned(this, other); // 返回标量
     }
     angleToOrigin(origin:Vector2Like){
         return angleToOrigin(this,origin)
     }
+    // 计算两个向量之间的夹角[-PI,PI]
     angleBetween(a: Vector2Like, b: Vector2Like){
         return angleBetweenPI2(a,b)
     }

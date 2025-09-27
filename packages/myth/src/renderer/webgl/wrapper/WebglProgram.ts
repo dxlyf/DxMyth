@@ -19,7 +19,7 @@ export class WebglProgramWrapper{
         this.gl=gl;
         this.program=createWebGLProgram(gl,config.vert,config.frag)
     }
-    get 
+ 
     vertextShaderSource(){
         return `version ${this.config.version} es
 

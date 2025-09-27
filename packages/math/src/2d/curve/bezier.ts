@@ -1,6 +1,6 @@
 import { BoundingRect } from '../math/bounding_rect'
 import { Vector2 } from '../math/vec2'
-import { nCr, factorial, clamp,solveCubic,solveQuadratic } from 'src/2d/utils'
+import { nCr, factorial, clamp,solveCubic,solveQuadratic } from 'src/2d/math/utils'
 import { mat3, vec3, mat4, vec4 } from 'gl-matrix'
 
 const mathSqrt = Math.sqrt;

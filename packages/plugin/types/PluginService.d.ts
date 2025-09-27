@@ -1,0 +1,31 @@
+import { PluginContext } from './PluginContext';
+import { ICommand, IHook, ApplyPluginOption, IMethod, IPlugin, IPluginService, IPreset, PluginServiceConfig } from './types';
+export declare class PluginService<Config extends Record<string, any> = {}> implements IPluginService<Config> {
+    config: PluginServiceConfig & Config;
+    hooks: Map<string, IHook[]>;
+    methods: Map<string, IMethod[]>;
+    commands: Map<string, ICommand>;
+    plugins: Map<string, IPlugin<any>>;
+    presets: Map<string, IPreset>;
+    extraPlugins: IPlugin<any>[];
+    extraPresets: IPreset<any>[];
+    constructor(config: PluginServiceConfig & Config);
+    initPresetsAndPlugins(): void;
+    getSortPlugins<T extends IPlugin>(plugins: T[]): T[];
+    resolvePresets(presets: IPreset[], extra: boolean): void;
+    resolvePlugins(plugins: IPlugin[], extra: boolean): void;
+    registerPlugin(plugin: IPlugin): void;
+    registerPreset(preset: IPreset): void;
+    applyMethods(methods: IMethod[]): (...args: any[]) => void;
+    initPluginCtx(plugin: IPlugin): PluginContext<Config>;
+    initPlugin(plugin: IPlugin): void;
+    initPreset(preset: IPreset): void;
+    hookFirst<T = any>(name: string, ...args: any[]): Promise<T>;
+    hookFirstSync<T = any>(name: string, ...args: any[]): T;
+    hookParallel(name: string, ...args: any[]): Promise<any>;
+    runHookSync(name: string, ...args: any[]): void;
+    runHook(name: string, ...args: any[]): Promise<void>;
+    applyPlugins<T = any>(opts: ApplyPluginOption): Promise<T>;
+    reset(): void;
+    run<T = any>(name: string, ...args: any[]): Promise<T>;
+}

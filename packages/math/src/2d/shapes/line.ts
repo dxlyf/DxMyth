@@ -1,5 +1,5 @@
 import { Vector2, Vector2Point } from "../math/vec2";
-import { clamp } from '../utils'
+import { clamp } from '../math/utils'
 import { BoundingRect } from "../math/bounding_rect";
 
 

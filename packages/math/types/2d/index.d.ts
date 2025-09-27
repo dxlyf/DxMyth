@@ -14,7 +14,6 @@ export * as shapes2 from './shapes';
 export * as clipper from './clipper';
 export * as tess from './tess-ts';
 export * as mathigon from './mathigon';
-export * as utils from './utils/index';
 export { Big } from './utils/big';
 export { default as bigInt } from './utils/bigInteger';
 export { BigNumber } from './utils/bignumber';
