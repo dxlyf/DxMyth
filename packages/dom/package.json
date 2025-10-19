@@ -1,6 +1,6 @@
 {
-  "name": "@dxyl/math",
-  "version": "1.2.0",
+  "name": "@dxyl/dom",
+  "version": "1.1.2",
   "description": "Collected many useful mathematical tools",
   "publishConfig": {
     "access": "public"

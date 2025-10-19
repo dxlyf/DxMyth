@@ -61,6 +61,7 @@ export declare class Line {
         min: Vector2;
         max: Vector2;
     }): Vector2[];
+    intersectionFromGrid(grid: number[][], cellWidth: number, cellHeight: number): Vector2[];
     /**
      * y=xk+b b=y-xk
      * 适用所有直线

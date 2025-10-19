@@ -1,0 +1,1 @@
+export declare const drawEllipseArc: (cx: number, cy: number, rx: number, ry: number, startAngle: number, endAngle: number, counterclockwise: boolean, setPixel: (x: number, y: number) => void) => void;

@@ -160,6 +160,61 @@ export class Line {
         }
         return []
     }
+    // 找到格子最近障碍的格子
+    intersectionFromGrid(grid:number[][], cellWidth:number, cellHeight:number){
+        const start=this.start
+        const dir=this.getDelta().normalize()
+        const rows=grid.length,cols=grid[0].length
+
+        const cellSize=Vector2.create(cellWidth,cellHeight)
+        const coord=start.clone().div(cellSize) 
+        const mapCoord=coord.clone().floor() // 起始位置的地图坐标 
+        const offset=coord.clone().sub(mapCoord) // 起始位位置，偏移
+        const sign=dir.clone().sign()
+        // 判断正割
+        const deltaX=dir.x===0?1e30:Math.abs(1/dir.x); // 正割,dist和x的比
+        const deltaY=dir.y===0?1e30:Math.abs(1/dir.y); // 余割
+
+        // 计算x轴和y轴的距离
+        let sideDistX=sign.x===1?(1-offset.x)*deltaX:offset.x*deltaX
+        let sideDistY=sign.y===1?(1-offset.y)*deltaY:offset.y*deltaY;
+       
+        const steps=[]
+        let isCollied=false,side=false;
+        let distance=0
+        while(!isCollied){
+            // 如果x轴距离小于y轴距离，说明下一个交点在x轴上，反之在y轴上
+            if(sideDistX<sideDistY){
+                side=true
+                mapCoord.x+=sign.x;
+                sideDistX+=deltaX
+         
+            }else{
+                side=false
+                mapCoord.y+=sign.y;
+                sideDistY+=deltaY
+          
+            }
+            let col=mapCoord.x
+            let row=mapCoord.y
+            if(col<0||col>=cols||row<0||row>=rows||grid[row][col]>0){
+                isCollied=true
+                break
+            }
+        }
+        if (side) {
+            distance = sideDistX - deltaX
+        } else {
+            distance = sideDistY - deltaY
+        }
+        //
+        let rx=distance*cellWidth // x轴半径
+        let ry=distance*cellHeight // y轴半径
+        let x=start.x+rx*dir.x;
+        let y=start.y+ry*dir.y
+        steps.push(Vector2.create(x,y))
+        return steps;
+    }
     /**
      * y=xk+b b=y-xk
      * 适用所有直线

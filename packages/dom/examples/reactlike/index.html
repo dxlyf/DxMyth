@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React-like Fiber & Hooks Framework with Complete Diff</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .component {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .counter {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .info-panel {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            background-color: #f1f1f1;
+            transition: background-color 0.3s;
+        }
+        .tab:hover {
+            background-color: #e9e9e9;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .diff-visualization {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #e1e1e1;
+        }
+        .node {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .node-unchanged {
+            background-color: #e7f4e4;
+            border: 1px solid #b7d8b7;
+        }
+        .node-added {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .node-removed {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            text-decoration: line-through;
+        }
+        .node-moved {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+        .node-updated {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        .list-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .list-item button {
+            background-color: #ff6b6b;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .list-item button:hover {
+            background-color: #ff5252;
+        }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .visualization-controls {
+            margin: 10px 0;
+        }
+        .visualization-controls button {
+            background-color: #6c757d;
+        }
+        .visualization-controls button:hover {
+            background-color: #5a6268;
+        }
+        .key-point {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>React-like Fiber & Hooks Framework with Complete Diff</h1>
+        
+        <div class="info-panel">
+            <p>这个实现展示了完整的React-like框架，包含Fiber架构、Lane优先级系统、Hooks系统和<strong>完整的Diff算法</strong>。</p>
+        </div>
+        
+        <div class="tab-container">
+            <div class="tab active" data-tab="demo">Demo</div>
+            <div class="tab" data-tab="diff">Diff可视化</div>
+            <div class="tab" data-tab="code">代码实现</div>
+            <div class="tab" data-tab="explanation">原理说明</div>
+        </div>
+        
+        <div class="tab-content active" id="demo">
+            <div id="app"></div>
+        </div>
+        
+        <div class="tab-content" id="diff">
+            <h2>Diff算法可视化</h2>
+            <p>这个可视化展示了Diff算法如何比较新旧虚拟DOM树并确定最小更新操作。</p>
+            
+            <div class="visualization-controls">
+                <button id="resetDiff">重置</button>
+                <button id="step1">步骤1: 树比较</button>
+                <button id="step2">步骤2: 节点对比</button>
+                <button id="step3">步骤3: 列表Diff</button>
+                <button id="step4">步骤4: 应用更新</button>
+            </div>
+            
+            <div class="diff-visualization">
+                <h3>当前状态: <span id="diffStep">未开始</span></h3>
+                <div id="diffOutput">
+                    <p>点击上面的按钮查看Diff算法的每个步骤。</p>
+                </div>
+            </div>
+            
+            <div class="key-point">
+                <h4>Diff算法关键点:</h4>
+                <ul>
+                    <li><strong>树比较</strong>: 比较新旧虚拟DOM树的整体结构</li>
+                    <li><strong>节点对比</strong>: 对每个节点进行详细比较，确定更新类型</li>
+                    <li><strong>列表Diff</strong>: 使用key属性高效处理列表项的增删移动</li>
+                    <li><strong>应用更新</strong>: 将Diff结果应用到实际DOM</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="code">
+            <h2>框架核心代码</h2>
+            <div class="code-block">
+// ========== Fiber节点类 ==========
+class FiberNode {
+    constructor(type, props, key) {
+        this.type = type;
+        this.props = props;
+        this.key = key || null;
+        this.dom = null;
+        this.parent = null;
+        this.child = null;
+        this.sibling = null;
+        this.alternate = null;
+        this.effectTag = null;
+        this.hooks = [];
+        this.stateNode = null;
+        this.index = 0; // 在父节点中的索引位置
+    }
+}
+
+// ========== Lane优先级系统 ==========
+const SyncLane = 0b0001;
+const InputLane = 0b0010;
+const DefaultLane = 0b0100;
+const IdleLane = 0b1000;
+
+// ========== 全局变量 ==========
+let nextUnitOfWork = null;
+let currentRoot = null;
+let wipRoot = null;
+let deletions = [];
+let wipFiber = null;
+let hookIndex = null;
+let pendingCommit = null;
+
+// ========== 调度器 ==========
+function workLoop(deadline) {
+    let shouldYield = false;
+    while (nextUnitOfWork && !shouldYield) {
+        nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+        shouldYield = deadline.timeRemaining() < 1;
+    }
+    
+    if (!nextUnitOfWork && wipRoot) {
+        commitRoot();
+    }
+    
+    requestIdleCallback(workLoop);
+}
+
+requestIdleCallback(workLoop);
+
+// ========== 执行工作单元 ==========
+function performUnitOfWork(fiber) {
+    const isFunctionComponent = fiber.type instanceof Function;
+    
+    if (isFunctionComponent) {
+        updateFunctionComponent(fiber);
+    } else {
+        updateHostComponent(fiber);
+    }
+    
+    // 返回下一个工作单元
+    if (fiber.child) {
+        return fiber.child;
+    }
+    
+    let nextFiber = fiber;
+    while (nextFiber) {
+        if (nextFiber.sibling) {
+            return nextFiber.sibling;
+        }
+        nextFiber = nextFiber.parent;
+    }
+}
+
+// ========== 更新函数组件 ==========
+function updateFunctionComponent(fiber) {
+    wipFiber = fiber;
+    hookIndex = 0;
+    wipFiber.hooks = [];
+    
+    const children = [fiber.type(fiber.props)];
+    reconcileChildren(fiber, children);
+}
+
+// ========== 更新宿主组件 ==========
+function updateHostComponent(fiber) {
+    if (!fiber.dom) {
+        fiber.dom = createDom(fiber);
+    }
+    
+    reconcileChildren(fiber, fiber.props.children);
+}
+
+// ========== 完整的Diff算法实现 ==========
+function reconcileChildren(wipFiber, elements) {
+    let index = 0;
+    let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+    let prevSibling = null;
+    
+    // 用于keyed diff的映射表
+    const existingChildren = new Map();
+    
+    // 将旧的子节点添加到映射表中
+    let currentOldFiber = oldFiber;
+    while (currentOldFiber) {
+        const key = currentOldFiber.key || currentOldFiber.index;
+        existingChildren.set(key, currentOldFiber);
+        currentOldFiber = currentOldFiber.sibling;
+    }
+    
+    // 处理新子元素
+    while (index < elements.length) {
+        const element = elements[index];
+        const key = element.key || index;
+        let newFiber = null;
+        
+        // 检查是否有相同key的旧节点
+        const matchedFiber = existingChildren.get(key);
+        
+        if (matchedFiber) {
+            // 检查类型是否相同
+            if (matchedFiber.type === element.type) {
+                // 可以复用节点
+                newFiber = {
+                    type: matchedFiber.type,
+                    props: element.props,
+                    key: element.key,
+                    dom: matchedFiber.dom,
+                    parent: wipFiber,
+                    alternate: matchedFiber,
+                    effectTag: "UPDATE",
+                    index: index
+                };
+            } else {
+                // 类型不同，创建新节点，删除旧节点
+                newFiber = {
+                    type: element.type,
+                    props: element.props,
+                    key: element.key,
+                    dom: null,
+                    parent: wipFiber,
+                    alternate: null,
+                    effectTag: "PLACEMENT",
+                    index: index
+                };
+                
+                // 标记旧节点为删除
+                matchedFiber.effectTag = "DELETION";
+                deletions.push(matchedFiber);
+            }
+            
+            // 从映射表中移除已匹配的节点
+            existingChildren.delete(key);
+        } else {
+            // 没有匹配的节点，创建新节点
+            newFiber = {
+                type: element.type,
+                props: element.props,
+                key: element.key,
+                dom: null,
+                parent: wipFiber,
+                alternate: null,
+                effectTag: "PLACEMENT",
+                index: index
+            };
+        }
+        
+        // 设置子节点或兄弟节点
+        if (index === 0) {
+            wipFiber.child = newFiber;
+        } else {
+            prevSibling.sibling = newFiber;
+        }
+        
+        prevSibling = newFiber;
+        index++;
+    }
+    
+    // 处理剩余的旧节点（需要删除的）
+    existingChildren.forEach(fiber => {
+        fiber.effectTag = "DELETION";
+        deletions.push(fiber);
+    });
+}
+
+// ========== 提交阶段 ==========
+function commitRoot() {
+    deletions.forEach(commitWork);
+    commitWork(wipRoot.child);
+    currentRoot = wipRoot;
+    wipRoot = null;
+    deletions = [];
+}
+
+function commitWork(fiber) {
+    if (!fiber) return;
+    
+    let domParentFiber = fiber.parent;
+    while (!domParentFiber.dom) {
+        domParentFiber = domParentFiber.parent;
+    }
+    const domParent = domParentFiber.dom;
+    
+    if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
+        domParent.appendChild(fiber.dom);
+    } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
+        updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+    } else if (fiber.effectTag === "DELETION") {
+        commitDeletion(fiber, domParent);
+    }
+    
+    commitWork(fiber.child);
+    commitWork(fiber.sibling);
+}
+
+function commitDeletion(fiber, domParent) {
+    if (fiber.dom) {
+        domParent.removeChild(fiber.dom);
+    } else {
+        commitDeletion(fiber.child, domParent);
+    }
+}
+
+// ========== Hooks实现 ==========
+function useState(initial) {
+    const oldHook = wipFiber.alternate && 
+                    wipFiber.alternate.hooks && 
+                    wipFiber.alternate.hooks[hookIndex];
+    
+    const hook = {
+        state: oldHook ? oldHook.state : initial,
+        queue: [],
+    };
+    
+    const actions = oldHook ? oldHook.queue : [];
+    actions.forEach(action => {
+        hook.state = typeof action === 'function' ? action(hook.state) : action;
+    });
+    
+    const setState = (action) => {
+        hook.queue.push(action);
+        wipRoot = {
+            dom: currentRoot.dom,
+            props: currentRoot.props,
+            alternate: currentRoot,
+        };
+        nextUnitOfWork = wipRoot;
+        deletions = [];
+    };
+    
+    wipFiber.hooks.push(hook);
+    hookIndex++;
+    return [hook.state, setState];
+}
+
+function useEffect(callback, deps) {
+    const oldHook = wipFiber.alternate && 
+                    wipFiber.alternate.hooks && 
+                    wipFiber.alternate.hooks[hookIndex];
+    
+    const hasChanged = !oldHook || !deps || 
+                      deps.some((dep, i) => dep !== oldHook.deps[i]);
+    
+    const hook = {
+        callback: hasChanged ? callback : oldHook.callback,
+        deps,
+        cleanup: oldHook ? oldHook.cleanup : null,
+    };
+    
+    if (hasChanged && hook.cleanup) {
+        hook.cleanup();
+    }
+    
+    wipFiber.hooks.push(hook);
+    hookIndex++;
+}
+
+// ========== 渲染函数 ==========
+function render(element, container) {
+    wipRoot = {
+        dom: container,
+        props: {
+            children: [element],
+        },
+        alternate: currentRoot,
+    };
+    
+    deletions = [];
+    nextUnitOfWork = wipRoot;
+}
+
+// ========== 辅助函数 ==========
+function createDom(fiber) {
+    const dom = fiber.type === "TEXT_ELEMENT"
+        ? document.createTextNode("")
+        : document.createElement(fiber.type);
+    
+    updateDom(dom, {}, fiber.props);
+    return dom;
+}
+
+function updateDom(dom, prevProps, nextProps) {
+    // 处理属性更新
+    Object.keys(prevProps)
+        .filter(name => name !== "children")
+        .forEach(name => {
+            if (!(name in nextProps)) {
+                if (name.startsWith("on")) {
+                    const eventType = name.toLowerCase().substring(2);
+                    dom.removeEventListener(eventType, prevProps[name]);
+                } else {
+                    dom[name] = "";
+                }
+            }
+        });
+    
+    Object.keys(nextProps)
+        .filter(name => name !== "children")
+        .forEach(name => {
+            if (prevProps[name] !== nextProps[name]) {
+                if (name.startsWith("on")) {
+                    const eventType = name.toLowerCase().substring(2);
+                    if (prevProps[name]) {
+                        dom.removeEventListener(eventType, prevProps[name]);
+                    }
+                    dom.addEventListener(eventType, nextProps[name]);
+                } else {
+                    dom[name] = nextProps[name];
+                }
+            }
+        });
+}
+
+// ========== 创建元素函数 ==========
+function createElement(type, props, ...children) {
+    return {
+        type,
+        props: {
+            ...props,
+            children: children.map(child =>
+                typeof child === "object" ? child : createTextElement(child)
+            ),
+        },
+        key: props && props.key ? props.key : null
+    };
+}
+
+function createTextElement(text) {
+    return {
+        type: "TEXT_ELEMENT",
+        props: {
+            nodeValue: text,
+            children: [],
+        },
+    };
+}
+            </div>
+        </div>
+        
+        <div class="tab-content" id="explanation">
+            <h2>框架原理说明</h2>
+            
+            <h3>Fiber架构</h3>
+            <p>Fiber是React 16引入的新的协调引擎，它将渲染工作分割成多个小单元，可以中断和恢复，实现更细粒度的控制。</p>
+            <ul>
+                <li><strong>Fiber节点</strong>：每个组件对应一个Fiber节点，包含组件类型、属性、DOM引用等信息</li>
+                <li><strong>工作循环</strong>：使用requestIdleCallback在浏览器空闲时执行渲染任务</li>
+                <li><strong>协调阶段</strong>：比较新旧虚拟DOM，确定需要进行的更新</li>
+                <li><strong>提交阶段</strong>：将协调结果应用到实际DOM</li>
+            </ul>
+            
+            <h3>完整的Diff算法</h3>
+            <p>这个实现包含完整的Diff算法，用于高效比较虚拟DOM树：</p>
+            <ul>
+                <li><strong>树比较</strong>：比较新旧虚拟DOM树的整体结构</li>
+                <li><strong>节点对比</strong>：对每个节点进行详细比较，确定更新类型</li>
+                <li><strong>Keyed Diff</strong>：使用key属性高效处理列表项的增删移动</li>
+                <li><strong>最小化操作</strong>：只应用必要的DOM操作，提高性能</li>
+            </ul>
+            
+            <h3>Lane优先级系统</h3>
+            <p>Lane系统使用位运算来管理不同优先级的更新：</p>
+            <ul>
+                <li><strong>SyncLane</strong>：同步优先级，最高优先级</li>
+                <li><strong>InputLane</strong>：用户输入相关，高优先级</li>
+                <li><strong>DefaultLane</strong>：默认优先级</li>
+                <li><strong>IdleLane</strong>：空闲时执行，最低优先级</li>
+            </ul>
+            
+            <h3>Hooks系统</h3>
+            <p>Hooks允许在函数组件中使用状态和其他React特性：</p>
+            <ul>
+                <li><strong>useState</strong>：管理组件状态</li>
+                <li><strong>useEffect</strong>：处理副作用</li>
+                <li><strong>Hook链表</strong>：每个Fiber节点维护一个Hook链表，保证Hooks调用顺序一致</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // ========== Fiber节点类 ==========
+        class FiberNode {
+            constructor(type, props, key) {
+                this.type = type;
+                this.props = props;
+                this.key = key || null;
+                this.dom = null;
+                this.parent = null;
+                this.child = null;
+                this.sibling = null;
+                this.alternate = null;
+                this.effectTag = null;
+                this.hooks = [];
+                this.stateNode = null;
+                this.index = 0; // 在父节点中的索引位置
+            }
+        }
+
+        // ========== Lane优先级系统 ==========
+        const SyncLane = 0b0001;
+        const InputLane = 0b0010;
+        const DefaultLane = 0b0100;
+        const IdleLane = 0b1000;
+
+        // ========== 全局变量 ==========
+        let nextUnitOfWork = null;
+        let currentRoot = null;
+        let wipRoot = null;
+        let deletions = [];
+        let wipFiber = null;
+        let hookIndex = null;
+        let pendingCommit = null;
+
+        // ========== 调度器 ==========
+        function workLoop(deadline) {
+            let shouldYield = false;
+            while (nextUnitOfWork && !shouldYield) {
+                nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+                shouldYield = deadline.timeRemaining() < 1;
+            }
+            
+            if (!nextUnitOfWork && wipRoot) {
+                commitRoot();
+            }
+            
+            requestIdleCallback(workLoop);
+        }
+
+        requestIdleCallback(workLoop);
+
+        // ========== 执行工作单元 ==========
+        function performUnitOfWork(fiber) {
+            const isFunctionComponent = fiber.type instanceof Function;
+            
+            if (isFunctionComponent) {
+                updateFunctionComponent(fiber);
+            } else {
+                updateHostComponent(fiber);
+            }
+            
+            // 返回下一个工作单元
+            if (fiber.child) {
+                return fiber.child;
+            }
+            
+            let nextFiber = fiber;
+            while (nextFiber) {
+                if (nextFiber.sibling) {
+                    return nextFiber.sibling;
+                }
+                nextFiber = nextFiber.parent;
+            }
+        }
+
+        // ========== 更新函数组件 ==========
+        function updateFunctionComponent(fiber) {
+            wipFiber = fiber;
+            hookIndex = 0;
+            wipFiber.hooks = [];
+            
+            const children = [fiber.type(fiber.props)];
+            reconcileChildren(fiber, children);
+        }
+
+        // ========== 更新宿主组件 ==========
+        function updateHostComponent(fiber) {
+            if (!fiber.dom) {
+                fiber.dom = createDom(fiber);
+            }
+            
+            reconcileChildren(fiber, fiber.props.children);
+        }
+
+        // ========== 完整的Diff算法实现 ==========
+        function reconcileChildren(wipFiber, elements) {
+            let index = 0;
+            let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+            let prevSibling = null;
+            
+            // 用于keyed diff的映射表
+            const existingChildren = new Map();
+            
+            // 将旧的子节点添加到映射表中
+            let currentOldFiber = oldFiber;
+            while (currentOldFiber) {
+                const key = currentOldFiber.key || currentOldFiber.index;
+                existingChildren.set(key, currentOldFiber);
+                currentOldFiber = currentOldFiber.sibling;
+            }
+            
+            // 处理新子元素
+            while (index < elements.length) {
+                const element = elements[index];
+                const key = element.key || index;
+                let newFiber = null;
+                
+                // 检查是否有相同key的旧节点
+                const matchedFiber = existingChildren.get(key);
+                
+                if (matchedFiber) {
+                    // 检查类型是否相同
+                    if (matchedFiber.type === element.type) {
+                        // 可以复用节点
+                        newFiber = {
+                            type: matchedFiber.type,
+                            props: element.props,
+                            key: element.key,
+                            dom: matchedFiber.dom,
+                            parent: wipFiber,
+                            alternate: matchedFiber,
+                            effectTag: "UPDATE",
+                            index: index
+                        };
+                    } else {
+                        // 类型不同，创建新节点，删除旧节点
+                        newFiber = {
+                            type: element.type,
+                            props: element.props,
+                            key: element.key,
+                            dom: null,
+                            parent: wipFiber,
+                            alternate: null,
+                            effectTag: "PLACEMENT",
+                            index: index
+                        };
+                        
+                        // 标记旧节点为删除
+                        matchedFiber.effectTag = "DELETION";
+                        deletions.push(matchedFiber);
+                    }
+                    
+                    // 从映射表中移除已匹配的节点
+                    existingChildren.delete(key);
+                } else {
+                    // 没有匹配的节点，创建新节点
+                    newFiber = {
+                        type: element.type,
+                        props: element.props,
+                        key: element.key,
+                        dom: null,
+                        parent: wipFiber,
+                        alternate: null,
+                        effectTag: "PLACEMENT",
+                        index: index
+                    };
+                }
+                
+                // 设置子节点或兄弟节点
+                if (index === 0) {
+                    wipFiber.child = newFiber;
+                } else {
+                    prevSibling.sibling = newFiber;
+                }
+                
+                prevSibling = newFiber;
+                index++;
+            }
+            
+            // 处理剩余的旧节点（需要删除的）
+            existingChildren.forEach(fiber => {
+                fiber.effectTag = "DELETION";
+                deletions.push(fiber);
+            });
+        }
+
+        // ========== 提交阶段 ==========
+        function commitRoot() {
+            deletions.forEach(commitWork);
+            commitWork(wipRoot.child);
+            currentRoot = wipRoot;
+            wipRoot = null;
+            deletions = [];
+        }
+
+        function commitWork(fiber) {
+            if (!fiber) return;
+            
+            let domParentFiber = fiber.parent;
+            while (!domParentFiber.dom) {
+                domParentFiber = domParentFiber.parent;
+            }
+            const domParent = domParentFiber.dom;
+            
+            if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
+                domParent.appendChild(fiber.dom);
+            } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
+                updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+            } else if (fiber.effectTag === "DELETION") {
+                commitDeletion(fiber, domParent);
+            }
+            
+            commitWork(fiber.child);
+            commitWork(fiber.sibling);
+        }
+
+        function commitDeletion(fiber, domParent) {
+            if (fiber.dom) {
+                domParent.removeChild(fiber.dom);
+            } else {
+                commitDeletion(fiber.child, domParent);
+            }
+        }
+
+        // ========== Hooks实现 ==========
+        function useState(initial) {
+            const oldHook = wipFiber.alternate && 
+                            wipFiber.alternate.hooks && 
+                            wipFiber.alternate.hooks[hookIndex];
+            
+            const hook = {
+                state: oldHook ? oldHook.state : initial,
+                queue: [],
+            };
+            
+            const actions = oldHook ? oldHook.queue : [];
+            actions.forEach(action => {
+                hook.state = typeof action === 'function' ? action(hook.state) : action;
+            });
+            
+            const setState = (action) => {
+                hook.queue.push(action);
+                wipRoot = {
+                    dom: currentRoot.dom,
+                    props: currentRoot.props,
+                    alternate: currentRoot,
+                };
+                nextUnitOfWork = wipRoot;
+                deletions = [];
+            };
+            
+            wipFiber.hooks.push(hook);
+            hookIndex++;
+            return [hook.state, setState];
+        }
+
+        function useEffect(callback, deps) {
+            const oldHook = wipFiber.alternate && 
+                            wipFiber.alternate.hooks && 
+                            wipFiber.alternate.hooks[hookIndex];
+            
+            const hasChanged = !oldHook || !deps || 
+                              deps.some((dep, i) => dep !== oldHook.deps[i]);
+            
+            const hook = {
+                callback: hasChanged ? callback : oldHook.callback,
+                deps,
+                cleanup: oldHook ? oldHook.cleanup : null,
+            };
+            
+            if (hasChanged && hook.cleanup) {
+                hook.cleanup();
+            }
+            
+            wipFiber.hooks.push(hook);
+            hookIndex++;
+        }
+
+        // ========== 渲染函数 ==========
+        function render(element, container) {
+            wipRoot = {
+                dom: container,
+                props: {
+                    children: [element],
+                },
+                alternate: currentRoot,
+            };
+            
+            deletions = [];
+            nextUnitOfWork = wipRoot;
+        }
+
+        // ========== 辅助函数 ==========
+        function createDom(fiber) {
+            const dom = fiber.type === "TEXT_ELEMENT"
+                ? document.createTextNode("")
+                : document.createElement(fiber.type);
+            
+            updateDom(dom, {}, fiber.props);
+            return dom;
+        }
+
+        function updateDom(dom, prevProps, nextProps) {
+            // 处理属性更新
+            Object.keys(prevProps)
+                .filter(name => name !== "children")
+                .forEach(name => {
+                    if (!(name in nextProps)) {
+                        if (name.startsWith("on")) {
+                            const eventType = name.toLowerCase().substring(2);
+                            dom.removeEventListener(eventType, prevProps[name]);
+                        } else {
+                            dom[name] = "";
+                        }
+                    }
+                });
+            
+            Object.keys(nextProps)
+                .filter(name => name !== "children")
+                .forEach(name => {
+                    if (prevProps[name] !== nextProps[name]) {
+                        if (name.startsWith("on")) {
+                            const eventType = name.toLowerCase().substring(2);
+                            if (prevProps[name]) {
+                                dom.removeEventListener(eventType, prevProps[name]);
+                            }
+                            dom.addEventListener(eventType, nextProps[name]);
+                        } else {
+                            dom[name] = nextProps[name];
+                        }
+                    }
+                });
+        }
+
+        // ========== 创建元素函数 ==========
+        function createElement(type, props, ...children) {
+            return {
+                type,
+                props: {
+                    ...props,
+                    children: children.map(child =>
+                        typeof child === "object" ? child : createTextElement(child)
+                    ),
+                },
+                key: props && props.key ? props.key : null
+            };
+        }
+
+        function createTextElement(text) {
+            return {
+                type: "TEXT_ELEMENT",
+                props: {
+                    nodeValue: text,
+                    children: [],
+                },
+            };
+        }
+
+        // ========== 示例组件 ==========
+        function Counter() {
+            const [count, setCount] = useState(0);
+            const [name, setName] = useState("World");
+            
+            return createElement("div", { class: "component" },
+                createElement("h3", null, "计数器示例"),
+                createElement("div", { class: "counter" }, `Hello ${name}! Count: ${count}`),
+                createElement("div", { class: "controls" },
+                    createElement("button", { 
+                        onClick: () => setCount(c => c + 1)
+                    }, "增加计数"),
+                    createElement("button", { 
+                        onClick: () => setCount(0)
+                    }, "重置计数"),
+                    createElement("input", { 
+                        type: "text",
+                        value: name,
+                        onInput: (e) => setName(e.target.value),
+                        placeholder: "输入名称"
+                    })
+                )
+            );
+        }
+
+        function TodoList() {
+            const [todos, setTodos] = useState([
+                { id: 1, text: "学习Fiber架构" },
+                { id: 2, text: "实现Diff算法" },
+                { id: 3, text: "理解Hooks系统" }
+            ]);
+            const [inputValue, setInputValue] = useState("");
+            
+            const addTodo = () => {
+                if (inputValue.trim()) {
+                    setTodos([...todos, { id: Date.now(), text: inputValue }]);
+                    setInputValue("");
+                }
+            };
+            
+            const removeTodo = (id) => {
+                setTodos(todos.filter(todo => todo.id !== id));
+            };
+            
+            return createElement("div", { class: "component" },
+                createElement("h3", null, "待办列表 (演示Keyed Diff)"),
+                createElement("div", { class: "controls" },
+                    createElement("input", { 
+                        type: "text",
+                        value: inputValue,
+                        onInput: (e) => setInputValue(e.target.value),
+                        placeholder: "输入新待办项"
+                    }),
+                    createElement("button", { onClick: addTodo }, "添加")
+                ),
+                createElement("div", null,
+                    ...todos.map(todo => 
+                        createElement("div", { class: "list-item", key: todo.id },
+                            createElement("span", null, todo.text),
+                            createElement("button", { 
+                                onClick: () => removeTodo(todo.id)
+                            }, "删除")
+                        )
+                    )
+                )
+            );
+        }
+
+        function App() {
+            return createElement("div", null,
+                createElement(Counter),
+                createElement(TodoList),
+                createElement("div", { class: "info-panel" },
+                    createElement("p", null, "这个Demo展示了React-like框架的核心功能:"),
+                    createElement("ul", null,
+                        createElement("li", null, "Fiber架构 - 增量渲染和可中断更新"),
+                        createElement("li", null, "完整的Diff算法 - 高效虚拟DOM比较"),
+                        createElement("li", null, "Hooks系统 - useState管理状态"),
+                        createElement("li", null, "Keyed Diff - 使用key属性优化列表渲染")
+                    )
+                )
+            );
+        }
+
+        // ========== 初始化渲染 ==========
+        const container = document.getElementById('app');
+        render(createElement(App), container);
+
+        // ========== 标签切换功能 ==========
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ========== Diff可视化功能 ==========
+        const diffSteps = [
+            "未开始",
+            "步骤1: 树比较 - 比较新旧虚拟DOM树的整体结构",
+            "步骤2: 节点对比 - 对每个节点进行详细比较，确定更新类型",
+            "步骤3: 列表Diff - 使用key属性高效处理列表项的增删移动",
+            "步骤4: 应用更新 - 将Diff结果应用到实际DOM"
+        ];
+        
+        let currentStep = 0;
+        const diffStepElement = document.getElementById('diffStep');
+        const diffOutputElement = document.getElementById('diffOutput');
+        
+        function updateDiffVisualization() {
+            diffStepElement.textContent = diffSteps[currentStep];
+            
+            switch(currentStep) {
+                case 0:
+                    diffOutputElement.innerHTML = "<p>点击上面的按钮查看Diff算法的每个步骤。</p>";
+                    break;
+                case 1:
+                    diffOutputElement.innerHTML = `
+                        <p>比较新旧虚拟DOM树的整体结构：</p>
+                        <div class="node node-unchanged">根节点</div>
+                        <div class="node node-unchanged">Counter组件</div>
+                        <div class="node node-unchanged">TodoList组件</div>
+                        <p>发现结构相同，继续深入比较子节点。</p>
+                    `;
+                    break;
+                case 2:
+                    diffOutputElement.innerHTML = `
+                        <p>对每个节点进行详细比较：</p>
+                        <div class="node node-unchanged">div (未变化)</div>
+                        <div class="node node-updated">h3 (内容更新)</div>
+                        <div class="node node-updated">计数器显示 (状态更新)</div>
+                        <div class="node node-unchanged">按钮组 (未变化)</div>
+                        <p>确定哪些节点需要更新，哪些可以复用。</p>
+                    `;
+                    break;
+                case 3:
+                    diffOutputElement.innerHTML = `
+                        <p>使用key属性处理列表项：</p>
+                        <div class="node node-unchanged" style="display:block">待办项1 (key=1) - 复用</div>
+                        <div class="node node-unchanged" style="display:block">待办项2 (key=2) - 复用</div>
+                        <div class="node node-unchanged" style="display:block">待办项3 (key=3) - 复用</div>
+                        <div class="node node-added" style="display:block">新待办项 (key=新ID) - 添加</div>
+                        <p>通过key高效识别列表项的变化，最小化DOM操作。</p>
+                    `;
+                    break;
+                case 4:
+                    diffOutputElement.innerHTML = `
+                        <p>应用Diff结果到实际DOM：</p>
+                        <div class="node node-unchanged">无需操作 (复用节点)</div>
+                        <div class="node node-updated">更新文本内容</div>
+                        <div class="node node-added">添加新节点</div>
+                        <div class="node node-removed">删除旧节点</div>
+                        <p>只执行必要的DOM操作，提高性能。</p>
+                    `;
+                    break;
+            }
+        }
+        
+        document.getElementById('resetDiff').addEventListener('click', () => {
+            currentStep = 0;
+            updateDiffVisualization();
+        });
+        
+        document.getElementById('step1').addEventListener('click', () => {
+            currentStep = 1;
+            updateDiffVisualization();
+        });
+        
+        document.getElementById('step2').addEventListener('click', () => {
+            currentStep = 2;
+            updateDiffVisualization();
+        });
+        
+        document.getElementById('step3').addEventListener('click', () => {
+            currentStep = 3;
+            updateDiffVisualization();
+        });
+        
+        document.getElementById('step4').addEventListener('click', () => {
+            currentStep = 4;
+            updateDiffVisualization();
+        });
+    </script>
+</body>
+</html>

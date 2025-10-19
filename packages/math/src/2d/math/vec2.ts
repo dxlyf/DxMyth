@@ -287,9 +287,29 @@ function abs<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
     out[1] = Math.abs(a[1]);
     return out
 }
+function sign<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
+    out[0] = Math.sign(a[0]);
+    out[1] = Math.sign(a[1]);
+    return out
+}
+function asbSign<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
+    out[0] = a[0]>=0?1:-1;
+    out[1] = a[1]>=0?1:-1;
+    return out
+}
 function round<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
     out[0] = Math.round(a[0]);
     out[1] = Math.round(a[1]);
+    return out
+}
+function trunc<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
+    out[0] = Math.trunc(a[0]);
+    out[1] = Math.trunc(a[1]);
+    return out
+}
+function fract<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
+    out[0] = a[0]-Math.trunc(a[0]);
+    out[1] = a[1]-Math.trunc(a[1]);
     return out
 }
 function floor<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like) {
@@ -479,8 +499,12 @@ export class Vector2 extends Float32Array {
     static reflect = reflect
     static negate = negate
     static abs = abs
+    static sign=sign
+    static asbSign=asbSign
     static round = round
     static floor = floor
+    static trunc=trunc
+    static fract = fract
     static ceil = ceil
     static min = min
     static max = max
@@ -671,8 +695,20 @@ export class Vector2 extends Float32Array {
     abs() { // 向量取绝对值，返回新的向量
         return abs(this, this); // 返回新的向量
     }
+    sign(){
+        return sign(this, this)
+    }
+    asbSign(){
+        return asbSign(this, this)
+    }
     round() { // 向量取整，返回新的向量
         return round(this, this); // 返回新的向量
+    }
+    trunc(){
+        return trunc(this, this); // 返回新的向量
+    }
+    fract(){
+        return fract(this, this); // 返回新的向量
     }
     floor() { // 向量向下取整，返回新的向量
         return floor(this, this); // 返回新的向量

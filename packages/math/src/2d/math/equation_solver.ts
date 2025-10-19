@@ -1,5 +1,19 @@
 // EquationSolver.ts
+/*
+第三方nerdamer
+// ax+(bx-ax)t-dx-(ex-dx)u=0
+// ay+(by-ay)t-dy-(ey-dy)u=0
+ const eq1 = `${dy0}x-${dx0}y+${c0}=0`;
+const eq2 =  `${dy1}x-${dx1}y+${c1}=0`;
+const eq3=`${dx0}t-${dx1}u+${a[0]-c[0]}=0`
+const eq4=`${dy0}t-${dy1}u+${a[1]-c[1]}=0`
+// 求解方程组：将两个方程用'='连接，并指定求解变量为 x 和 y
+const solutions = nerdamer.solveEquations([eq1, eq2], ['x', 'y']);
+const solutions2 = nerdamer.solveEquations([eq3, eq4], ['t', 'u']);
 
+const x0=a[0]+(b[0]-a[0])*solutions2[0][1]
+const y0=a[1]+(b[1]-a[1])*solutions2[0][1]
+*/
 /**
  * 
  * 通用方程求解器，支持求解常见的代数方程：
@@ -472,7 +486,48 @@ export class LineEquation {
         const C = -(A * p.x + B * p.y);
         return  (this.constructor as typeof LineEquation).create(A, B, C);
     }
+    /***
+     * 参数方程转代数方程求交点
+     * 克莱姆法求相交
+     * x0=Ax+ (Bx -Ax)t x1=Cx+ (Dx -Cx)u
+     * y0=Ay+ (By -Ay)t y1=Cy+ (Dy -Cy)u
+     * 
+        Ax+ (Bx -Ax)t=Cx+ (Dx -Cx)u = (Bx -Ax)t-(Dx -Cx)u=Cx-Ax
+        Ay+ (By -Ay)t=Cy+ (Dy -Cy)u = (By -Ay)t-(Dy -Cy)u=Cy-Ay
+
+        A=(Bx -Ax)  B=-(Dx -Cx)  C=Cx-Ax
+        E=(By -Ay)  F=-(Dy -Cy)  G=Cy-Ay
+
+        det=A*F-B*E
+        t=(C*F-B*G)/det        
+     */
     getLineIntersection(line: LineLike) {
+        const a=line.start
+        const b=line.end
+        const c=line.start
+        const d=line.end
+        const A=b.x-a.x
+        const B=-(d.x-c.x)
+        const C=c.x-a.x
+        const E=b.y-a.y
+        const F=-(d.y-c.y)
+        const G=c.y-a.y
+
+        const det=A*F-B*E
+        if(det===0){
+            return
+        }
+        const t=(C*F-B*G)/det
+        const u=(A*G-C*E)/det
+        if(t>=0&&t<=1&&u>=0&&u<=1){
+            return {
+                x:a.x+(b.x-a.x)*t,
+                y:a.y+(b.y-a.y)*t
+            }
+        }
+    }
+    // 一般式求相交
+    getGeneralLineIntersection(line: LineLike) {
         const [A1,B1,C1]=this.toArray()
         const [A2,B2,C2]=LineEquation.fromLine(line.start,line.end).toArray()
         // 不相交

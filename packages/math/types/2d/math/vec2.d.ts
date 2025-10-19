@@ -115,7 +115,11 @@ declare function perpendicular<T extends Vector2Like = Vector2Like>(out: T, a: V
 declare function reflect<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, n: Vector2Like): T;
 declare function negate<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 declare function abs<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
+declare function sign<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
+declare function asbSign<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 declare function round<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
+declare function trunc<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
+declare function fract<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 declare function floor<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 declare function ceil<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like): T;
 declare function min<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, b: Vector2Like): T;
@@ -206,8 +210,12 @@ export declare class Vector2 extends Float32Array {
     static reflect: typeof reflect;
     static negate: typeof negate;
     static abs: typeof abs;
+    static sign: typeof sign;
+    static asbSign: typeof asbSign;
     static round: typeof round;
     static floor: typeof floor;
+    static trunc: typeof trunc;
+    static fract: typeof fract;
     static ceil: typeof ceil;
     static min: typeof min;
     static max: typeof max;
@@ -278,7 +286,11 @@ export declare class Vector2 extends Float32Array {
     refract(incident: Vector2, normal: Vector2, eta1: number, eta2: number): this;
     negate(): this;
     abs(): this;
+    sign(): this;
+    asbSign(): this;
     round(): this;
+    trunc(): this;
+    fract(): this;
     floor(): this;
     ceil(): this;
     min(other: Vector2Like): this;

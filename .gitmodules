@@ -1,0 +1,12 @@
+[submodule "packages/react"]
+	path = packages/react
+	url = git@github.com:facebook/react.git
+[submodule "packages/vue"]
+	path = packages/vue
+	url = git@github.com:vuejs/core.git
+[submodule "packages/inferno"]
+	path = packages/inferno
+	url = git@github.com:infernojs/inferno.git
+[submodule "packages/preact"]
+	path = packages/preact
+	url = git@github.com:preactjs/preact.git
