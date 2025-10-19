@@ -14,6 +14,181 @@ const solutions2 = nerdamer.solveEquations([eq3, eq4], ['t', 'u']);
 const x0=a[0]+(b[0]-a[0])*solutions2[0][1]
 const y0=a[1]+(b[1]-a[1])*solutions2[0][1]
 */
+type PointLike={x:number,y:number}
+function lineBezierIntersection(line:number[], bezier:PointLike[], initialGuesses = [0.1, 0.3, 0.5, 0.7, 0.9], tolerance = 1e-8) {
+    const [A, B, C] = line; // 直线系数: Ax + By + C = 0
+    const [P0, P1, P2, P3] = bezier; // 贝塞尔曲线控制点
+
+    // 三次贝塞尔曲线函数 B(t)
+    function bezier3(t:number, P0:PointLike, P1:PointLike, P2:PointLike, P3:PointLike) {
+        const u = 1 - t;
+        return {
+            x: u * u * u * P0.x + 3 * u * u * t * P1.x + 3 * u * t * t * P2.x + t * t * t * P3.x,
+            y: u * u * u * P0.y + 3 * u * u * t * P1.y + 3 * u * t * t * P2.y + t * t * t * P3.y
+        };
+    }
+
+    // 三次贝塞尔曲线导数 B'(t)
+    function bezier3Derivative(t:number, P0:PointLike, P1:PointLike, P2:PointLike, P3:PointLike) {
+        const u = 1 - t;
+        return {
+            x: 3 * u * u * (P1.x - P0.x) + 6 * u * t * (P2.x - P1.x) + 3 * t * t * (P3.x - P2.x),
+            y: 3 * u * u * (P1.y - P0.y) + 6 * u * t * (P2.y - P1.y) + 3 * t * t * (P3.y - P2.y)
+        };
+    }
+    // 距离函数 f(t) = A*x(t) + B*y(t) + C
+    function f(t:number) {
+        const point = bezier3(t, P0, P1, P2, P3);
+        return A * point.x + B * point.y + C;
+    }
+
+    // 距离函数的导数 f'(t) = A*x'(t) + B*y'(t)
+    function df(t:number) {
+        const deriv = bezier3Derivative(t, P0, P1, P2, P3);
+        return A * deriv.x + B * deriv.y;
+    }
+
+    const roots:any[] = [];
+
+    // 对每个初始猜测值使用牛顿法
+    for (const guess of initialGuesses) {
+        try {
+            const root = newtonMethod(f, df, guess, tolerance);
+
+            // 检查根是否在有效范围内且不重复
+            if (root >= 0 && root <= 1) {
+                const point = bezier3(root, P0, P1, P2, P3);
+                const isDuplicate = roots.some(existing =>
+                    Math.abs(existing.t - root) < 0.001
+                );
+
+                if (!isDuplicate) {
+                    roots.push({
+                        t: root,
+                        point: point,
+                        u: null // 直线没有u参数
+                    });
+                }
+            }
+        } catch (e) {
+            // 牛顿法失败，跳过这个初始值
+            continue;
+        }
+    }
+
+    return roots;
+}
+
+// 牛顿法实现
+function newtonMethod(f: (x: number) => number, df: (x: number) => number, x0: number, tolerance = 1e-8, maxIterations = 50) {
+    let x = x0;
+
+    for (let i = 0; i < maxIterations; i++) {
+        const fx = f(x);
+        const dfx = df(x);
+
+        if (Math.abs(fx) < tolerance) {
+            return x;
+        }
+
+        if (Math.abs(dfx) < 1e-12) {
+            throw new Error('导数为零，牛顿法失败');
+        }
+
+        const xNew = x - fx / dfx;
+
+        // 检查是否发散
+        if (Math.abs(xNew) > 1000 || isNaN(xNew)) {
+            throw new Error('牛顿法发散');
+        }
+
+        if (Math.abs(xNew - x) < tolerance) {
+            return xNew;
+        }
+
+        x = xNew;
+    }
+
+    throw new Error('超过最大迭代次数');
+}
+// 牛顿法求根示例
+function newtonMethod2(f: (x: number) => number, df: (x: number) => number, x0: number, tolerance = 1e-7, maxIterations = 100) {
+    let x = x0;
+
+    for (let i = 0; i < maxIterations; i++) {
+        const fx = f(x);
+        const dfx = df(x);
+
+        // 避免除零
+        if (Math.abs(dfx) < 1e-12) {
+            break;
+        }
+
+        const xNew = x - fx / dfx;
+
+        if (Math.abs(xNew - x) < tolerance) {
+            return xNew;
+        }
+
+        x = xNew;
+    }
+
+    return x;
+}
+
+
+// 牛顿迭代法求解
+function iterationSolveCubic(a: number, b: number, c: number, d: number, initialGuess = 0, tolerance = 1e-7, maxIterations = 100) {
+    // 首先尝试用牛顿法找一个实根
+    let x = initialGuess;
+
+    for (let i = 0; i < maxIterations; i++) {
+        const f = a * x * x * x + b * x * x + c * x + d;
+        const fPrime = 3 * a * x * x + 2 * b * x + c;// 方程的导数
+
+        // 避免除零
+        if (Math.abs(fPrime) < 1e-12) {
+            x += 0.1; // 稍微移动初始值
+            continue;
+        }
+
+        const xNew = x - f / fPrime; //逼近
+
+        if (Math.abs(xNew - x) < tolerance) {
+            x = xNew;
+            break;
+        }
+
+        x = xNew;
+    }
+
+    // 找到第一个根 x1 后，进行多项式除法，降为二次方程
+    // 使用综合除法：(ax³ + bx² + cx + d) ÷ (x - x1)
+    const A = a;
+    const B = b + A * x;
+    const C = c + B * x;
+
+    // 现在解二次方程 A*x² + B*x + C = 0
+    const discriminant = B * B - 4 * A * C;
+
+    if (discriminant >= 0) {
+        // 两个实根
+        const x2 = (-B + Math.sqrt(discriminant)) / (2 * A);
+        const x3 = (-B - Math.sqrt(discriminant)) / (2 * A);
+        return [x, x2, x3];
+    } else {
+        // 一对共轭复根
+        const realPart = -B / (2 * A);
+        const imagPart = Math.sqrt(-discriminant) / (2 * A);
+        return [
+            x,
+            realPart + " + " + imagPart + "i",
+            realPart + " - " + imagPart + "i"
+        ];
+    }
+}
+
+
 /**
  * 
  * 通用方程求解器，支持求解常见的代数方程：
@@ -270,25 +445,25 @@ type Point = { x: number, y: number }
 
 
 
-type LineLike={
+type LineLike = {
     start: Point,
     end: Point
 }
-type CircleLike={
+type CircleLike = {
     center: Point,
     radius: number
 }
 
 // 一元二次方程的求根公式
-function solveQuadraticRoot(a:number,b:number,c:number) {
-    const delta=b*b-4*a*c
-    if(delta<0) return [] // 无解
-    else if(delta==0) return [-b/(2*a)] // 一个解
+function solveQuadraticRoot(a: number, b: number, c: number) {
+    const delta = b * b - 4 * a * c
+    if (delta < 0) return [] // 无解
+    else if (delta == 0) return [-b / (2 * a)] // 一个解
     else {
         // 两个不同的实数解
-        let x1=-b+Math.sqrt(delta)/(2*a)
-        let x2=-b-Math.sqrt(delta)/(2*a)
-        return [x1,x2]
+        let x1 = -b + Math.sqrt(delta) / (2 * a)
+        let x2 = -b - Math.sqrt(delta) / (2 * a)
+        return [x1, x2]
     }
 }
 
@@ -307,23 +482,23 @@ function solveQuadraticRoot(a:number,b:number,c:number) {
  */
 
 export class LineEquation {
-     static create(a:number,b:number,c:number){
-        return new this(a,b,c)
-     }
-     static fromLine(start:Point,end:Point){
-        const dx=end.x-start.x
-        const dy=end.y-start.y
-        const A=dy
-        const B=-dx
-        const C=end.x*start.y-end.y*start.x //dx*line.start.y+dy*line.start.x
-        return this.create(A,B,C)
-     }
-     /**
-     * (x-x0)(y1-y0)=(y-y0)(x1-x0)
-     * 
-     * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
-     */
-     static fromTwoPoints(p0: Point, p1: Point): LineEquation {
+    static create(a: number, b: number, c: number) {
+        return new this(a, b, c)
+    }
+    static fromLine(start: Point, end: Point) {
+        const dx = end.x - start.x
+        const dy = end.y - start.y
+        const A = dy
+        const B = -dx
+        const C = end.x * start.y - end.y * start.x //dx*line.start.y+dy*line.start.x
+        return this.create(A, B, C)
+    }
+    /**
+    * (x-x0)(y1-y0)=(y-y0)(x1-x0)
+    * 
+    * 创建：通过两点 (x0, y0) 和 (x1, y1) 定义直线
+    */
+    static fromTwoPoints(p0: Point, p1: Point): LineEquation {
         const A = p0.y - p1.y;
         const B = p1.x - p0.x;
         const C = p0.x * p1.y - p1.x * p0.y;
@@ -422,7 +597,7 @@ export class LineEquation {
         this.C = C;
     }
 
-   
+
     /**
      * 获取斜率（若为垂直线返回 Infinity）
      */
@@ -484,7 +659,7 @@ export class LineEquation {
         const A = this.B;
         const B = -this.A;
         const C = -(A * p.x + B * p.y);
-        return  (this.constructor as typeof LineEquation).create(A, B, C);
+        return (this.constructor as typeof LineEquation).create(A, B, C);
     }
     /***
      * 参数方程转代数方程求交点
@@ -502,73 +677,73 @@ export class LineEquation {
         t=(C*F-B*G)/det        
      */
     getLineIntersection(line: LineLike) {
-        const a=line.start
-        const b=line.end
-        const c=line.start
-        const d=line.end
-        const A=b.x-a.x
-        const B=-(d.x-c.x)
-        const C=c.x-a.x
-        const E=b.y-a.y
-        const F=-(d.y-c.y)
-        const G=c.y-a.y
+        const a = line.start
+        const b = line.end
+        const c = line.start
+        const d = line.end
+        const A = b.x - a.x
+        const B = -(d.x - c.x)
+        const C = c.x - a.x
+        const E = b.y - a.y
+        const F = -(d.y - c.y)
+        const G = c.y - a.y
 
-        const det=A*F-B*E
-        if(det===0){
+        const det = A * F - B * E
+        if (det === 0) {
             return
         }
-        const t=(C*F-B*G)/det
-        const u=(A*G-C*E)/det
-        if(t>=0&&t<=1&&u>=0&&u<=1){
+        const t = (C * F - B * G) / det
+        const u = (A * G - C * E) / det
+        if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
             return {
-                x:a.x+(b.x-a.x)*t,
-                y:a.y+(b.y-a.y)*t
+                x: a.x + (b.x - a.x) * t,
+                y: a.y + (b.y - a.y) * t
             }
         }
     }
     // 一般式求相交
     getGeneralLineIntersection(line: LineLike) {
-        const [A1,B1,C1]=this.toArray()
-        const [A2,B2,C2]=LineEquation.fromLine(line.start,line.end).toArray()
+        const [A1, B1, C1] = this.toArray()
+        const [A2, B2, C2] = LineEquation.fromLine(line.start, line.end).toArray()
         // 不相交
-        if(A1*B2-B1*A2===0){
+        if (A1 * B2 - B1 * A2 === 0) {
             return
         }
-        if(B1==0&&A1!==0){
-            const x=-C1/A1
-            const y=(-A2*x-C2)/B2
+        if (B1 == 0 && A1 !== 0) {
+            const x = -C1 / A1
+            const y = (-A2 * x - C2) / B2
             return {
                 x,
                 y
             }
         }
-        if(B2==0&&A2!==0){
-            const x=-C2/A2
-            const y=(-A1*x-C1)/B1
+        if (B2 == 0 && A2 !== 0) {
+            const x = -C2 / A2
+            const y = (-A1 * x - C1) / B1
             return {
                 x,
                 y
             }
         }
-        const x=(B2*C1-B1*C2)/(A2*B1-A1*B2)
-        const y=(-A1*x-C1)/B1
-        return {x,y}
+        const x = (B2 * C1 - B1 * C2) / (A2 * B1 - A1 * B2)
+        const y = (-A1 * x - C1) / B1
+        return { x, y }
     }
-     getCircleIntersection(line: LineLike, circle: CircleLike) {
-        const [A1,B1,C1]=[this.A,this.B,this.C]
-        let cx=circle.center.x,cy=circle.center.y,r=circle.radius
-    
-        let A2=A1*A1+B1*B1
-        let B2=2*(-B1*B1*cx+A1*C1+cy*A1*B1)
-        let C2=cx*cx*B1*B1+C1*C1+2*cy*B1*C1+B1*B1*cy*cy-B1*B1*r*r
-        let x0=solveQuadraticRoot(A2,B2,C2)
-        return x0.map(x=>{
-            let y=(-A1*x-C1)/B1
-            return {x,y}
+    getCircleIntersection(line: LineLike, circle: CircleLike) {
+        const [A1, B1, C1] = [this.A, this.B, this.C]
+        let cx = circle.center.x, cy = circle.center.y, r = circle.radius
+
+        let A2 = A1 * A1 + B1 * B1
+        let B2 = 2 * (-B1 * B1 * cx + A1 * C1 + cy * A1 * B1)
+        let C2 = cx * cx * B1 * B1 + C1 * C1 + 2 * cy * B1 * C1 + B1 * B1 * cy * cy - B1 * B1 * r * r
+        let x0 = solveQuadraticRoot(A2, B2, C2)
+        return x0.map(x => {
+            let y = (-A1 * x - C1) / B1
+            return { x, y }
         })
     }
-    toArray(){
-        return [this.A,this.B,this.C]
+    toArray() {
+        return [this.A, this.B, this.C]
     }
     /**
      * 将直线转换为字符串形式 Ax + By + C = 0
@@ -578,101 +753,101 @@ export class LineEquation {
     }
 }
 
-export class CircleEquation{
+export class CircleEquation {
 
-    static create(cx:number,cy:number,r:number){
-        return new CircleEquation(cx,cy,r)
+    static create(cx: number, cy: number, r: number) {
+        return new CircleEquation(cx, cy, r)
     }
     // 一般式: x² + y² + Dx + Ey + F = 0
-    static fromGeneral(D:number,E:number,F:number){
-        return new CircleEquation(D/-2,E/-2,Math.sqrt(F))
+    static fromGeneral(D: number, E: number, F: number) {
+        return new CircleEquation(D / -2, E / -2, Math.sqrt(F))
     }
-    cx:number
-    cy:number
-    r:number
-    constructor(cx:number,cy:number,r:number){
-        this.cx=cx
-        this.cy=cy
-        this.r=r
+    cx: number
+    cy: number
+    r: number
+    constructor(cx: number, cy: number, r: number) {
+        this.cx = cx
+        this.cy = cy
+        this.r = r
     }
-    isPointOnCircle(p:Point,elipson=1e-6):boolean{
-        return Math.pow(p.x-this.cx,2)+Math.pow(p.y-this.cy,2)<=Math.pow(this.r,2)
+    isPointOnCircle(p: Point, elipson = 1e-6): boolean {
+        return Math.pow(p.x - this.cx, 2) + Math.pow(p.y - this.cy, 2) <= Math.pow(this.r, 2)
     }
-    toGeneral(){
-        let D=-2*this.cx
-        let E=-2*this.cy
-        let F=this.cx*this.cx+this.cy*this.cy-this.r*this.r
-        return [D,E,F]
+    toGeneral() {
+        let D = -2 * this.cx
+        let E = -2 * this.cy
+        let F = this.cx * this.cx + this.cy * this.cy - this.r * this.r
+        return [D, E, F]
     }
-    circleIntersection(circle:CircleEquation){
-        const [D1,E1,F1]=this.toGeneral() // 圆的一般方程
-        const [D2,E2,F2]=circle.toGeneral()
+    circleIntersection(circle: CircleEquation) {
+        const [D1, E1, F1] = this.toGeneral() // 圆的一般方程
+        const [D2, E2, F2] = circle.toGeneral()
         //转为直线方程:Ax+By+C=0
-        let A=D1-D2,B=E1-E2,C=F1-F2
+        let A = D1 - D2, B = E1 - E2, C = F1 - F2
         // 圆标准方程:(x-cx)^2+(y-cy)^2=r^2 
         // y=(-Ax/B-C/B) 代入标准方程:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 
         // 得到一元二次方程:Ax²+Bx+C=0
         // 求根式解一元二次方程:-b+sqrt(b²-4ac)/2a 或 -b-sqrt(b²-4ac)/2a
-        let BB=B*B,AA=A*A,CC=C*C
-        let A2=BB+AA
-        let B2=2*(-this.cx*BB+A*C+this.cy*A*B)
-        let C2=(this.cx**2)*BB+CC+2*this.cy*B*C+BB*(this.cy**2)-BB*(this.r**2)
-        return solveQuadraticRoot(A2,B2,C2).map(x=>{
+        let BB = B * B, AA = A * A, CC = C * C
+        let A2 = BB + AA
+        let B2 = 2 * (-this.cx * BB + A * C + this.cy * A * B)
+        let C2 = (this.cx ** 2) * BB + CC + 2 * this.cy * B * C + BB * (this.cy ** 2) - BB * (this.r ** 2)
+        return solveQuadraticRoot(A2, B2, C2).map(x => {
             return {
                 x,
-                y:(-A*x-C)/B
+                y: (-A * x - C) / B
             }
         })
     }
-    
+
 }
 
 
-export class EllipseEquation{
+export class EllipseEquation {
 
-    static create(cx:number,cy:number,r:number){
-        return new CircleEquation(cx,cy,r)
+    static create(cx: number, cy: number, r: number) {
+        return new CircleEquation(cx, cy, r)
     }
     // 一般式: Ax² +Bxy+ Cy² + Dx + Ey + F = 0
-    static fromGeneral(D:number,E:number,F:number){
-        return new CircleEquation(D/-2,E/-2,Math.sqrt(F))
+    static fromGeneral(D: number, E: number, F: number) {
+        return new CircleEquation(D / -2, E / -2, Math.sqrt(F))
     }
-    cx:number
-    cy:number
-    r:number
-    constructor(cx:number,cy:number,r:number){
-        this.cx=cx
-        this.cy=cy
-        this.r=r
+    cx: number
+    cy: number
+    r: number
+    constructor(cx: number, cy: number, r: number) {
+        this.cx = cx
+        this.cy = cy
+        this.r = r
     }
-    isPointOnCircle(p:Point,elipson=1e-6):boolean{
-        return Math.pow(p.x-this.cx,2)+Math.pow(p.y-this.cy,2)<=Math.pow(this.r,2)
+    isPointOnCircle(p: Point, elipson = 1e-6): boolean {
+        return Math.pow(p.x - this.cx, 2) + Math.pow(p.y - this.cy, 2) <= Math.pow(this.r, 2)
     }
-    toGeneral(){
-        let D=-2*this.cx
-        let E=-2*this.cy
-        let F=this.cx*this.cx+this.cy*this.cy-this.r*this.r
-        return [D,E,F]
+    toGeneral() {
+        let D = -2 * this.cx
+        let E = -2 * this.cy
+        let F = this.cx * this.cx + this.cy * this.cy - this.r * this.r
+        return [D, E, F]
     }
-    circleIntersection(circle:CircleEquation){
-        const [D1,E1,F1]=this.toGeneral() // 圆的一般方程
-        const [D2,E2,F2]=circle.toGeneral()
+    circleIntersection(circle: CircleEquation) {
+        const [D1, E1, F1] = this.toGeneral() // 圆的一般方程
+        const [D2, E2, F2] = circle.toGeneral()
         //转为直线方程:Ax+By+C=0
-        let A=D1-D2,B=E1-E2,C=F1-F2
+        let A = D1 - D2, B = E1 - E2, C = F1 - F2
         // 圆标准方程:(x-cx)^2+(y-cy)^2=r^2 
         // y=(-Ax/B-C/B) 代入标准方程:(x-cx)^2+((-Ax/B-C/B)-cy)^2=r^2 
         // 得到一元二次方程:Ax²+Bx+C=0
         // 求根式解一元二次方程:-b+sqrt(b²-4ac)/2a 或 -b-sqrt(b²-4ac)/2a
-        let BB=B*B,AA=A*A,CC=C*C
-        let A2=BB+AA
-        let B2=2*(-this.cx*BB+A*C+this.cy*A*B)
-        let C2=(this.cx**2)*BB+CC+2*this.cy*B*C+BB*(this.cy**2)-BB*(this.r**2)
-        return solveQuadraticRoot(A2,B2,C2).map(x=>{
+        let BB = B * B, AA = A * A, CC = C * C
+        let A2 = BB + AA
+        let B2 = 2 * (-this.cx * BB + A * C + this.cy * A * B)
+        let C2 = (this.cx ** 2) * BB + CC + 2 * this.cy * B * C + BB * (this.cy ** 2) - BB * (this.r ** 2)
+        return solveQuadraticRoot(A2, B2, C2).map(x => {
             return {
                 x,
-                y:(-A*x-C)/B
+                y: (-A * x - C) / B
             }
         })
     }
-    
+
 }
