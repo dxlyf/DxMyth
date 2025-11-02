@@ -16,6 +16,12 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
           
           }] as Options[]
      }
+     get shape():Options['shape']{
+          return this.props.shape
+     }
+     get style():Options['style']{
+          return this.props.style
+     }
      abstract onDraw(renderer: ICanvaskitRenderer): void 
 }
 export {

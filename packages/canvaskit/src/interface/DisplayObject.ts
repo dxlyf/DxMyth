@@ -12,5 +12,7 @@ export interface DisplayObjectOptions<Shape extends ShapeConfig={},Style extends
      style:Style
 }
 export interface IDisplayObject<Options extends DisplayObjectOptions=DisplayObjectOptions> extends INode<Options>{
-  
+    get shape():Options['shape']
+    get style():Options['style']
+
 }

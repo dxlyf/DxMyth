@@ -1,3 +1,5 @@
+import { ColorValue } from "src/math/Color"
+
 export interface StyleConfig{
     blendMode?:string // 混合模式
     shadow?:any // 阴影效果
@@ -5,5 +7,5 @@ export interface StyleConfig{
     filters?:any[] // 滤镜效果
     mask?:any // 遮罩效果
   //  transformOrigin?:any // 变换原点
-
+    fillStyle?:ColorValue
 }
