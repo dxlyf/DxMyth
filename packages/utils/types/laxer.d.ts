@@ -19,4 +19,28 @@
        *
        * sourceCode -> Lexer analysis or Tokenizer(token[]) -> ast parse (tree<astNode>) -> (code generate) | (ast interpreter)
       */
-export {};
+declare const token: (type: string, value: any, start: number) => {
+    type: string;
+    value: any;
+    start: number;
+};
+type Token = ReturnType<typeof token>;
+/**
+ * 词法分析
+ * @param {string} source 源码
+ * @returns {Token[]}
+*/
+declare const lexer: (source: string) => {
+    type: string;
+    value: any;
+    start: number;
+}[];
+declare const parse: (tokens: Token[]) => {
+    type: string;
+    body: any[];
+    start?: number;
+    end?: number;
+};
+declare const codeGen: (ast: any) => string;
+declare const interpreter: (program: any) => any;
+export { parse, codeGen, lexer, interpreter, token };

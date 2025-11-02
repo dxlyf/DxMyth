@@ -17,7 +17,7 @@ export declare const BUBBLING_PHASE: 3;
 export declare class Event<T = any, E extends Extract<keyof Record<string, any>, string> = ''> {
     static create<T = any, E extends Extract<keyof Record<string, any>, string> = ''>(type: E, bubbles?: boolean, cancelable?: boolean): Event<T, E>;
     type: E;
-    parentNode: null;
+    parentNode: any;
     target: EventTarget | null;
     currentTarget: EventTarget | null;
     data: T | null;

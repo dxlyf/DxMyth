@@ -5,6 +5,6 @@ export declare const paramsParser: {
     y2: number;
     x: number;
     y: number;
-    qx: null;
-    qy: null;
+    qx: any;
+    qy: any;
 };

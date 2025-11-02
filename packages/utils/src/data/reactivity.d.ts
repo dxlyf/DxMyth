@@ -1,4 +1,5 @@
 export type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N;
+
 export declare enum TrackOpTypes {
     GET = "get",
     HAS = "has",
@@ -751,5 +752,5 @@ export declare function getCurrentWatcher(): ReactiveEffect<any> | undefined;
  */
 export declare function onWatcherCleanup(cleanupFn: () => void, failSilently?: boolean, owner?: ReactiveEffect | undefined): void;
 export declare function watch(source: WatchSource | WatchSource[] | WatchEffect | object, cb?: WatchCallback | null, options?: WatchOptions): WatchHandle;
-export declare function traverse(value: unknown, depth?: number, seen?: Set<unknown>): unknown;
+export declare function traverse(value: unknown, depth?: number, seen?: Map<unknown, number>): unknown;
 

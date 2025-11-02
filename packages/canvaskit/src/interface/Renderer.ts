@@ -1,17 +1,21 @@
-
+import type * as CanvasKit from 'src/canvaskit'
 export type RendererOptions={
     canvas:HTMLCanvasElement
-    dpr?:number
+    dpr?:number // 设备像素比
     width?:number
     height?:number
 }
-export interface IRenderer<Options extends RendererOptions>{
-    options:Options
-    rendererService:IRendererService<Options>
-    setSize(width:number,height:number):void
-    render():void
+export interface RendererEvents{
+    resize:[width:number,height:number]
+}
+export type CanvaskitRendererOptions=RendererOptions & {
+
+}
+export interface CanvaskitRendererEvents extends RendererEvents{
+    mousedown:[e:any]
+}
+export interface ICanvaskitRenderer{
+        surface: CanvasKit.Surface
+        canvas: CanvasKit.Canvas
 }
 
-export interface IRendererService<Options extends RendererOptions>{
-    renderer:IRenderer<Options>
-}

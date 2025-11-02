@@ -4,7 +4,7 @@ const primativeType = new Set(['string', 'bigint', 'number', 'boolean', 'symbol'
 export const toFunctionString = callBind(Function.prototype.toString)
 export const hasOwnProperty = callBind(Object.prototype.hasOwnProperty);
 export const toObjectType = callBind(Object.prototype.toString)
-export const ObjectNativeFunctionString = toFunctionString({})
+export const ObjectNativeFunctionString = toFunctionString(Object)
 export const keys = Object.keys
 export const isArray = Array.isArray
 export const fromArray = Array.from
@@ -107,6 +107,7 @@ export const defaults = (target: any, ...sources: any[]) => {
             }
         }
     }
+    return target
 }
 export const merge = (target: any, ...sources: any[]) => {
     for (let source of sources) {
@@ -125,4 +126,5 @@ export const merge = (target: any, ...sources: any[]) => {
             }
         }
     }
+    return target
 }

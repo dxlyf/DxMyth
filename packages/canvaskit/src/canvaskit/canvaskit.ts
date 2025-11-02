@@ -1,18 +1,22 @@
 import initCanvaskit from 'canvaskit-wasm'
 import CanvasKitInitWasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
 import type {CanvasKit} from 'canvaskit-wasm'
-export type * from 'canvaskit-wasm'
-export let CK:CanvasKit
 
-export const setCanvasKit=(ck:CanvasKit)=>{
-    CK=ck
-}
-let _canvasKitPromise:Promise<CanvasKit>|null=null
-export async function canvasKitPromise():Promise<CanvasKit>{
-    if(_canvasKitPromise){
-       return _canvasKitPromise
+export let CK:CanvasKit|null=null
+let loadingPromise:Promise<CanvasKit>|null=null
+export const getCanvasKit=async ():Promise<CanvasKit>=>{
+    if(CK){
+        return CK
     }
-    _canvasKitPromise= new Promise((resolve,reject)=>{
+    CK=await initLoadCanvaskit()
+    return CK
+}
+
+async function initLoadCanvaskit():Promise<CanvasKit>{
+    if(loadingPromise){
+        return loadingPromise
+    }
+    loadingPromise= new Promise((resolve,reject)=>{
         initCanvaskit({
             locateFile(){
                 return CanvasKitInitWasmUrl
@@ -23,7 +27,6 @@ export async function canvasKitPromise():Promise<CanvasKit>{
             reject()
         })
     })
-    return _canvasKitPromise
+    return loadingPromise
 }
-
-await canvasKitPromise().then(setCanvasKit)
+await getCanvasKit()

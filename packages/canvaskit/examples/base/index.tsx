@@ -1,8 +1,8 @@
-import {Application} from 'src'
+import {CanvaskitRenderer} from 'src'
 
-let app=new Application({
-    canvas:document.getElementById('canvas')! as HTMLCanvasElement,
+
+const renderer=new CanvaskitRenderer({
+    canvas:document.querySelector('#canvas')!,
     width:500,
     height:500
 })
-app.initialize()

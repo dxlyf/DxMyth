@@ -1,5 +1,5 @@
 
-import deepEqual from './fast-deep-equal'
+import deepEqual from './fast/fast-deep-equal'
 
 
 // type onEvent={

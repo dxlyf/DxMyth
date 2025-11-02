@@ -14,7 +14,7 @@ export declare class PriorityQueue<T> {
      * 判断队列是否为空
      */
     isEmpty(): boolean;
-    top(): T | null;
+    top(): T;
     /**
      * 查看队首元素
      */
@@ -25,7 +25,7 @@ export declare class PriorityQueue<T> {
      */
     enqueue(value: T): void;
     push(value: T): void;
-    pop(): T | null;
+    pop(): T;
     /**
      * 出队
      * @returns 队首元素或null（空队列时）

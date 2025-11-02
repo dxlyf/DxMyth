@@ -871,3 +871,10 @@ const interpreter = (program:any) => {
     }
     return evaluate(program)
 }
+export {
+    parse,
+    codeGen,
+    lexer,
+    interpreter,
+    token
+}

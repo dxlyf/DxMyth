@@ -24,5 +24,5 @@ declare class stackSet {
      */
     private constructor();
     size: any;
-    __data__: MapCache | undefined;
+    __data__: MapCache;
 }

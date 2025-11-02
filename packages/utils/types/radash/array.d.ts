@@ -30,7 +30,7 @@ export declare function zipToObject<K extends string | number | symbol, V>(keys:
  *
  * Ex. const greatest = () => boil(numbers, (a, b) => a > b)
  */
-export declare const boil: <T>(array: readonly T[], compareFunc: (a: T, b: T) => T) => T | null;
+export declare const boil: <T>(array: readonly T[], compareFunc: (a: T, b: T) => T) => T;
 /**
  * Sum all numbers in an array. Optionally provide a function
  * to convert objects in the array to number values.
@@ -40,11 +40,11 @@ export declare function sum<T extends object>(array: readonly T[], fn: (item: T)
 /**
  * Get the first item in an array or a default value
  */
-export declare const first: <T>(array: readonly T[], defaultValue?: T | null | undefined) => T | null | undefined;
+export declare const first: <T>(array: readonly T[], defaultValue?: T | null | undefined) => T;
 /**
  * Get the last item in an array or a default value
  */
-export declare const last: <T>(array: readonly T[], defaultValue?: T | null | undefined) => T | null | undefined;
+export declare const last: <T>(array: readonly T[], defaultValue?: T | null | undefined) => T;
 /**
  * Sort an array without modifying it and return
  * the newly sorted value

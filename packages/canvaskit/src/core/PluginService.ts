@@ -1,9 +1,4 @@
-import { IService } from "src/interface/Service"
 
-
-export type PluginObject = {
-
-}
 export type PluginServiceOPtions = {
     plugins?: IPlugin[]
     presets?: IPreset[]
@@ -49,7 +44,7 @@ export class PluginService {
     constructor(public config?: PluginServiceOPtions) {
 
     }
-    initPresetsAndPlugins(config: PluginServiceOPtions = this.config) {
+    initPresetsAndPlugins(config: PluginServiceOPtions) {
         this.extraPlugins = []
         this.extraPresets = []
         this.resolvePresets(config.presets ?? [])
@@ -63,7 +58,7 @@ export class PluginService {
         }
         const extraPresets = this.extraPresets
         while (extraPresets.length) {
-            this.initPreset(extraPresets.shift())
+            this.initPreset(extraPresets.shift()!)
         }
     }
     private resolvePlugins(plugins: IPlugin[]) {
@@ -74,7 +69,7 @@ export class PluginService {
         }
         const extraPlugins = this.extraPlugins
         while (extraPlugins.length) {
-            this.initPlugin(extraPlugins.shift())
+            this.initPlugin(extraPlugins.shift()!)
         }
     }
     private applyMethods(name: string) {
@@ -134,7 +129,7 @@ export class PluginService {
         }))
         this.methods.set(name, methods)
     }
-    async applyPlugins<T = any>(opts: HookOpts): Promise<T> {
+    async applyPlugins<T = any>(opts: HookOpts):Promise<Exclude<T,void> extends never?void:T> {
         let { name, type } = opts
         if (!type) {
             if (name.startsWith('modify')) {

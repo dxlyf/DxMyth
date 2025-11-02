@@ -1,3 +1,5 @@
+import { Vector2 } from "./vec2";
+
 export const PI = Math.PI;
 export const PI2 = Math.PI * 2;
 export const PI_2 = Math.PI * 0.5;
@@ -560,6 +562,456 @@ export function bSplineCurve(controlPoints: number[][], degree: number, knots: n
 
     return point;
 }
+
+
+
+// 排除r行和c列的矩阵，不包括行列的元素。
+
+export function createLowMatrix(r: number, c: number, n: number, m: Float32Array | number[]) {
+    let len = (n - 1) ** 2
+    let temp = new Float32Array(len)
+    let mlen = m.length
+    let k = 0;
+    for (let i = 0; i < mlen; i++) {
+        let r2 = i % n;
+        let c2 = i / n >> 0
+        if (!(c2 === c || r === r2)) {
+            temp[k++] = m[i]
+        }
+    }
+    return temp
+}
+export function determinantFromNthMatrix(m: Float32Array | number[]) {
+    let n = Math.sqrt(m.length)
+    if (n === 2) {
+        return m[0] * m[3] - m[1] * m[2]
+    }
+    let det = 0
+    for (let i = 0; i < n; i++) {
+        // 选择一列或者一行。
+        // let c=i/n>>0 // 选择行
+        // let r=i;
+        // 先择列
+        let r = i / n >> 0
+        let c = i;
+        // let sign = (i % 2 == 0 ? 1 : -1)// 计算当前是正数还是负数
+        let sign = ((r + c) % 2 == 0 ? 1 : -1)// 当前行+列，偶数为正,奇数为负
+        let value = m[c * n + r]
+        let lowMatrix = createLowMatrix(r, c, n, m) // 复制除当前行/列，低一阶矩阵
+        let lowDet = determinantFromNthMatrix(lowMatrix) // 低一阶矩阵行列式
+        det += value * lowDet * sign
+    }
+    return det
+}
+// 转置矩阵
+export function transposeFromNthMatrix(m: Float32Array | number[]) {
+    let n = Math.sqrt(m.length)
+    let l = m.length
+    let out = new Float32Array(l)
+    for (let i = 0; i < l; i++) {
+        let r = i % n
+        let c = i / n >> 0;
+        let value = m[i]
+        out[r * n + c] = value
+    }
+    return out
+}
+// 伴随矩阵
+export function adjointFromNthMatrix(m: Float32Array | number[]) {
+    let n = Math.sqrt(m.length)
+    let l = m.length
+    let out = new Float32Array(l)
+    // 默认以列主序形式存储，所以要转置成行主序，假始是行主序形式存储，则不需要转置
+    let tm = transposeFromNthMatrix(m) // 转置矩阵，
+    for (let i = 0; i < l; i++) {
+        let r = i % n
+        let c = i / n >> 0;
+       // let value = tm[i]
+        let sign = ((r + c) % 2 == 0 ? 1 : -1)// 当前行+列，偶数为正,奇数为负
+        let cofactor = createLowMatrix(r, c, n, tm)
+        let det = determinantFromNthMatrix(cofactor)
+        out[i] = det * sign
+    }
+    return out
+}
+export function invertFromNMatrix(m: Float32Array | number[]) {
+    let det = determinantFromNthMatrix(m) // 计算行列式值
+    let adjoinM = adjointFromNthMatrix(m)// 计算伴随矩阵
+
+    let invertDet = 1 / det
+    let invertMatrix = adjoinM.map(d => d * invertDet) // 计算逆矩阵
+
+    return invertMatrix
+}
+
+export function identityMatrix(out: Float32Array | number[], n: number) {
+    for (let i = 0; i < n; i++) {
+        out[i + i * n] = 1;
+    }
+    return out
+}
+
+export const getIntersectionGridCell=(options:{start:Vector2,dir:Vector2,rows:number,cols:number, cellWidth:number, cellHeight:number,onCollisionDetection?:(x:number,y:number)=>boolean})=>{
+    const {start,dir,rows,cols,cellWidth,cellHeight,onCollisionDetection}=options
+    const cellSize=Vector2.create(cellWidth,cellHeight)
+    const coord=start.clone().div(cellSize) // 屏幕坐标转换为网格坐标
+    const mapCoord=coord.clone().floor() // 地图坐标 
+    const offset=coord.clone().sub(mapCoord) // 在格子的偏移量
+    const sign=dir.clone().sign() // 方向符号
+    // 判断正割
+    const deltaX=dir.x===0?1e30:Math.abs(1/dir.x); // 正割,dist和x的比 计算x轴相对dir方向的距离
+    const deltaY=dir.y===0?1e30:Math.abs(1/dir.y); // 余割 计算y轴相对dir方向的距离
+  
+    // 计算x轴和y轴的距离
+    let sideDistX=sign.x===1?(1-offset.x)*deltaX:offset.x*deltaX // 计算start相对右侧或左侧的距离
+
+    let sideDistY=sign.y===1?(1-offset.y)*deltaY:offset.y*deltaY;// 计算start相对上方和下方距离 
+   
+    const intersections=[] // 与线段方向相交的格子坐标
+
+    let side=false; // 是否侧面
+    let count=rows*cols
+    while(count--){
+        
+        // 如果x轴距离更小，应该向x轴移动，反之向y轴移动
+        if(sideDistX<sideDistY){
+            side=true
+            mapCoord.x+=sign.x;
+        }else{
+            side=false
+            mapCoord.y+=sign.y;
+           
+        }
+        let col=mapCoord.x
+        let row=mapCoord.y
+    
+   
+        if(side){
+            let x=start.x+sideDistX*cellWidth*dir.x;
+            let y=start.y+sideDistX*cellWidth*dir.y
+            intersections.push(Vector2.create(x,y))
+            sideDistX+=deltaX
+        }else{
+            let x=start.x+sideDistY*cellHeight*dir.x;
+            let y=start.y+sideDistY*cellHeight*dir.y
+            intersections.push(Vector2.create(x,y))
+            sideDistY+=deltaY
+        }
+        if(col<0||col>=cols||row<0||row>=rows||onCollisionDetection?.(mapCoord.x,mapCoord.y)){
+            break
+        }
+    }
+  
+    return intersections;
+  }
+export const getRays3D = (player:{rotate:number,x:number,y:number},map:number[][], fovAngle:number, width:number, height:number, cellSize:number, fish = true) => {
+    const rays = []
+    const fovRad=fovAngle / 180 * Math.PI
+    const fov = Math.tan(fovRad*0.5)// 视野（0-1）之间
+    const origin = Vector2.create(player.x, player.y)
+    for (let i = 0; i <= width; i++) {
+        // 每个x像素相对光线方向的角度
+        const theta = fov * (i / width * 2 - 1) + player.rotate;
+        //   const theta=i/width*fov2+player.rotate-fov2/2
+        const dir = Vector2.fromRotation(theta)
+        // 计算射线与最近相交的格子
+        const deltaX = dir.x === 0 ? 1e30 : Math.abs(1 / dir.x)
+        const deltaY = dir.y === 0 ? 1e30 : Math.abs(1 / dir.y)
+
+        let col = origin.x / cellSize >> 0
+        let row = origin.y / cellSize >> 0
+        let x = origin.x / cellSize - col;
+        let y = origin.y / cellSize - row;
+
+        let sideDistX = dir.x > 0 ? (1 - x) * deltaX : x * deltaX
+        let sideDistY = dir.y > 0 ? (1 - y) * deltaY : y * deltaY
+        let side = false
+        while (true) {
+            if (sideDistX < sideDistY) {
+                side = true;
+                sideDistX += deltaX
+                col += Math.sign(dir.x)
+            } else {
+                side = false;
+                sideDistY += deltaY
+                row += Math.sign(dir.y)
+            }
+            if (map[row][col] > 0) {
+                break
+            }
+        }
+        let distance = side ? sideDistX - deltaX : sideDistY - deltaY
+        // const target = dir.multiplyScalar(distance * cellSize).add(origin)
+        // 移除鱼眼
+        let noFishDistance = distance * Math.cos(theta - player.rotate);
+        // 计算光线强度
+        let lightDiffuse = Math.max(0, Math.cos(fov * (i / width * 2 - 1)))
+
+        rays.push({
+            diffuse: Math.pow(lightDiffuse, 64),
+            x: i,
+            row,
+            col,
+            value: map[row][col],
+            side,
+            dir,
+            origin,
+            distance,// 格子距离
+            noFishDistance: noFishDistance
+            //  target
+        })
+    }
+    return rays
+}
+
+export const drawRays3d=(options:{getStrokeColor:(ray:any)=>string,ctx:CanvasRenderingContext2D,rays:any[],map:number[][]})=>{
+    const {ctx,rays,map,getStrokeColor}=options
+    const height = ctx.canvas.height;
+    const width=ctx.canvas.width
+    const halfHeight = height * 0.5;
+    const cellSize = width / map[0].length >> 0
+    let x1, y1, x2, y2;
+    rays.forEach((ray) => {
+        let strokeColor = getStrokeColor(ray)
+        let lineHeight = height / ray.noFishDistance
+
+        x1 = ray.x;
+        y1 = halfHeight - lineHeight * 0.5
+        x2 = ray.x;
+        y2 = halfHeight + lineHeight * 0.5
+
+        y1 = Math.max(0, Math.min(y1, height))
+        y2 = Math.max(0, Math.min(y2, height))
+
+        ctx.beginPath()
+        ctx.strokeStyle=strokeColor
+        ctx.moveTo(x1, y1)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
+    })
+}
+// 初等行变换求逆矩阵
+export function invertFromNMatrixByElementary(m: Float32Array | number[]) {
+    let n = Math.sqrt(m.length)
+    let l = m.length
+    let out = new Float32Array(l);
+    // 初始化成单位矩阵
+    for (let i = 0; i < n; i++) {
+        out[i + i * n] = 1;
+    }
+
+    // 将a，通过倍增，减，交换行，变成单位矩阵
+    let matrix = new Float32Array(m)
+
+
+    // 交换行
+    const swapRow = (matrix: Float32Array | number[], n: number, from: number, to: number) => {
+        for (let i = 0; i < n; i++) {
+            let col = i * n
+            let tmp = matrix[from + col];
+            matrix[from + col] = matrix[to + col];
+            matrix[to + col] = tmp;
+        }
+    }
+
+    // 迭代对角线元素
+    for (let j = 0; j < n; j++) {
+        let main_value = matrix[j + j * n];// 主元，对角线元素
+        if (main_value === 0) {// 主元为0，则寻找下个不为0的对角元素，则交换行
+            let swap = false
+            for (let k = j + 1; j < n; k++) {
+
+                if (matrix[k + k * n] !== 0) {// 找到不为零的行，交换
+                    swapRow(matrix, n, j, k)
+                    swapRow(out, n, j, k)
+                    // 更新主元
+                    main_value = matrix[j + j * n]
+                    swap = true;
+                    break;
+                }
+            }
+            if (!swap) {
+                throw new Error("矩阵不可逆")
+            }
+        }
+        // 当前行除以主元，使当前主元归一化
+        for (let i = 0; i < n; i++) {
+            matrix[j + i * n] /= main_value
+            out[j + i * n] /= main_value;
+        }
+        // 其他行减当前行乘以主元倍数，使其他行的对角线所在列的元素为0
+
+        for (let i = 0; i < n; i++) {
+            if (i !== j) {
+                let value = matrix[i + j * n]
+                for (let k = 0; k < n; k++) {
+                    matrix[i + k * n] -= value * matrix[j + k * n];
+                    out[i + k * n] -= value * out[j + k * n];
+                }
+            }
+        }
+    }
+
+    return out
+}
+export function multiplyMatrices(result: Float32Array | number[]|null, a: Float32Array | number[], b: Float32Array | number[]) {
+
+    let aRow = Math.sqrt(a.length)
+    let bCol = Math.sqrt(b.length)
+
+    if (aRow !== bCol) {
+        throw new Error("矩阵维度不匹配，无法相乘");
+    }
+    result = result || new Float32Array(aRow * bCol);
+
+    for (let i = 0; i < aRow; i++) {
+        for (let j = 0; j < bCol; j++) {
+            let sum = 0
+            for (let k = 0; k < aRow; k++) {
+                sum += a[i + k * aRow] * b[k + j * bCol]
+            }
+            result[i + j * aRow] = sum;
+        }
+    }
+    return result
+}
+
+// LU求逆
+export function invertFromNMatrixByLU(matrix: Float32Array | number[]) {
+    let n = Math.sqrt(matrix.length)
+    let l = matrix.length
+    let out = new Float32Array(l);
+    let L = new Float32Array(l) // 设成单位矩阵下三角矩阵
+    let U = new Float32Array(l) // 设成为0的上三角矩阵
+
+
+    // 初始化成单位矩阵
+    for (let i = 0; i < n; i++) {
+        L[i + i * n] = 1;
+    }
+
+    /***
+     * Doolittle算法的步骤如下：
+
+    初始化：设矩阵A的大小为n×n，创建n×n的单位下三角矩阵L和零上三角矩阵U。
+    迭代计算：对于每一列k（从1到n）：
+
+    计算U的第k行元素：对于列索引j从k到n，计算U[k, j] = A[k, j] - ∑(L[k, m] * U[m, j])，其中m从1到k-1。
+    计算L的第k列元素：对于行索引i从k+1到n，计算L[i, k] = (A[i, k] - ∑(L[i, m] * U[m, k])) / U[k, k]，其中m从1到k-1。
+    完成分解：经过上述步骤，矩阵A被分解为L和U的乘积，即A = LU。
+     */
+    for (let k = 0; k < n; k++) {
+        for (let j = k; j < n; j++) {
+            let sum = 0
+            for (let m = 0; m < k; m++) {
+                sum += L[k + m * n] * U[m + j * n]
+            }
+            U[k + j * n] = matrix[k + j * n] - sum;
+        }
+        for (let i = k + 1; i < n; i++) {
+            let sum = 0
+            for (let m = 0; m < k; m++) {
+                sum += L[i + m * n] * U[m + k * n]
+            }
+            L[i + k * n] = (matrix[i + k * n] - sum) / U[k + k * n];
+        }
+
+    }
+    // 利用前向替换法求解下三角矩阵系统 L * x = b
+    // L 为下三角矩阵（对角线非0，通常为1），b 为列向量
+    function forwardSubstitution(L: Float32Array | number[], b: number[]) {
+        const n = Math.sqrt(L.length);
+        const x = new Float32Array(n)
+        for (let i = 0; i < n; i++) {
+            let sum = 0;
+            for (let j = 0; j < i; j++) {
+                sum += L[i + j * n] * x[j];
+            }
+            x[i] = (b[i] - sum) / L[i + i * n];
+        }
+        return x;
+    }
+
+    // 利用后向替换法求解上三角矩阵系统 U * x = b
+    function backwardSubstitution(U: Float32Array | number[], b: number[]) {
+        const n = Math.sqrt(U.length);
+        const x = new Float32Array(n);
+        for (let i = n - 1; i >= 0; i--) {
+            let sum = 0;
+            for (let j = i + 1; j < n; j++) {
+                sum += U[i + j * n] * x[j];
+            }
+            if (U[i + i * n] === 0) {
+                throw new Error("零主元，无法进行后向替换");
+            }
+            x[i] = (b[i] - sum) / U[i + i * n];
+        }
+        return x;
+    }
+    // 生成 n 阶单位矩阵
+    function identityMatrix(n: number) {
+        const I = new Float32Array(n * n);
+        for (let i = 0; i < n; i++) {
+            I[i + i * n] = 1; // 对角线元素为1，其余为0
+
+        }
+        return I;
+    }
+    function extractColumn(matrix: Float32Array | number[], colIndex: number) {
+        const n = Math.sqrt(matrix.length);
+        const column: number[] = new Array(n);
+        for (let i = 0; i < n; i++) {
+            column[i] = matrix[i + colIndex * n]
+        }
+        return column;
+    }
+    // 求下三角矩阵 L 的逆：逐列求解 L * x = e_i
+    function invertLowerTriangular(L: Float32Array | number[]) {
+        const n = Math.sqrt(L.length);
+        const L_inv = new Float32Array(n * n);
+
+        const I = identityMatrix(n);
+        for (let i = 0; i < n; i++) {
+            // 求解 L * x = e_i
+            const x = forwardSubstitution(L, extractColumn(I, i)); // 取第 i 列的单位向量
+            for (let j = 0; j < n; j++) {
+                L_inv[j + i * n] = x[j];
+            }
+        }
+        return L_inv;
+    }
+
+    // 求上三角矩阵 U 的逆：逐列求解 U * x = e_i
+    function invertUpperTriangular(U: Float32Array | number[]) {
+        const n = Math.sqrt(U.length);
+        const U_inv = new Float32Array(n * n)
+
+        const I = identityMatrix(n);
+        for (let i = 0; i < n; i++) {
+            // 求解 U * x = e_i，利用后向替换
+            const x = backwardSubstitution(U, extractColumn(I, i));
+            for (let j = 0; j < n; j++) {
+                U_inv[j + i * n] = x[j];
+            }
+        }
+        return U_inv;
+    }
+    // let a=multiplyMatrices(null,L,U)
+
+    return multiplyMatrices(null, invertUpperTriangular(U), invertLowerTriangular(L))
+}
+
+
+export function trapezoidalIntegralArea(f:(x:number)=>number, a:number, b:number, n:number) {
+    const h = (b - a) / n;
+    let sum = (f(a) + f(b)) / 2;
+    for (let i = 1; i < n; i++) {
+        const x = a + i * h;
+        sum += f(x);
+    }
+    return h * sum;
+}
+
 
 /**
  * 二维点接口

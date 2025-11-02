@@ -3,7 +3,7 @@
  * @param m
  * @param actions
  */
-export declare function transform(m: number[], actions: any[][]): number[];
+export declare function transform(m: number[], actions: any[][]): any[];
 /**
  * 向量 v1 到 向量 v2 夹角的方向
  * @param  {Array} v1 向量
