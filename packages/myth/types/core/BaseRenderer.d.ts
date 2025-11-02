@@ -1,0 +1,33 @@
+import { Path2D } from 'skia-path2d';
+import { IBaseRenderer, BaseRendererOptions, RenderOptions, BaseRendereEvents } from '../../../../../../../../src/types/core/BaseRenderer';
+import { EventEmitter } from '@dxyl/utils';
+import { Viewport } from './Viewport';
+export declare abstract class BaseRenderer<Ctx> extends EventEmitter<BaseRendereEvents> implements IBaseRenderer<Ctx> {
+    ctx: Ctx;
+    canvas: HTMLCanvasElement;
+    options: BaseRendererOptions;
+    viewport: Viewport;
+    abstract renderMode: string;
+    constructor(options: Partial<BaseRendererOptions>);
+    init(): void;
+    set width(value: number);
+    get width(): number;
+    set height(value: number);
+    get height(): number;
+    get dpr(): number;
+    set dpr(value: number);
+    abstract createContext(): Ctx;
+    get pixelWidth(): number;
+    get pixelHeight(): number;
+    setViewport(x: number, y: number, width: number, height: number): void;
+    setSize(width: number, height: number, updateStyle?: boolean): void;
+    drawRect(x: number, y: number, w: number, h: number): void;
+    drawCircle(x: number, y: number, r: number, startAngle: number, endAngle: number, ccw: boolean): void;
+    drawEllipse(x: number, y: number, rx: number, ry: number, xRotation: number, startAngle: number, endAngle: number, ccw: boolean): void;
+    abstract drawPath(path: Path2D): void;
+    abstract render(renderOptions: RenderOptions): void;
+    abstract drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+    abstract drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
+    abstract drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
+    dispose(): void;
+}

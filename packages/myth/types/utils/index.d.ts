@@ -1,0 +1,13 @@
+export declare function defaults(obj: any, ...defaults: any[]): any;
+export declare function assign(obj: any, ...sources: any[]): any;
+export declare function isPrimitive(value: any): boolean;
+export declare function getType(value: any): string;
+export declare function isObjectLike(value: any): boolean;
+export declare function isPlainObject(value: any): boolean;
+export declare function isArray(value: any): boolean;
+export declare function assignDeep(obj: any, ...sources: any[]): any;
+type AssignDeepCallback = (objValue: any, srcValue: any, key: string, keyPath: string[], obj: any, source: any) => any;
+export declare function assignDeepWith(obj: any, sources: any[], callback?: AssignDeepCallback, keyPath?: string[]): any;
+export declare function merge(obj: any, ...sources: any[]): any;
+export declare function applyMixins(derivedCtor: any, baseCtors: any[]): void;
+export {};

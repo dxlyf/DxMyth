@@ -1,0 +1,32 @@
+import { ApplicationHooks, ApplicationEvents, ApplicationOptions, IApplication } from '../../../../../../../../src/types/core/Application';
+import { PluginManager } from './PluginManager';
+import { IBaseRenderer } from '../../../../../../../../src/types/core/BaseRenderer';
+import { PluginConstructor } from '../../../../../../../../src/types/core/Plugin';
+import { Container } from './Container';
+import { IElement } from '../../../../../../../../src/types/core/Element';
+import { Ticker } from '../../../../../../../../src/ticker';
+import { EventEmitter } from '../../../../../../../../src/events';
+export declare class Application extends EventEmitter<ApplicationEvents> implements IApplication {
+    static defaultPlugins: PluginConstructor<IApplication>[];
+    options: ApplicationOptions;
+    pluginManager: PluginManager<IApplication>;
+    renderer: IBaseRenderer;
+    hooks: ApplicationHooks;
+    needToReRender: boolean;
+    container: Container<any, any>;
+    ticker: Ticker;
+    constructor(options: ApplicationOptions);
+    init(): Promise<void>;
+    initFonts(): Promise<void>;
+    initRenderer(): Promise<void>;
+    get domElement(): HTMLCanvasElement;
+    initPlugins(): void;
+    add(el: IElement<any>): void;
+    remove(el: IElement<any>): void;
+    dispose(): void;
+    update: () => void;
+    prerender(): void;
+    render(): void;
+    postrender(): void;
+    refresh(): void;
+}
