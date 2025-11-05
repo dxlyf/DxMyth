@@ -177,6 +177,20 @@ import { Vector2 } from './Vector2';
     equalsWithEpsilon(m: Matrix2D, epsilon = 1e-6) {
         return this.every((v, i) => Math.abs(v - m[i]) <= epsilon);
     }
+    //row-major order 行主序
+    toRowMajorOrderMatrix3x3(out = new Float32Array(9)): Float32Array {
+        out[0]=this[0]
+        out[1]=this[2]
+        out[2]=this[4]
+        out[3]=this[1]
+        out[4]=this[3]
+        out[5]=this[5]
+        out[6]=0
+        out[7]=0
+        out[8]=1
+        return out
+    }
+   
     toString(): string {
         return `Matrix2D(${this.join(',')})`;
     }

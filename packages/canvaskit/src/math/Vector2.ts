@@ -2,6 +2,7 @@ import {glMatrix} from 'gl-matrix'
 import type {Matrix2D} from './Matrix2D'
 const toRadian=glMatrix.toRadian
 const toDegree=glMatrix.toDegree
+export type Vector2Like=Float32Array|number[]
 export class Vector2 extends Float32Array{
     static toRadian=toRadian
     static toDegree=toDegree
@@ -17,7 +18,9 @@ export class Vector2 extends Float32Array{
     static fromDegree(deg:number){
         return this.fromRadian(toRadian(deg));
     }
-    
+    static fromVectorLike(vec:Vector2Like){
+        return this.create(vec[0],vec[1]);
+    }
     _onChange?:(v:Vector2)=>void;
     constructor(x:number=0,y:number=0){
         super(2);
@@ -25,13 +28,13 @@ export class Vector2 extends Float32Array{
         this[1]=y;
     }
     set x(v:number){
-        this.set(v,this.x);
+        this.set(v,this[0]);
     }
     get x(){
         return this[0];
     }
     set y(v:number){
-        this.set(this.x,v);
+        this.set(this[0],v);
     }
     get y(){
         return this[1];
@@ -46,56 +49,56 @@ export class Vector2 extends Float32Array{
         }
         return this
     }
-    copy(v:Vector2){
-        this.set(v.x,v.y);
+    copy(v:Vector2Like){
+        this.set(v[0],v[1]);
         return this;
     }
     clone(){
-        return (this.constructor as typeof Vector2).create(this.x,this.y);
+        return (this.constructor as typeof Vector2).create(this[0],this[1]);
     }
     set(x:any,y:any){
-        if(this.x!==x||this.y!==y){
+        if(this[0]!==x||this[1]!==y){
             this[0]=x;
             this[1]=y;
             this.change();
         }
         return this;
     }
-    add(v:Vector2){
-        return this.set(this.x+v.x,this.y+v.y);
+    add(v:Vector2Like){
+        return this.set(this[0]+v[0],this[1]+v[1]);
     }
-    addVectors(a:Vector2,b:Vector2){
-        return this.set(a.x+b.x,a.y+b.y);
+    addVectors(a:Vector2Like,b:Vector2Like){
+        return this.set(a[0]+b[0],a[1]+b[1]);
     }
-    subtract(v:Vector2){
-        return this.set(this.x-v.x,this.y-v.y);
+    subtract(v:Vector2Like){
+        return this.set(this[0]-v[0],this[1]-v[1]);
     }
-    subtractVectors(a:Vector2,b:Vector2){
-        return this.set(a.x-b.x,a.y-b.y);
+    subtractVectors(a:Vector2Like,b:Vector2Like){
+        return this.set(a[0]-b[0],a[1]-b[1]);
     }
     multiplyScalar(s:number){
-        return this.set(this.x*s,this.y*s);
+        return this.set(this[0]*s,this[1]*s);
     }
     divideScalar(s:number){
         return this.multiplyScalar(1/s);
     }
-    multiply(v:Vector2){
-        return this.set(this.x*v.x,this.y*v.y);
+    multiply(v:Vector2Like){
+        return this.set(this[0]*v[0],this[1]*v[1]);
     }
-    multiplyVectors(a:Vector2,b:Vector2){
-        return this.set(a.x*b.x,a.y*b.y);
+    multiplyVectors(a:Vector2Like,b:Vector2Like){
+        return this.set(a[0]*b[0],a[1]*b[1]);
     }
-    divide(v:Vector2){
-        return this.set(this.x/v.x,this.y/v.y);
+    divide(v:Vector2Like){
+        return this.set(this[0]/v[0],this[1]/v[1]);
     }
-    divideVectors(a:Vector2,b:Vector2){
-        return this.set(a.x/b.x,a.y/b.y);
+    divideVectors(a:Vector2Like,b:Vector2Like){
+        return this.set(a[0]/b[0],a[1]/b[1]);
     }
-    dot(v:Vector2){
-        return this.x*v.x+this.y*v.y;
+    dot(v:Vector2Like){
+        return this[0]*v[0]+this[1]*v[1];
     }
-    cross(v:Vector2){
-        return this.x*v.y - this.y*v.x;
+    cross(v:Vector2Like){
+        return this[0]*v[1] - this[1]*v[0];
     }
     squareMagnitude(){
         return this.dot(this);
@@ -111,97 +114,97 @@ export class Vector2 extends Float32Array{
         return this.set(0,0);
     }
     angle(){
-        return Math.atan2(this.y,this.x);
+        return Math.atan2(this[1],this[0]);
     }
     angleDegree(){
         return toDegree(this.angle());
     }
-    distance(other:Vector2){
+    distance(other:Vector2Like){
         return Math.sqrt(this.squareDistance(other));
     }
-    squareDistance(other:Vector2){
-        const dx=this.x - other.x;
-        const dy=this.y - other.y;
+    squareDistance(other:Vector2Like){
+        const dx=this[0] - other[0];
+        const dy=this[1] - other[1];
         return dx*dx + dy*dy;
     }
-    manhattanDistance(other: Vector2){
-        return Math.abs(this.x-other.x)+Math.abs(this.y-other.y)
+    manhattanDistance(other: Vector2Like){
+        return Math.abs(this[0]-other[0])+Math.abs(this[1]-other[1])
     }
-    chebyshevDistance(other: Vector2) {
-        return Math.max(Math.abs(this.x - other.x), Math.abs(this.y - other.y))
+    chebyshevDistance(other: Vector2Like) {
+        return Math.max(Math.abs(this[0] - other[0]), Math.abs(this[1] - other[1]))
     }
-    lerp(v:Vector2,alpha:number){
+    lerp(v:Vector2Like,alpha:number){
         return this.set(
-            this.x+(v.x-this.x)*alpha,
-            this.y+(v.y-this.y)*alpha
+            this[0]+(v[0]-this[0])*alpha,
+            this[1]+(v[1]-this[1])*alpha
         );
     }
     translate(x:number,y:number){
-        return this.set(this.x+x,this.y+y);
+        return this.set(this[0]+x,this[1]+y);
     }
     perpendicular(){
-        return this.set(-this.y,this.x);
+        return this.set(-this[1],this[0]);
     }
     ccw(){
-        return this.set(this.y,-this.x);
+        return this.set(this[1],-this[0]);
     }
     cw(){
-        return this.set(-this.y,this.x);
+        return this.set(-this[1],this[0]);
     }
     negate(){
-        return this.set(-this.x,-this.y);
+        return this.set(-this[0],-this[1]);
     }
     floor(){
-        return this.set(Math.floor(this.x),Math.floor(this.y));
+        return this.set(Math.floor(this[0]),Math.floor(this[1]));
     }
     ceil(){
-        return this.set(Math.ceil(this.x),Math.ceil(this.y));
+        return this.set(Math.ceil(this[0]),Math.ceil(this[1]));
     }
     round(){
-        return this.set(Math.round(this.x),Math.round(this.y));
+        return this.set(Math.round(this[0]),Math.round(this[1]));
     }
-    min(v:Vector2){
-        return this.set(Math.min(this.x,v.x),Math.min(this.y,v.y));
+    min(v:Vector2Like){
+        return this.set(Math.min(this[0],v[0]),Math.min(this[1],v[1]));
     }
-    max(v:Vector2){
-        return this.set(Math.max(this.x,v.x),Math.max(this.y,v.y));
+    max(v:Vector2Like){
+        return this.set(Math.max(this[0],v[0]),Math.max(this[1],v[1]));
     }
-    projectOnVector(vector:Vector2){
-        const scalar=this.dot(vector)/vector.squareMagnitude();
+    projectOnVector(vector:Vector2Like){
+        const scalar=this.dot(vector)/Vector2.fromVectorLike(vector).squareMagnitude();
         return this.set(
-            vector.x*scalar,
-            vector.y*scalar
+            vector[0]*scalar,
+            vector[1]*scalar
         );
     }
-    projectOnDirection(direction:Vector2){
+    projectOnDirection(direction:Vector2Like){
         const len=this.dot(direction);
         return this.set(
-            direction.x*len,
-            direction.y*len
+            direction[0]*len,
+            direction[1]*len
         );
     }
-    reflect(normal:Vector2){
+    reflect(normal:Vector2Like){
         // R = V - 2*(V dot N)*N
         const k=this.dot(normal)*2;
         return this.set(
-            this.x - k*normal.x,
-            this.y - k*normal.y
+            this[0] - k*normal[0],
+            this[1] - k*normal[1]
         );
     }
     applyMatrix(m:Matrix2D){
-        const x=this.x,y=this.y;
+        const x=this[0],y=this[1];
         return this.set(
             x*m[0]+y*m[2]+m[4],
             x*m[1]+y*m[3]+m[5]
         );
     }
-    equals(v:Vector2){
-        return this.x===v.x&&this.y===v.y;
+    equals(v:Vector2Like){
+        return this[0]===v[0]&&this[1]===v[1];
     }
-    equalsWithEpsilon(v:Vector2,epsilon:number=1e-6){
-        return Math.abs(this.x - v.x)<=epsilon&&Math.abs(this.y - v.y)<=epsilon;
+    equalsWithEpsilon(v:Vector2Like,epsilon:number=1e-6){
+        return Math.abs(this[0] - v[0])<=epsilon&&Math.abs(this[1] - v[1])<=epsilon;
     }
     toString(){
-        return `Vector2(${this.x},${this.y})`;
+        return `Vector2(${this[0]},${this[1]})`;
     }
 }

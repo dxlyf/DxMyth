@@ -3,23 +3,27 @@ export type PluginServiceOPtions = {
     plugins?: IPlugin[]
     presets?: IPreset[]
 }
-export type PluginContext = {
+export type PluginContext<HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
     pluginName: string
-    register(hook: IHook): void
-    registerMethod(name: string, fn?: IMethod): void
+    register<K extends keyof HookList>(hook: IHook<K, HookList[K]>): void
+    registerMethod<K extends keyof HookMethods>(name: K, fn?: IMethod<Parameters<HookMethods[K]>, ReturnType<HookMethods[K]>>): void
+} & PluginMethods<HookMethods>
+export type PluginMethods<HookMethods extends Record<string, IMethod> = any> = {
+    [k in Exclude<keyof HookMethods, 'pluginName' | 'register' | 'registerMethod'>]: IMethod<Parameters<HookMethods[k]>, ReturnType<HookMethods[k]>>
 }
-export type IPlugin = {
+
+export type IPlugin<HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
     name: string
     config?: any
-    apply: (api: PluginContext, config?: any) => void
+    apply: (api: PluginContext<HookList, HookMethods>, config?: any) => void
 }
 export type IPreset = Omit<IPlugin, 'apply'> & {
     apply: (api: PluginContext, config?: any) => ({ presets?: IPreset[], plugins?: IPlugin[] })
 }
-export type IHook = {
-    name: string
+export type IHook<T = any, F = any> = {
+    name: T
     order?: number
-    fn: Function
+    fn: (...args: any[]) => F
 }
 export enum HookType {
     create = 'create',
@@ -27,15 +31,18 @@ export enum HookType {
     modify = 'modify',
     event = 'event'
 }
-export type HookOpts = {
-    name: string
+export type HookOpts<T> = {
+    name: T
     type?: HookType
     initalValue?: any
     args?: any
     sync?: boolean
 }
-export type IMethod = (...args: any[]) => void
-export class PluginService {
+export type IMethod<T extends any = any, R = any> = (...args: T extends Array<any> ? T : [T]) => R
+export type HookListType = Record<string, any>
+
+
+export class PluginService<HookList extends HookListType, HookMethods extends Record<string, IMethod> = any> {
     private hooks: Map<string, IHook[]> = new Map()
     private methods: Map<string, IMethod[]> = new Map()
     private plugins: Map<string, IPlugin> = new Map()
@@ -72,16 +79,32 @@ export class PluginService {
             this.initPlugin(extraPlugins.shift()!)
         }
     }
-    private applyMethods(name: string) {
+    private getApplyMethods(name: string) {
         const methods = this.methods.get(name) ?? []
         return (...args: any[]) => {
-            methods.forEach(fn => {
-                fn(...args)
-            })
+            if (methods.length === 1) {
+                return methods[0](...args)
+            }
+            return methods.reduceRight((a, b) => {
+                return (...args: any) => {
+                    return b(a(...args))
+                }
+            })(...args)
         }
     }
+    applyMethods<K extends Extract<keyof HookMethods, string>>(name: K, ...args: Parameters<HookMethods[K]> extends Array<any> ? Parameters<HookMethods[K]> : [Parameters<HookMethods[K]>]): ReturnType<HookMethods[K]> {
+        const methods = this.methods.get(name) ?? []
+        if (methods.length === 1) {
+            return methods[0](...args)
+        }
+        return methods.reduceRight((a, b) => {
+            return (...args: any) => {
+                return b(a(...args))
+            }
+        })(...args)
+    }
     private initPluginContext(plugin: IPlugin | IPreset) {
-        const pluginContext: PluginContext = {
+        const pluginContext: any = {
             pluginName: plugin.name,
             registerMethod: this.registerMethod.bind(this),
             register: this.register.bind(this)
@@ -89,7 +112,7 @@ export class PluginService {
         return new Proxy(pluginContext, {
             get: (target, key: string, receiver) => {
                 if (this.methods.has(key)) {
-                    return this.applyMethods(key)
+                    return this.getApplyMethods(key)
                 }
                 return Reflect.get(target, key, receiver)
             }
@@ -122,14 +145,15 @@ export class PluginService {
         hooks.push(hook)
         this.hooks.set(hook.name, hooks)
     }
-    registerMethod(name: string, fn?: IMethod) {
+    registerMethod<K>(name: string, fn?: IMethod) {
         const methods = this.methods.get(name) ?? []
         methods.push(fn || ((fn: IHook['fn']) => {
             this.register({ name, fn })
         }))
         this.methods.set(name, methods)
     }
-    async applyPlugins<T = any>(opts: HookOpts):Promise<Exclude<T,void> extends never?void:T> {
+    async applyPlugins<K extends Extract<keyof HookList, string> = Extract<keyof HookList, string>, T = HookList[K]>(inOpts: HookOpts<K> | K): Promise<Exclude<T, void> extends never ? void : T> {
+        const opts = typeof inOpts === 'string' ? { name: inOpts, type: undefined } as HookOpts<K> : inOpts
         let { name, type } = opts
         if (!type) {
             if (name.startsWith('modify')) {

@@ -1,6 +1,6 @@
-import type {ContainerOptions,ContainerOptionsEvents,IContainer} from 'src/interface/Container'
+import type {ContainerOptions,ContainerOptionsEvents,IContainer} from 'src/types/Container'
 import { Node } from "./Node";
-import { ICanvaskitRenderer } from "src/interface/Renderer";
+import { ICanvaskitRenderer } from "src/types/Renderer";
 
 interface ISpatialIndex<T> {
     insert(item: T): void;

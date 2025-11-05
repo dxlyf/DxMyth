@@ -111,6 +111,9 @@ export const defaults = (target: any, ...sources: any[]) => {
 }
 export const merge = (target: any, ...sources: any[]) => {
     for (let source of sources) {
+        if(!isObjectLike(source)){
+            continue;
+        }
         const keys = Object.keys(source)
         for (let key of keys) {
             const srcValue = source[key]

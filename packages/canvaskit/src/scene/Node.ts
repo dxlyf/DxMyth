@@ -1,26 +1,30 @@
 import { Transform } from 'src/math/Transform'
-import { INode, NodeOptions, NodeEvents } from 'src/interface/Node'
 import { Matrix2D, Vector2 } from 'src/math'
 import { BoundingRect } from 'src/math/BoundingRect'
 import { merge } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
+import type { NodeOptions,NodeEvents} from 'src/types/Node'
 
 
-export abstract class Node<Options extends NodeOptions = NodeOptions, E extends NodeEvents = NodeEvents> extends Transform<Options, E> implements INode<Options> {
+export abstract class Node<Options extends NodeOptions = NodeOptions, E extends NodeEvents = NodeEvents> extends Transform<Options, E>  {
     static uid = 0
     type = 'Node'
     uid = 0
     effectFlag: number = NodeEffectFlags.None;
     props: Options
-    parent: Node<Options, E> = null;
-    children: INode<Options>[] | null = null
-    sortChildren: INode<Options>[] | null = null;
-    _bounds: BoundingRect = null;
+    parent: Node<Options,E>|null = null;
+    children: Node<Options,E>[] | null = null
+    sortChildren: Node<Options,E>[] | null = null;
+    _globalBounds: BoundingRect = null;
     _localBounds: BoundingRect = null;
     constructor(options?: Options) {
         super(options)
         this.uid = Node.uid++
         this.props = merge({}, ...this.getDefaultProps(), options || {})
+    }
+    updateTransform(){
+        super.updateTransform()
+        this.effectFlag |= NodeEffectFlags.Matrix|NodeEffectFlags.Repaint
     }
     getDefaultProps(): Options[] {
         return [{
@@ -91,54 +95,48 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     shouldAddToPendingRenderList() {
         return this.props.visible
     }
-
-    get bounds() {
-        this.internalCalcBounds()
-        return this._bounds
+    get globalBounds() {
+        return this.getGlobalBounds()
     }
     get localBounds() {
-        this.internalCalcLocalBounds()
-        return this._localBounds
+        return this.getLocalBounds()
     }
-    internalCalcBounds(): void {
-        if (this._bounds === null) {
-            this._bounds = BoundingRect.default()
-        } else {
-            this._bounds.makeEmpty()
+    isInViewport(viewport:BoundingRect){
+          return viewport.intersectionBox(this.globalBounds)
+    }
+    getGlobalBounds(): BoundingRect {
+        if (this._globalBounds === null) {
+            this._globalBounds = BoundingRect.default()
         }
-        this.calcBounds()
-        if (this.children) {
-            const children = this.children
-            for (let i = 0; i < children.length; i++) {
-                children[i].internalCalcBounds()
-                this._bounds.union(children[i].bounds)
-            }
-        }
-
+        this._globalBounds.copy(this.localBounds)
+        this._globalBounds.applyMatrix(this.worldMatrix)
+        return this._globalBounds
     }
-    calcBounds() {
-
-    }
-    internalCalcLocalBounds(): void {
+    getLocalBounds(forceUpdate=false): BoundingRect {
         if (this._localBounds === null) {
             this._localBounds = BoundingRect.default()
+            forceUpdate=true
         } else {
-            this._localBounds.makeEmpty()
-        }
-        this.calcLocalBounds()
-        if (this.children) {
-            const children = this.children
-            for (let i = 0; i < children.length; i++) {
-                children[i].internalCalcLocalBounds()
-                this._localBounds.union(children[i].localBounds)
+            if(this.effectFlag&NodeEffectFlags.Matrix){
+                this.effectFlag &= ~NodeEffectFlags.Matrix
+                forceUpdate=true
             }
         }
-
+        if(forceUpdate){
+            this.innerCalcLocalBounds()
+            this._localBounds.applyMatrix(this.matrix)
+            if (this.children) {
+                const children = this.children
+                for (let i = 0; i < children.length; i++) {
+                    const localBounds=children[i].getLocalBounds()
+                    this._localBounds.union(localBounds)
+                }
+            }
+        }
+        return this._localBounds
     }
-    calcLocalBounds() {
-
-    }
-    add(child: INode): void {
+    abstract innerCalcLocalBounds():void
+    add(child: Node<Options,E>): void {
         if (this.children === null) {
             this.children = []
         }
@@ -156,7 +154,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             this.parent.remove(this)
         }
     }
-    remove(child: INode): void {
+    remove(child: Node<Options,E>): void {
         const index = this.children.indexOf(child)
         if (index > -1) {
             this.children.splice(index, 1)
@@ -164,7 +162,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             this.effectFlag |= NodeEffectFlags.Child | NodeEffectFlags.Reflow
         }
     }
-    getSortChildren(): INode<Options>[] | null {
+    getSortChildren():Node<Options,E>[] | null {
         const children = this.children
         if (children) {
             if (this.sortChildren === null || this.effectFlag & NodeEffectFlags.Reflow) {
@@ -181,7 +179,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
         }
         return null
     }
-    traverse<T extends INode<Options>>(fn: (el: T) => void): void {
+    traverse<T extends Node<Options,E>>(fn: (el: T) => void): void {
         fn((this as unknown) as T);
         const children = this.children
         if (children) {
@@ -190,7 +188,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             }
         }
     }
-    traverseSort<T extends INode<Options>>(fn: (el: T) => void): void {
+    traverseSort<T extends Node<Options,E>>(fn: (el: T) => void): void {
         fn((this as unknown) as T);
         const children = this.getSortChildren()
         if (children) {

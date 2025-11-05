@@ -1,12 +1,12 @@
-import type {DisplayObjectOptions,DisplayObjectEvents,IDisplayObject} from 'src/interface/DisplayObject'
+import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayObject'
 import { Node } from "./Node";
-import { ICanvaskitRenderer } from "src/interface/Renderer";
-
+import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
+import { BoundingRect } from 'src/math/BoundingRect';
 /** 
  * 显示对象基类
 */
 
-abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectOptions> extends Node<Options,DisplayObjectEvents> implements IDisplayObject<Options>{
+abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectOptions> extends Node<Options,DisplayObjectEvents>{
      type='DisplayObject'
      constructor(options?:Options){
           super(options)
@@ -22,7 +22,8 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
      get style():Options['style']{
           return this.props.style
      }
-     abstract onDraw(renderer: ICanvaskitRenderer): void 
+     abstract innerCalcLocalBounds(): void
+     abstract render(renderer: CanvaskitRenderer): void 
 }
 export {
      DisplayObject

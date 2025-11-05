@@ -1,4 +1,4 @@
-import { IDispose } from 'src/interface/Dispose'
+import { IDispose } from 'src/types/Dispose'
 import {CK} from './canvaskit'
 import type * as Canvaskit from './canvaskit'
 

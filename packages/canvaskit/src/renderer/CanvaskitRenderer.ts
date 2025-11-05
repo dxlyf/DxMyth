@@ -2,20 +2,21 @@
 import { BaseRenderer } from 'src/base/BaseRenderer'
 import { CK, getCanvasKit } from 'src/canvaskit'
 import type * as CanvasKit from 'src/canvaskit'
-import { IDisplayObject } from 'src/interface/DisplayObject'
-import { INode } from 'src/interface/Node'
-import { CanvaskitRendererOptions,CanvaskitRendererEvents, ICanvaskitRenderer } from 'src/interface/Renderer'
-import { Container } from 'src/scene/Container'
+import { CanvaskitRendererOptions, CanvaskitRendererEvents } from 'src/types/Renderer'
 import { DisplayObject } from 'src/scene/DisplayObject'
+import { IPaint, PaintStyle, PaintType, RenderObject } from 'src/types/Paint'
+import { RenderListConfig } from 'src/core/Paint'
 
 
-export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions,CanvaskitRendererEvents> implements ICanvaskitRenderer{
+
+const objTransformMatrix= new Float32Array(9)
+export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, CanvaskitRendererEvents> {
     surface: CanvasKit.Surface
     canvas: CanvasKit.Canvas
     ck: CanvasKit.CanvasKit
-    container:Container=new Container()
     _path: CanvasKit.Path
     _paint: CanvasKit.Paint
+    _currentRenderObject: RenderObject
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
@@ -23,56 +24,77 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions,Can
         await getCanvasKit()
         this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB)
         this.canvas = this.surface.getCanvas()
-        this._path=new CK.Path()
-        this._paint=new CK.Paint()
-    }
-    drawPath(path: CanvasKit.Path, paint: CanvasKit.Paint) {
-        this.canvas.drawPath(path, paint)
-    }
-    drawCircle(cx: number, cy: number, radius: number, paint: CanvasKit.Paint) {
-        this.canvas.drawCircle(cx, cy, radius, paint)
-    }
-    drawArc(val: CanvasKit.InputRect, startAngle: CanvasKit.AngleInDegrees, sweepAngle: CanvasKit.AngleInDegrees, useCenter: boolean, paint: CanvasKit.Paint) {
-        this.canvas.drawArc(val, startAngle, sweepAngle, useCenter, paint)
-    }
-    drawRect(left: number, top: number, width: number, height: number, paint: CanvasKit.Paint) {
-        this.canvas.drawRect4f(left, top, left + width, top + height, paint)
-    }
-    drawText(text: string, x: number, y: number, paint: CanvasKit.Paint, font: CanvasKit.Font) {
-        this.canvas.drawText(text, x, y, paint, font)
-    }
-    drawImage(img: CanvasKit.Image, left: number, top: number, paint?: CanvasKit.Paint | null) {
-        this.canvas.drawImage(img, left, top, paint)
-    }
-    add(node:INode){
-        this.container.add(node)
-    }
-    remove(node:INode){
-        this.container.remove(node)
+        this._path = new CK.Path()
+        this._paint = new CK.Paint()
     }
 
-
-    drawObject(obj:IDisplayObject){
-        const worldMatrix=obj.worldMatrix
-        const canvas=this.canvas
-        const path=this._path
-        const paint=this._paint
-        
-        canvas.drawPath(path,paint)
+    drawRect(x: number, y: number, width: number, height: number) {
+        this._path.reset()
+        this._path.addRect(CK.XYWHRect(x, y, width, height))
     }
-    render(): void {
+    applyPaint(ckPaint: CanvasKit.Paint, paint: IPaint) {
+        const canvas = this.canvas
+        if (paint.style === PaintStyle.Fill) {
+            if (paint.type === PaintType.Color) {
+                ckPaint.setStyle(CK.PaintStyle.Fill)
+                ckPaint.setColor(paint.color.toCKColor())
+            } else if (paint.type === PaintType.Gradient) {
+                // ctx.fillStyle=paint.gradient!.toCanvasGradient(ctx)
+            } else if (paint.type === PaintType.Pattern) {
+                // ctx.fillStyle=paint.pattern!.toCanvasPattern(ctx)
+            }
+        } else if (paint.style === PaintStyle.Stroke) {
+            if (paint.type === PaintType.Color) {
+                ckPaint.setStyle(CK.PaintStyle.Stroke)
+                ckPaint.setColor(paint.color.toCKColor())
+                //  ctx.strokeStyle=paint.color!.toCssRGB()
+            } else if (paint.type === PaintType.Gradient) {
+                //  ctx.strokeStyle=paint.gradient!.toCanvasGradient(ctx)
+            } else if (paint.type === PaintType.Pattern) {
+                //  ctx.strokeStyle=paint.pattern!.toCanvasPattern(ctx)
+            }
+            //  ckPaint.setStrokeJoin(CK.StrokeJoin.Miter)
+            // ctx.lineJoin=paint.lineJoin!
+            // ctx.lineCap=paint.lineCap!
+            // ctx.lineWidth=paint.width!
+            // ctx.miterLimit=paint.miterLimit!
+        }
+    }
+    startDraw(renderObject: RenderObject) {
+        const object=renderObject.object
+        this._currentRenderObject = renderObject
+        this.canvas.save()
+        if(!object.matrix.hasIdentity()){
+           this.canvas.concat(object.matrix.toRowMajorOrderMatrix3x3(objTransformMatrix))
+        }
+    }
+    draw(renderObject: RenderObject) {
+        const { object, paints } = renderObject
+        paints.forEach((paint) => {
+            object.render(this)
+            const tmpPaint = new CK.Paint()
+            this.applyPaint(tmpPaint, paint)
+            this.canvas.drawPath(this._path, tmpPaint)
+            tmpPaint.delete()
+        })
 
-        const effectFlag=this.container.getAllEffectFlag()
-        const renderList=this.container.getPendingRenderList()
-        const canvas=this.canvas
-
+    }
+    endDraw(renderObject: RenderObject) {
+        this._path.reset()
+        this.canvas.restore()
+        this._currentRenderObject = null
+    }
+    render(renderObjects: RenderObject[]): void {
+        const viewport = this.viewport
+        const canvas = this.canvas
         canvas.clear(CK.Color4f(0, 0, 0, 1))
         canvas.save()
         canvas.scale(this.dpr, this.dpr)
-        
-        for(let i=0;i<renderList.length;i++){
-            this.drawObject(renderList[i])
-        }
+        renderObjects.forEach((renderObject) => {
+            this.startDraw(renderObject)
+            this.draw(renderObject)
+            this.endDraw(renderObject)
+        })
         canvas.restore()
         this.surface.flush()
     }

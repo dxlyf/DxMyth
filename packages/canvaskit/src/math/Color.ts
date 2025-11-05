@@ -302,6 +302,9 @@ export class Color {
     static BLACK=Color.fromRGB(0, 0, 0);
     static WHITE=Color.fromRGB(255, 255, 255);
     static isColor(color: string | Color | number|unknown){
+        if(color===null||color===undefined||color==='none'){
+            return false
+        }
         if(typeof color === 'string'|| typeof color === 'number'||color instanceof Color) {
             return true;
         }   
@@ -309,6 +312,9 @@ export class Color {
     }
     static parse(color: string | Color | number|unknown): Color {
         const isString=typeof color === 'string'
+        if(!this.isColor(color)){
+            return this.fromRGB(0,0,0)
+        }
         if(isString && color.toLowerCase().startsWith('rgb')) {
             const m=color.match(/rgba?\s*\(([^)]+)\)\s*/i)
             if(m){
@@ -483,6 +489,9 @@ export class Color {
         this.g = clamp(this.g, min, max)
         this.b = clamp(this.b, min, max)
         return this
+    }
+    toCKColor(){
+        return new Float32Array([this.r/255,this.g/255,this.b/255,this.alpha])
     }
     toCssRGB(){
         return `rgb(${Math.round(this.r)},${Math.round(this.g)},${Math.round(this.b)})`

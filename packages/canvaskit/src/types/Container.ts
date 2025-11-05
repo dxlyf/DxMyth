@@ -6,6 +6,6 @@ export interface ContainerOptions extends NodeOptions {
 export interface ContainerOptionsEvents extends NodeEvents{
 
 }
-export interface IContainer{
+// export interface IContainer{
 
-}
+// }

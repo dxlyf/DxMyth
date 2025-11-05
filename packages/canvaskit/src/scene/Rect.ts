@@ -1,10 +1,11 @@
 
 
-import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/interface/DisplayObject'
+import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayObject'
 import {  DisplayObject} from "src/scene/DisplayObject";
-import { ICanvaskitRenderer } from "src/interface/Renderer";
-import { StyleConfig } from 'src/interface/Style';
-import { ShapeConfig } from 'src/interface/Shape';
+import { StyleConfig } from 'src/types/Style';
+import { ShapeConfig } from 'src/types/Shape';
+import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
+import { BoundingRect } from 'src/math/BoundingRect';
 
 
 interface RectOptions extends DisplayObjectOptions<RectShapeConfig,RectStyleConfig>{
@@ -36,9 +37,13 @@ class Rect extends DisplayObject<RectOptions> {
                },
                style:{}}]
     }
-    onDraw(renderer: ICanvaskitRenderer): void {
-          const {x,y,width,height}=this.shape
-        renderer.canvas.drawRect4f(x,y,width,height)
+    innerCalcLocalBounds(): void {
+         const {x,y,width,height}=this.shape
+         this._localBounds.fromRect(x,y,width,height)
+    }
+    render(renderer:CanvaskitRenderer): void { 
+        const {x,y,width,height}=this.shape
+        renderer.drawRect(x,y,width,height)
     }
 }
 

@@ -9,6 +9,7 @@ export class Ticker {
         }
         private runing = false;
         private callbacks = new Set<TickHandle>();
+        private animationFrameId: number | null = null;
         start() {
             if (this.runing) {
                 return
@@ -16,18 +17,23 @@ export class Ticker {
             this.runing = true;
             let last = performance.now();
             const loop = (now: number) => {
+     
                 const dt = now - last;
-                for (const cb of this.callbacks) {
+                if(this.runing){
+                  for (const cb of this.callbacks) {
                     cb(dt);
+                  }
                 }
                 last = now;
-                this.runing && requestAnimationFrame(loop);
+                this.animationFrameId=requestAnimationFrame(loop);
             };
-            requestAnimationFrame(loop);
+            this.animationFrameId=requestAnimationFrame(loop);
         }
         stop() {
             if (this.runing) {
                 this.runing = false;
+                cancelAnimationFrame(this.animationFrameId)
+                this.animationFrameId=null
             }
         }
         add(cb: TickHandle) {

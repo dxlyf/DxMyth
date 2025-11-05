@@ -14,8 +14,4 @@ export type CanvaskitRendererOptions=RendererOptions & {
 export interface CanvaskitRendererEvents extends RendererEvents{
     mousedown:[e:any]
 }
-export interface ICanvaskitRenderer{
-        surface: CanvasKit.Surface
-        canvas: CanvasKit.Canvas
-}
 

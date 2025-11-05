@@ -1,7 +1,8 @@
 
-import { RendererOptions,RendererEvents } from 'src/interface/Renderer'
+import { RendererOptions,RendererEvents } from 'src/types/Renderer'
 import { allIsFinite } from 'src/utils'
 import {EventEmitter} from 'src/events'
+import { BoundingRect } from 'src/math/BoundingRect'
 
 
 export abstract class BaseRenderer<Options extends RendererOptions,E extends RendererEvents> extends EventEmitter<E>  {
@@ -10,6 +11,7 @@ export abstract class BaseRenderer<Options extends RendererOptions,E extends Ren
     dpr:number=1
     width:number // 视口宽度
     height:number
+    viewport:BoundingRect=BoundingRect.default()
     constructor(options:Options) {
         super()
         this.options={dpr:window.devicePixelRatio,...options}
@@ -31,6 +33,10 @@ export abstract class BaseRenderer<Options extends RendererOptions,E extends Ren
             this.setSize(this.width,this.height,false)
         }
     }
+    setViewport(x:number,y:number,width:number,height:number){
+        this.viewport.setViewport(x,y,width,height)
+    }
+
     setSize(width: number, height: number,updateStyle:boolean=true): void {
         this.domElment.width=Math.floor(width*this.dpr)
         this.domElment.height=Math.floor(height*this.dpr)
@@ -40,8 +46,8 @@ export abstract class BaseRenderer<Options extends RendererOptions,E extends Ren
             this.domElment.style.width=width+'px'
             this.domElment.style.height=height+'px'
         }
-        ((this as unknown) as BaseRenderer<Options, RendererEvents>).emit('resize', width, height)
+        this.setViewport(0,0,width,height);
+        ((this as unknown) as BaseRenderer<Options, RendererEvents>).emit('resize', width, height);
     }
-    abstract render(): void 
 
 }
