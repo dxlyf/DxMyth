@@ -4,7 +4,7 @@ import { CK, getCanvasKit } from 'src/canvaskit'
 import type * as CanvasKit from 'src/canvaskit'
 import { CanvaskitRendererOptions, CanvaskitRendererEvents } from 'src/types/Renderer'
 import { DisplayObject } from 'src/scene/DisplayObject'
-import { IPaint, PaintStyle, PaintType, RenderObject } from 'src/types/Paint'
+import { IPaint, PaintStyle, PaintType, RenderObject } from 'src/core/Paint'
 import { RenderListConfig } from 'src/core/Paint'
 
 

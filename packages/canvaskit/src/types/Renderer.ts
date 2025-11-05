@@ -1,4 +1,3 @@
-import type * as CanvasKit from 'src/canvaskit'
 export type RendererOptions={
     canvas:HTMLCanvasElement
     dpr?:number // 设备像素比
