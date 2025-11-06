@@ -11,6 +11,8 @@ packages:
   - 'packages/pixi-utils'  
   - 'packages/plugin'  
   - 'packages/tapable'  
+  - 'packages/zrender'  
+  - 'packages/fabric'  
 
   # components/ 子目录中的所有包
   #- 'components/**'

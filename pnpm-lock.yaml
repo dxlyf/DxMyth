@@ -69,6 +69,8 @@ importers:
         specifier: ^3.4.4
         version: 3.4.4
 
+  packages/zrender: {}
+
 packages:
 
   '@babel/helper-string-parser@7.27.1':

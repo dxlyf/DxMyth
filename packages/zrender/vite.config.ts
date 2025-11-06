@@ -15,18 +15,18 @@ export default defineConfig(({ mode }) => {
      // __APP_ENV__: JSON.stringify(env.APP_ENV),
     },
     build:{
+      rollupOptions:{
+         
+      },
         outDir:'dist',
         lib:{
           entry:{
-            index:'./src/index.ts'
+            index:'./index.ts'
           },
           name:'dxMyth.zrender',
           fileName:(format,name)=>`${name}.${format}.js`
         },
         minify:true
-    },
-    esbuild:{
-      
     },
     resolve:{
         alias:{
