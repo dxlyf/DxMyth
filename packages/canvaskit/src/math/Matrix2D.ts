@@ -1,7 +1,7 @@
 import { mat2d, glMatrix } from 'gl-matrix'
 import { Vector2 } from './Vector2';
 
- 
+ type Matrix2DLike=number[]|Float32Array
  class Matrix2D extends Float32Array {
     static identity() {
         return new this()
@@ -109,15 +109,22 @@ import { Vector2 } from './Vector2';
         mat2d.multiply(this, a, b)
         return this;
     }
-    mapPoint(v: Vector2,out:Vector2=Vector2.create()) {
+    mapVector(v: Vector2,out:Vector2=Vector2.create()) {
         const x=v.x,y=v.y;
         return out.set(
             x*this[0]+y*this[2]+this[4],
             x*this[1]+y*this[3]+this[5]
         );
     }
-    mapPoints(out:Vector2[],v: Vector2[]) {
-        return out.map((o,i)=>this.mapPoint(v[i],o))
+    mapPoints(v:number[]|Float32Array,out:number[]|Float32Array=[]) {
+        for(let i=0;i<v.length;i+=2){
+            out[i]=v[i]*this[0]+v[i+1]*this[2]+this[4]
+            out[i+1]=v[i]*this[1]+v[i+1]*this[3]+this[5]
+        }
+        return out
+    }
+    mapVectors(vectors: Vector2[],out:Vector2[]=[]) {
+        return vectors.map((v,i)=>this.mapVector(v,out[i]))
     }
     decomposeTransform(
         matrix: Matrix2D,
@@ -177,8 +184,39 @@ import { Vector2 } from './Vector2';
     equalsWithEpsilon(m: Matrix2D, epsilon = 1e-6) {
         return this.every((v, i) => Math.abs(v - m[i]) <= epsilon);
     }
+    fromRowMajorOrderMatrix3x3(m:Matrix2DLike) {
+        this[0]=m[0]
+        this[1]=m[3]
+        this[2]=m[1]
+        this[3]=m[4]
+        this[4]=m[2]
+        this[5]=m[5]
+        return this
+    }
+    fromColumnMajorOrderMatrix3x3(m:Matrix2DLike) {
+        this[0]=m[0]
+        this[1]=m[1]
+        this[2]=m[3]
+        this[3]=m[4]
+        this[4]=m[2]
+        this[5]=m[5]
+        return this
+    }
+    // column-major order  列主序
+    toMatrix3x3(out:Matrix2DLike=new Float32Array(9)){
+        out[0]=this[0]
+        out[1]=this[1]
+        out[2]=0
+        out[3]=this[2]
+        out[4]=this[3]
+        out[5]=0
+        out[6]=this[4]
+        out[7]=this[5]
+        out[8]=1
+        return out
+    }
     //row-major order 行主序
-    toRowMajorOrderMatrix3x3(out = new Float32Array(9)): Float32Array {
+    toRowMajorOrderMatrix3x3(out:Matrix2DLike = new Float32Array(9)) {
         out[0]=this[0]
         out[1]=this[2]
         out[2]=this[4]

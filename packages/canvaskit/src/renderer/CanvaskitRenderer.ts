@@ -1,88 +1,178 @@
 
 import { BaseRenderer } from 'src/base/BaseRenderer'
-import { CK, getCanvasKit } from 'src/canvaskit'
+import { CK } from 'src/canvaskit'
 import type * as CanvasKit from 'src/canvaskit'
 import { CanvaskitRendererOptions, CanvaskitRendererEvents } from 'src/types/Renderer'
 import { DisplayObject } from 'src/scene/DisplayObject'
-import { IPaint, PaintStyle, PaintType, RenderObject } from 'src/core/Paint'
+import { FillRule, IPaint, LineCap, LineJoin, PaintStyle, PaintType, RenderObject } from 'src/core/Paint'
 import { RenderListConfig } from 'src/core/Paint'
+import { Matrix2D } from 'src/math'
+import { LinearGradient } from 'src/core/Gradient'
+import { DisposableManager } from 'src/core/Disposable'
 
 
 
-const objTransformMatrix= new Float32Array(9)
+const objTransformMatrix = new Float32Array(9)
+const tmpMatrix = Matrix2D.identity()
 export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, CanvaskitRendererEvents> {
+    static CK: CanvasKit.CanvasKit = CK
     surface: CanvasKit.Surface
     canvas: CanvasKit.Canvas
-    ck: CanvasKit.CanvasKit
-    _path: CanvasKit.Path
-    _paint: CanvasKit.Paint
-    _currentRenderObject: RenderObject
+    ck: CanvasKit.CanvasKit = CK
+    private disposableManager = new DisposableManager()
+    private _currentPath: CanvasKit.Path
+    private _paint: CanvasKit.Paint
+    private _globalAlpha = 1
+    private _currentTransform: number[]
+    private _stateStack: any[] = []
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
     async initialize() {
-        await getCanvasKit()
         this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB)
         this.canvas = this.surface.getCanvas()
-        this._path = new CK.Path()
+        this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
+        this._currentTransform = CK.Matrix.identity();
     }
 
     drawRect(x: number, y: number, width: number, height: number) {
-        this._path.reset()
-        this._path.addRect(CK.XYWHRect(x, y, width, height))
+        this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
     }
-    applyPaint(ckPaint: CanvasKit.Paint, paint: IPaint) {
+    private getCKLineJoin(lineJoin: LineJoin) {
+        switch (lineJoin) {
+            case LineJoin.Miter:
+                return CK.StrokeJoin.Miter
+            case LineJoin.Round:
+                return CK.StrokeJoin.Round
+            case LineJoin.Bevel:
+                return CK.StrokeJoin.Bevel
+        }
+    }
+    private getCKLineCap(lineCap: LineCap) {
+        switch (lineCap) {
+            case LineCap.Butt:
+                return CK.StrokeCap.Butt
+            case LineCap.Round:
+                return CK.StrokeCap.Round
+            case LineCap.Square:
+                return CK.StrokeCap.Square
+        }
+    }
+    private getCKFillRule(fillRule: FillRule) {
+        switch (fillRule) {
+            case FillRule.NonZero:
+                return CK.FillType.Winding
+            case FillRule.EvenOdd:
+                return CK.FillType.EvenOdd
+            default:
+                return CK.FillType.Winding
+        }
+    }
+
+    createLinearGradient(x0: number, y0: number, x1: number, y1: number) {
+        const gradient = new LinearGradient(x0, y0, x1, y1)
+        this.disposableManager.addPersistent(gradient)
+        return gradient
+    }
+
+    applyPaint(ckPaint: CanvasKit.Paint, paint: IPaint, matrix?: Matrix2D) {
         const canvas = this.canvas
+
         if (paint.style === PaintStyle.Fill) {
             if (paint.type === PaintType.Color) {
                 ckPaint.setStyle(CK.PaintStyle.Fill)
-                ckPaint.setColor(paint.color.toCKColor())
+                ckPaint.setColor(paint.color)
             } else if (paint.type === PaintType.Gradient) {
-                // ctx.fillStyle=paint.gradient!.toCanvasGradient(ctx)
+                const shader = paint.gradient!.toCanvasKitGradient(this, matrix)
+                ckPaint.setColor(CK.Color(0, 0, 0, this._globalAlpha));
+                ckPaint.setShader(shader)
             } else if (paint.type === PaintType.Pattern) {
                 // ctx.fillStyle=paint.pattern!.toCanvasPattern(ctx)
             }
         } else if (paint.style === PaintStyle.Stroke) {
             if (paint.type === PaintType.Color) {
                 ckPaint.setStyle(CK.PaintStyle.Stroke)
-                ckPaint.setColor(paint.color.toCKColor())
+                ckPaint.setColor(paint.color)
                 //  ctx.strokeStyle=paint.color!.toCssRGB()
             } else if (paint.type === PaintType.Gradient) {
                 //  ctx.strokeStyle=paint.gradient!.toCanvasGradient(ctx)
             } else if (paint.type === PaintType.Pattern) {
                 //  ctx.strokeStyle=paint.pattern!.toCanvasPattern(ctx)
             }
-            //  ckPaint.setStrokeJoin(CK.StrokeJoin.Miter)
-            // ctx.lineJoin=paint.lineJoin!
-            // ctx.lineCap=paint.lineCap!
-            // ctx.lineWidth=paint.width!
-            // ctx.miterLimit=paint.miterLimit!
+            ckPaint.setStrokeWidth(paint.width!)
+            ckPaint.setStrokeJoin(this.getCKLineJoin(paint.lineJoin!))
+            ckPaint.setStrokeCap(this.getCKLineCap(paint.lineCap!))
+            ckPaint.setStrokeMiter(paint.miterLimit!)
+
         }
     }
-    startDraw(renderObject: RenderObject) {
-        const object=renderObject.object
-        this._currentRenderObject = renderObject
+
+    transform(a: number, b: number, c: number, d: number, e: number, f: number) {
+        var newTransform = [a, c, e,
+            b, d, f,
+            0, 0, 1];
+        var inverted = CK.Matrix.invert(newTransform);
+        this._currentPath.transform(inverted);
+        this.canvas.concat(newTransform);
+        this._currentTransform = this.canvas.getTotalMatrix();
+    }
+    beginPath(){
+         this._currentPath.rewind();
+         //this._currentPath = new CK.Path();
+    }
+    closePath(){
+        this._currentPath.close();
+    }
+    save() {
+
+        this._stateStack.push({
+            paint: this._paint.copy(),
+            ctm: this._currentTransform.slice(),
+        })
         this.canvas.save()
-        if(!object.matrix.hasIdentity()){
-           this.canvas.concat(object.matrix.toRowMajorOrderMatrix3x3(objTransformMatrix))
+    }
+    restore() {
+
+        const newState = this._stateStack.pop()
+        if (!newState) {
+            return;
         }
+        const combined = CK.Matrix.multiply(
+            this._currentTransform,
+            CK.Matrix.invert(newState.ctm)
+        );
+        this._currentPath.transform(combined);
+        this._paint.delete();
+        this._paint = newState.paint;
+        this.canvas.restore()
+        this._currentTransform = this.canvas.getTotalMatrix()
+    }
+    startDraw(renderObject: RenderObject) {
+        const object = renderObject.object
+        this.save()
+        if (!object.matrix.hasIdentity()) {
+            this.transform(object.matrix[0], object.matrix[1], object.matrix[2], object.matrix[3], object.matrix[4], object.matrix[5])
+        }
+        this.beginPath()
     }
     draw(renderObject: RenderObject) {
         const { object, paints } = renderObject
+        tmpMatrix.fromRowMajorOrderMatrix3x3(this._currentTransform)
         paints.forEach((paint) => {
             object.render(this)
-            const tmpPaint = new CK.Paint()
-            this.applyPaint(tmpPaint, paint)
-            this.canvas.drawPath(this._path, tmpPaint)
+            const tmpPaint = this._paint.clone()
+            this.applyPaint(tmpPaint, paint, tmpMatrix)
+            let fillRule = this.getCKFillRule(paint.fillRule!)
+            //let prevFillType=this._path.getFillType()
+            this._currentPath.setFillType(fillRule)
+            this.canvas.drawPath(this._currentPath,tmpPaint)
             tmpPaint.delete()
         })
 
     }
     endDraw(renderObject: RenderObject) {
-        this._path.reset()
-        this.canvas.restore()
-        this._currentRenderObject = null
+        this.restore()
     }
     render(renderObjects: RenderObject[]): void {
         const viewport = this.viewport
@@ -98,5 +188,9 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         canvas.restore()
         this.surface.flush()
     }
-
+    dispose() {
+        this.disposableManager.destroy()
+        this._paint.delete()
+        this._currentPath.delete()
+    }
 }

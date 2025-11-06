@@ -87,10 +87,10 @@ export class Transform<Options, E extends EventEmitter.ValidEventTypes> extends 
         matrix.decomposeTransform(matrix, this)
     }
     worldToLocal(vec: Vector2, out = Vector2.create()): Vector2 {
-        return this.worldInverseMatrix.mapPoint(out, vec)
+        return this.worldInverseMatrix.mapVector(out, vec)
     }
     localToWorld(vec: Vector2, out = Vector2.create()): Vector2 {
-        return this.worldMatrix.mapPoint(out, vec)
+        return this.worldMatrix.mapVector(out, vec)
     }
     updateTransform() {
         this._matrixDirty = true // 标记矩阵需要更新

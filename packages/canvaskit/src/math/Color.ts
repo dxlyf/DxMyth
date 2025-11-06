@@ -297,7 +297,7 @@ const colorMap = {
     'yellow': Float32Array.of(1.000, 1.000, 0.000, 1.000),
     'yellowgreen': Float32Array.of(0.604, 0.804, 0.196, 1.000),
 } as const;
-export class Color {
+export class Color extends Float32Array{
     static Transparent=Color.fromRGBA(0, 0, 0,0);
     static BLACK=Color.fromRGB(0, 0, 0);
     static WHITE=Color.fromRGB(255, 255, 255);
@@ -361,21 +361,19 @@ export class Color {
         const { r, g, b } = hsvToRgb(h, s, v);
         return new Color(r, g, b);
     }
-    private _r: number = 0;
-    private _g: number = 0;
-    private _b: number = 0;
-    private _a: number = 1;
+    
     // 构造函数，支持RGB、HSL和HSV初始化
     constructor(r: number = 0, g: number = 0, b: number = 0,a:number=1) {
-        this._r = r;
-        this._g = g;
-        this._b = b;
-        this._a=a
+        super(4)
+        this[0] = r;
+        this[1] = g;
+        this[2] = b;
+        this[3]=a
     }
     copy(source:Color){
-        this._r=source.r;
-        this._g=source.g;
-        this._b=source.b;
+        this[0]=source[0];
+        this[1]=source[1];
+        this[2]=source[2];
         this.alpha=source.alpha;
         return this
     }
@@ -383,34 +381,34 @@ export class Color {
         return Color.fromRGB(0,0,0).copy(this)
     }
     setRGB(r: number, g: number, b: number) {
-        this._r = r;
-        this._g = g;
-        this._b = b;
+        this.r = r;
+        this.g = g;
+        this.b = b;
         return this;
     }
     normalize() {
-        this.r = clamp(this._r / 255, 0, 1);
-        this.g = clamp(this._g / 255, 0, 1);
-        this.b = clamp(this._b / 255, 0, 1);
+        this.r = clamp(this.r / 255, 0, 1);
+        this.g = clamp(this.g / 255, 0, 1);
+        this.b = clamp(this.b / 255, 0, 1);
         return this;
     }
     set r(r: number) {
-        this._r = r
+        this[0] = r
     }
     get r(): number {
-        return this._r;
+        return this[0];
     }
     set g(g: number) {
-        this._g = g;
+        this[1] = g;
     }
     get g(): number {
-        return this._g;
+        return this[1];
     }
     set b(b: number) {
-        this._b = b;
+        this[2] = b;
     }
     get b(): number {
-        return this._b;
+        return this[2];
     }
     get a(){
         return this.alpha;
@@ -419,10 +417,10 @@ export class Color {
         this.alpha = alpha;
     }
     set alpha(alpha: number) {
-        this._a = Math.max(0, Math.min(1, alpha)); // 确保alpha在0到1之间
+        this[3] = Math.max(0, Math.min(1, alpha)); // 确保alpha在0到1之间
     }
     get alpha(): number {
-        return this._a;
+        return this[3];
     }
     equals(other: Color): boolean {
         return (this.r!==other.r) || (this.g!==other.g) || (this.b!==other.b)||(this.alpha!==other.alpha)
@@ -489,9 +487,6 @@ export class Color {
         this.g = clamp(this.g, min, max)
         this.b = clamp(this.b, min, max)
         return this
-    }
-    toCKColor(){
-        return new Float32Array([this.r/255,this.g/255,this.b/255,this.alpha])
     }
     toCssRGB(){
         return `rgb(${Math.round(this.r)},${Math.round(this.g)},${Math.round(this.b)})`

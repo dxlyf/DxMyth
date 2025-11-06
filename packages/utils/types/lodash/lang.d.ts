@@ -54,4 +54,6 @@ import { default as toNumber } from './toNumber';
 import { default as toPlainObject } from './toPlainObject';
 import { default as toSafeInteger } from './toSafeInteger';
 import { default as toString } from './toString';
+
+
 export { default } from './lang.default';

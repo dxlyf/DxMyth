@@ -63,6 +63,8 @@ import { default as zip } from './zip';
 import { default as zipObject } from './zipObject';
 import { default as zipObjectDeep } from './zipObjectDeep';
 import { default as zipWith } from './zipWith';
+
+
 declare const defaultExport: {
     chunk: typeof chunk;
     compact: typeof compact;

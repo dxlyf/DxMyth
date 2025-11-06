@@ -2,6 +2,7 @@ import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayOb
 import { Node } from "./Node";
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { BoundingRect } from 'src/math/BoundingRect';
+import { LineCap, LineJoin } from 'src/core/Paint';
 /** 
  * 显示对象基类
 */
@@ -13,7 +14,12 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
      }
      getDefaultProps(){
           return [...super.getDefaultProps(),{
-          
+             style:{
+                lineWidth:1,
+                lineJoin:LineJoin.Miter,
+                lineCap:LineCap.Butt,
+                miterLimit:10,
+             }
           }] as Options[]
      }
      get shape():Options['shape']{

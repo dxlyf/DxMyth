@@ -89,7 +89,7 @@ export function getPaintType(style: PaintColor): Partial<IPaint> {
     if (isValidStyle(style) && Color.isColor(style)) {
         return {
             type: PaintType.Color,
-            color: Color.parse(style)
+            color: Color.parse(style).normalize()
         }
     }
     return {
@@ -145,7 +145,6 @@ export function getRendertList(config: RenderListConfig): RenderObject[] {
     const renderList: RenderObject[] = []
     objects.forEach(obj => {
         if (obj.isInViewport(viewport)&&obj.shouldRender()) {
-
             let fillPaint = getFillPaint(obj)
             let strokePaint = getStrokePaint(obj)
             let paints: IPaint[] = []

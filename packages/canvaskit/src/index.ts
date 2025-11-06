@@ -1,4 +1,4 @@
 import './canvaskit'
-export * from 'src/core/CKEngine'
+export {CKEngine} from 'src/core/CKEngine'
 
 export * from 'src/scene/Rect'

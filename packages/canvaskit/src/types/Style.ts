@@ -1,4 +1,4 @@
-import { FillRule, LineCap, LineJoin, PaintColor } from "./Paint"
+import { FillRule, LineCap, LineJoin, PaintColor } from "src/core/Paint"
 export interface StyleConfig{
     strokeWidth?:number
     firstFill?:boolean

@@ -1,5 +1,10 @@
+import { Vector2 } from "src/math";
 import { RGBColor, Color } from "src/math/Color";
 import { Matrix2D } from 'src/math/Matrix2D'
+import { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
+import type * as CanvasKit from 'src/canvaskit'
+
+
 export interface GradientStop {
     offset: number;
     color: Color;
@@ -15,134 +20,173 @@ export function isRadialGradient(grad: Gradient): grad is RadialGradient {
 export function isConicGradient(grad: Gradient): grad is ConicGradient {
     return grad.type === 'ConicGradient';
 }
-
-export abstract class Gradient implements CanvasGradient {
+interface IGradient  {
+    type: string
+    offsets: number[]
+    colors: Float32Array[]
+    matrix: Matrix2D | null;
+}
+export abstract class Gradient implements IGradient {
     static isGradient(style: unknown) {
         if (style instanceof Gradient) {
             return true;
         }
         return false
     }
+    isGradient = true
     type = 'Gradient'
-    colorStops: GradientStop[] = [];
+    offsets: number[] = []
+    colors: Float32Array[] = []
     matrix: Matrix2D | null = null;
-    transform(matrix:Matrix2D) {
-        this.matrix =matrix
+    _shader: CanvasKit.Shader
+    transform(matrix: Matrix2D) {
+        this.matrix = matrix
     }
     addColorStop(offset: number, color: string | Color) {
         this.insertColorStop(offset, color);
 
     }
     private insertColorStop(offset: number, color: string | Color) {
-        var idx = this.colorStops.findIndex(d => d.offset === offset);
+        var idx = this.offsets.findIndex(d => d === offset);
         if (idx !== -1) {
-            this.colorStops[idx].color = Color.parse(color);
+            this.colors[idx] = Color.parse(color);
         } else {
-            for (idx = 0; idx < this.colorStops.length; idx++) {
-                if (this.colorStops[idx].offset > offset) {
+            for (idx = 0; idx < this.offsets.length; idx++) {
+                if (this.offsets[idx] > offset) {
                     break;
                 }
             }
-            this.colorStops.splice(idx, 0, { offset, color: Color.parse(color) });
+            this.offsets.splice(idx, 0, offset);
+            this.colors.splice(idx, 0, Color.parse(color).normalize());
         }
     }
-    copyColorStops(source: Gradient) {
-        this.colorStops = source.colorStops.map(stop => {
-            return {
-                offset: stop.offset,
-                color: stop.color.clone()
-            }
-        })
+    copyColorStops<T extends Gradient>(source: T) {
+        this.offsets = source.offsets.slice()
+        this.colors = source.colors.map(d => d.slice())
         return this;
     }
     abstract clone(): Gradient;
-    abstract copy(source: Gradient): Gradient;
-    abstract equals(other: Gradient): boolean
-    abstract toCanvasGradient(ctx: CanvasRenderingContext2D): CanvasGradient;
+    abstract copy(source: IGradient): IGradient;
+    abstract toCanvasKitGradient(ck: CanvaskitRenderer,matrix?: Matrix2D): CanvasKit.Shader;
+    dispose(): void {
+        if (this._shader) {
+            this._shader.delete()
+            this._shader = null
+        }
+    }
 }
+
 export class LinearGradient extends Gradient {
 
     type = 'LinearGradient'
-    constructor(public x0: number, public y0: number, public x1: number, public y1: number) {
+    start = Vector2.default()
+    end = Vector2.default()
+    constructor( x0: number,  y0: number,  x1: number,  y1: number) {
         super()
+        this.start.set(x0, y0)
+        this.end.set(x1, y1)
     }
     copy(source: LinearGradient) {
-        this.x0 = source.x0;
-        this.y0 = source.y0;
-        this.x1 = source.x1;
-        this.y1 = source.y1;
+        this.start.copy(source.start)
+        this.end.copy(source.end)
         this.copyColorStops(source)
         return this;
     }
     clone() {
-        return new LinearGradient(this.x0, this.y0, this.x1, this.y1).copyColorStops(this)
+        return new LinearGradient(this.start.x, this.start.y, this.end.x, this.end.y).copyColorStops(this)
     }
-    equals(other: LinearGradient): boolean {
-        return this.x0 !== other.x0 || this.y0 !== other.y0 || this.x1 !== other.x1 || this.y1 !== other.y1;
-    }
-    toCanvasGradient(ctx: CanvasRenderingContext2D) {
-        const gradient = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
-        for (let stop of this.colorStops) {
-            gradient.addColorStop(stop.offset, stop.color.toCssRGB())
+    toCanvasKitGradient( renderer: CanvaskitRenderer,matrix?: Matrix2D) {
+        const CK = renderer.ck
+        
+        const points = [this.start.clone(), this.end.clone()]
+        let points2;
+        if(matrix){
+            matrix.mapVectors(points, points)
         }
-        return gradient
+        this.dispose()
+
+        this._shader = CK.Shader.MakeLinearGradient(points[0],points[1],this.colors, this.offsets, CK.TileMode.Clamp)
+        return this._shader
     }
+
 }
 
 export class RadialGradient extends Gradient {
     type = 'RadialGradient'
-    constructor(public x0: number, public y0: number, public r0: number,
-        public x1: number, public y1: number, public r1: number) {
+    innerCenter = Vector2.default()
+    outerCenter = Vector2.default()
+    innerRadius = 0
+    outerRadius = 0
+    constructor(x0: number, y0: number, r0: number,
+        x1: number, y1: number, r1: number) {
         super()
+        this.innerCenter.set(x0, y0)
+        this.outerCenter.set(x1, y1)
+        this.innerRadius = r0
+        this.outerRadius = r1
     }
     copy(source: RadialGradient) {
-        this.x0 = source.x0;
-        this.y0 = source.y0;
-        this.r0 = source.r0;
-        this.x1 = source.x1;
-        this.y1 = source.y1;
-        this.r1 = source.r1;
-
+        this.innerCenter.copy(source.innerCenter)
+        this.outerCenter.copy(source.outerCenter)
+        this.innerRadius = source.innerRadius
+        this.outerRadius = source.outerRadius
         this.copyColorStops(source)
         return this;
     }
     clone() {
-        return new RadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1).copyColorStops(this)
+        return new RadialGradient(this.innerCenter.x, this.innerCenter.y, this.innerRadius, this.outerCenter.x, this.outerCenter.y, this.outerRadius).copyColorStops(this)
     }
-    equals(other: RadialGradient): boolean {
-        return this.x0 !== other.x0 || this.y0 !== other.y0 || this.x1 !== other.x1 || this.y1 !== other.y1 || this.r0 !== other.r0 || this.r1 !== other.r1;
-    }
-    toCanvasGradient(ctx: CanvasRenderingContext2D) {
-        const gradient = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
-        for (let stop of this.colorStops) {
-            gradient.addColorStop(stop.offset, stop.color.toCssRGB())
-        }
-        return gradient
+    toCanvasKitGradient( renderer: CanvaskitRenderer,matrix?: Matrix2D) {
+        const CK = renderer.ck
+        const pts = [this.innerCenter.clone(), this.outerCenter.clone()];
+        if(matrix){
+            matrix.mapVectors(pts, pts);
+        }   
+        const sx1 = pts[0].x;
+        const sy1 = pts[0].y;
+        const sx2 = pts[1].x;
+        const sy2 = pts[1].y;
+
+        const sx =matrix? matrix[0]:1;
+        const sy = matrix?matrix[3]:1;
+        const scaleFactor = (Math.abs(sx) + Math.abs(sy)) / 2;
+
+        const sr1 = this.innerRadius * scaleFactor;
+        const sr2 = this.outerRadius * scaleFactor;
+
+        this.dispose();
+        this._shader = CK.Shader.MakeTwoPointConicalGradient(
+            [sx1, sy1], sr1, [sx2, sy2], sr2, this.colors, this.offsets,
+            CK.TileMode.Clamp);
+        return this._shader;
     }
 }
 export class ConicGradient extends Gradient {
     type = 'ConicGradient'
-    constructor(public startAngle: number, public x: number, public y: number) {
+    center = Vector2.default()
+    constructor(public startAngle: number, x: number, y: number) {
         super()
+        this.center.set(x, y)
     }
     copy(source: ConicGradient) {
         this.startAngle = source.startAngle;
-        this.x = source.x;
-        this.y = source.y;
+        this.center.copy(source.center)
         this.copyColorStops(source)
         return this;
     }
     clone() {
-        return new ConicGradient(this.startAngle, this.x, this.y).copyColorStops(this)
+        return new ConicGradient(this.startAngle, this.center.x, this.center.y).copyColorStops(this)
     }
-    equals(other: ConicGradient): boolean {
-        return this.startAngle !== other.startAngle || this.x !== other.x || this.y !== other.y;
-    }
-    toCanvasGradient(ctx: CanvasRenderingContext2D) {
-        const gradient = ctx.createConicGradient(this.startAngle, this.x, this.y)
-        for (let stop of this.colorStops) {
-            gradient.addColorStop(stop.offset, stop.color.toCssRGB())
+    toCanvasKitGradient( renderer: CanvaskitRenderer,matrix?: Matrix2D) {
+        const CK = renderer.ck
+        const center = this.center.clone();
+        if(matrix){
+            matrix.mapVector(center, center);
         }
-        return gradient
+        this.dispose();
+        this._shader = CK.Shader.MakeSweepGradient(center.x, center.y, this.colors, this.offsets, CK.TileMode.Clamp)
+        return this._shader;
     }
 }
+
+

@@ -118,12 +118,10 @@ export const merge = (target: any, ...sources: any[]) => {
         for (let key of keys) {
             const srcValue = source[key]
             const objValue = target[key]
-            const objValueType = getType(objValue)
-            const srcValueType = getType(srcValue)
-            if (srcValueType === 'Object') {
-                target[key] = merge(objValueType === 'Object' ? objValue : {}, srcValue)
-            } else if (srcValueType === 'Array') {
-                target[key] = merge(objValueType === 'Array' ? objValue : [], srcValue)
+            if (isPlainObject(srcValue)) {
+                target[key] = merge(isObject(objValue)? objValue : {}, srcValue)
+            } else if (isArray(srcValue)) {
+                target[key] = merge(Array.isArray(objValue)? objValue : [], srcValue)
             } else {
                 target[key] = srcValue
             }
