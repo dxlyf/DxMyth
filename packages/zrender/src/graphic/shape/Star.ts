@@ -22,7 +22,7 @@ export interface StarProps extends PathProps {
 }
 class Star extends Path<StarProps> {
 
-    shape: StarShape
+   declare shape: StarShape
 
     constructor(opts?: StarProps) {
         super(opts);

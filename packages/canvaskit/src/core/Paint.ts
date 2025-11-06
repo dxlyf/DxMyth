@@ -112,7 +112,7 @@ export function getFillPaint(object: DisplayObject): IPaint | null {
     return paint
 }
 export function getStrokePaint(object: DisplayObject) {
-    const { strokeStyle, lineCap, lineJoin, lineWidth, miterLimit } = object.style
+    const { strokeStyle, lineCap, lineJoin, lineWidth, miterLimit,borderSide } = object.style
     if (!isValidStyle(strokeStyle)) {
         return null
     }
@@ -123,6 +123,7 @@ export function getStrokePaint(object: DisplayObject) {
         lineJoin,
         width: lineWidth,
         miterLimit,
+        borderSide
     }
 
     return paint

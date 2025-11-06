@@ -3901,29 +3901,6 @@ function ae(i) {
 const ce = [], We = [], hs = Kt(), fs = Math.abs;
 class li {
   parent;
-  x;
-  y;
-  scaleX;
-  scaleY;
-  skewX;
-  skewY;
-  // Suppose positive y is towards screen-bottom and positive x is towards screen-right;
-  // positive rotation means rotating anticlockwise. (opposite to CSS transform rotate)
-  rotation;
-  /**
-   * Will translated the element to the anchor position before applying other transforms.
-   */
-  anchorX;
-  anchorY;
-  /**
-   * Origin of scale, rotation, skew
-   */
-  originX;
-  originY;
-  /**
-   * Scale ratio
-   */
-  globalScaleRatio;
   transform;
   invTransform;
   /**
@@ -4180,73 +4157,16 @@ function wf(i, t, e) {
 const ds = "__zr_normal__", ps = Oi.concat(["ignore"]), xf = Yi(Oi, (i, t) => (i[t] = !0, i), { ignore: !1 }), Ye = {}, Tf = new D(0, 0, 0, 0), tn = [];
 class hi {
   id = vr();
-  /**
-   * Element type
-   */
-  type;
-  /**
-   * Element name
-   */
-  name;
-  /**
-   * If ignore drawing and events of the element object
-   */
-  ignore;
-  /**
-   * Whether to respond to mouse events.
-   */
-  silent;
-  /**
-   * When this element has `__hostTarget` (e.g., this is a `textContent`), whether
-   * its silent is controlled by that host silent. They may need separate silent
-   * settings. e.g., the host do not have `fill` but only `stroke`, or their mouse
-   * events serve for different features.
-   */
-  ignoreHostSilent;
-  /**
-   * 是否是 Group
-   */
-  isGroup;
-  /**
-   * Whether it can be dragged.
-   */
-  draggable;
-  /**
-   * Whether is it dragging.
-   */
-  dragging;
   parent;
   animators = [];
-  /**
-   * If ignore clip from it's parent or hosts.
-   * Applied on itself and all it's children.
-   *
-   * NOTE: It won't affect the clipPath set on the children.
-   */
-  ignoreClip;
-  /**
-   * If element is used as a component of other element.
-   */
-  __hostTarget;
   /**
    * ZRender instance will be assigned when element is associated with zrender
    */
   __zr;
   /**
-   * Dirty bits.
-   * From which painter will determine if this displayable object needs brush.
-   */
-  __dirty;
-  /**
    * If element was painted on the screen
    */
   __isRendered;
-  /**
-   * If element has been moved to the hover layer.
-   *
-   * If so, dirty will only trigger the zrender refresh hover layer
-   */
-  __inHover;
   __clipPaths;
   /**
    * path to clip the elements and its children, if it is a group.
@@ -5468,49 +5388,15 @@ Ee[or] = !0;
 const vo = ["z", "z2", "invisible"], Lf = ["invisible"];
 class ze extends hi {
   /**
-   * Whether the displayable object is visible. when it is true, the displayable object
-   * is not drawn, but the mouse event can still trigger the object.
-   */
-  invisible;
-  z;
-  z2;
-  /**
-   * The z level determines the displayable object can be drawn in which layer canvas.
-   */
-  zlevel;
-  /**
-   * If enable culling
-   */
-  culling;
-  /**
-   * Mouse cursor when hovered
-   */
-  cursor;
-  /**
-   * If hover area is bounding rect
-   */
-  rectHover;
-  /**
-   * For increamental rendering
-   */
-  incremental;
-  /**
    * Never increase to target size
    */
   ignoreCoarsePointer;
-  style;
-  _normalState;
-  _rect;
   _paintRect;
   _prevPaintRect;
-  dirtyRectTolerance;
   /************* Properties will be inejected in other modules. *******************/
   // @deprecated.
   useHoverLayer;
   __hoverStyle;
-  // TODO use WeakMap?
-  // Shapes for cascade clipping.
-  __clipPaths;
   // FOR CANVAS PAINTER
   __canvasFillGradient;
   __canvasStrokeGradient;
@@ -5810,23 +5696,11 @@ class Ct {
   dpr = 1;
   data;
   /**
-   * Version is for tracking if the path has been changed.
-   */
-  _version;
-  /**
-   * If save path data.
-   */
-  _saveData;
-  /**
    * If the line segment is too small to draw. It will be added to the pending pt.
    * It will be added if the subpath needs to be finished before stroke, fill, or starting a new subpath.
    */
   _pendingPtX;
   _pendingPtY;
-  // Distance of pending pt to previous point.
-  // 0 if there is no pending point.
-  // Only update the pending pt when distance is larger.
-  _pendingPtDist;
   _ctx;
   _xi = 0;
   _yi = 0;
@@ -5836,9 +5710,6 @@ class Ct {
   // Calculating path len and seg len.
   _pathSegLen;
   _pathLen;
-  // Unit x, Unit y. Provide for avoiding drawing that too short line segment
-  _ux;
-  _uy;
   static CMD = N;
   constructor(t) {
     t && (this._saveData = !1), this._saveData && (this.data = []);
@@ -6568,23 +6439,8 @@ const In = dt({
 ]);
 class z extends ze {
   path;
-  strokeContainThreshold;
-  // This item default to be false. But in map series in echarts,
-  // in order to improve performance, it should be set to true,
-  // so the shorty segment won't draw.
-  segmentIgnoreThreshold;
-  subPixelOptimize;
-  style;
-  /**
-   * If element can be batched automatically
-   */
-  autoBatch;
   _rectStroke;
-  _normalState;
   _decalEl;
-  // Must have an initial value on shape.
-  // It will be assigned by default value.
-  shape;
   constructor(t) {
     super(t);
   }
@@ -6808,7 +6664,6 @@ class z extends ze {
    */
   static extend(t) {
     class e extends z {
-      shape;
       getDefaultStyle() {
         return Jt(t.style);
       }
@@ -7086,7 +6941,6 @@ function nu(i) {
   return !!(i && typeof i != "string" && i.width && i.height);
 }
 class fi extends ze {
-  style;
   // FOR CANVAS RENDERER
   __image;
   // FOR SVG RENDERER
@@ -7137,7 +6991,6 @@ class su {
   r = 0;
 }
 class za extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7198,7 +7051,6 @@ class au {
 }
 const cu = {};
 class Ni extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7226,7 +7078,6 @@ class hu {
   ry = 0;
 }
 class Na extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7250,7 +7101,6 @@ class uu {
   percent = 1;
 }
 class Ba extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7354,7 +7204,6 @@ class pu {
   smoothConstraint = null;
 }
 class Br extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7374,7 +7223,6 @@ class gu {
   smoothConstraint = null;
 }
 class Wa extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -7408,7 +7256,6 @@ class Ya {
   }
 }
 class _u extends Ya {
-  type;
   x;
   y;
   x2;
@@ -7418,7 +7265,6 @@ class _u extends Ya {
   }
 }
 class mu extends Ya {
-  type;
   x;
   y;
   r;
@@ -7797,7 +7643,6 @@ const Au = dt({
   miterLimit: 2
 }, In);
 class ee extends ze {
-  style;
   hasStroke() {
     return Va(this.style);
   }
@@ -8364,7 +8209,6 @@ class $u {
   cornerRadius = 0;
 }
 class fr extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9068,7 +8912,6 @@ const Gp = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 }, Symbol.toStringTag, { value: "Module" }));
 class ld extends z {
   type = "compound";
-  shape;
   _updatePathDirty() {
     const t = this.shape.paths;
     let e = this.shapeChanged();
@@ -9204,7 +9047,6 @@ const Qo = {
 };
 class hd extends ze {
   type = "text";
-  style;
   /**
    * How to handling label overlap
    *
@@ -9524,7 +9366,6 @@ class pd {
   clockwise = !0;
 }
 class gd extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9567,7 +9408,6 @@ function ll(i, t, e) {
   ];
 }
 class md extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9618,7 +9458,6 @@ class yd {
   height = 0;
 }
 class wd extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9652,7 +9491,6 @@ class xd {
   height = 0;
 }
 class Td extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9687,7 +9525,6 @@ class bd {
   n = 0;
 }
 class Sd extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9714,7 +9551,6 @@ class vd {
   r0 = 0;
 }
 class Cd extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9736,7 +9572,6 @@ class kd {
   n = 1;
 }
 class Md extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9770,7 +9605,6 @@ class Ad {
   r = 0;
 }
 class Ld extends z {
-  shape;
   constructor(t) {
     super(t);
   }
@@ -9804,7 +9638,6 @@ class Dd {
   location = "out";
 }
 class Rd extends z {
-  shape;
   constructor(t) {
     super(t);
   }

@@ -577,7 +577,7 @@ export class CanvasRenderingContext2D {
     return paint
   };
 
-  fill(path:CanvasKit.Path|Path2D, fillRule:string) {
+  fill(path?:CanvasKit.Path|Path2D, fillRule:string='nonzero') {
     if (typeof path === 'string') {
       // shift the args if a Path2D is supplied
       fillRule = path;

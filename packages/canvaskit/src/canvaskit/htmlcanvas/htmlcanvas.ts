@@ -1,5 +1,4 @@
-import { CK } from '../index'
-import * as CanvasKit from '../index'
+import { CK,type CanvasKit } from '../canvaskit'
 import { CanvasRenderingContext2D } from './canvas2dcontext';
 import { addToFontCache } from './font';
 import { HTMLImage } from './htmlimage';
@@ -12,6 +11,7 @@ export const MakeCanvas=(width:number, height:number)=> {
   }
   return null;
 };
+
 class HTMLCanvas{
   _surface:CanvasKit.Surface
   _context:CanvasRenderingContext2D

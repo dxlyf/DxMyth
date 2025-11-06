@@ -16,7 +16,7 @@ export interface HeartProps extends PathProps {
 }
 class Heart extends Path<HeartProps> {
 
-    shape: HeartShape
+    declare  shape: HeartShape
 
     constructor(opts?: HeartProps) {
         super(opts);

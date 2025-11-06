@@ -134,30 +134,30 @@ class Path<Props extends PathProps = PathProps> extends Displayable<Props> {
 
     path: PathProxy
 
-    strokeContainThreshold: number
+    declare  strokeContainThreshold: number
 
     // This item default to be false. But in map series in echarts,
     // in order to improve performance, it should be set to true,
     // so the shorty segment won't draw.
-    segmentIgnoreThreshold: number
+    declare  segmentIgnoreThreshold: number
 
-    subPixelOptimize: boolean
+    declare subPixelOptimize: boolean
 
-    style: PathStyleProps
+    declare  style: PathStyleProps
     /**
      * If element can be batched automatically
      */
-    autoBatch: boolean
+    declare autoBatch: boolean
 
     private _rectStroke: BoundingRect
 
-    protected _normalState: PathState
+    declare protected _normalState: PathState
 
     protected _decalEl: Path
 
     // Must have an initial value on shape.
     // It will be assigned by default value.
-    shape: Dictionary<any>
+    declare shape: Dictionary<any>
 
     constructor(opts?: Props) {
         super(opts);
@@ -634,7 +634,7 @@ class Path<Props extends PathProps = PathProps> extends Displayable<Props> {
 
         class Sub extends Path {
 
-            shape: Shape
+            declare  shape: Shape
 
             getDefaultStyle() {
                 return clone(defaultProps.style);

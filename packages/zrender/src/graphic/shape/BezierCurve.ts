@@ -50,7 +50,7 @@ export interface BezierCurveProps extends PathProps {
 }
 class BezierCurve extends Path<BezierCurveProps> {
 
-    shape: BezierCurveShape
+    declare shape: BezierCurveShape
 
     constructor(opts?: BezierCurveProps) {
         super(opts);

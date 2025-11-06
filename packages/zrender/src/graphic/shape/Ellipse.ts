@@ -16,7 +16,7 @@ export interface EllipseProps extends PathProps {
 }
 class Ellipse extends Path<EllipseProps> {
 
-    shape: EllipseShape
+    declare shape: EllipseShape
 
     constructor(opts?: EllipseProps) {
         super(opts);

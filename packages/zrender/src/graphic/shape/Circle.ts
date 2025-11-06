@@ -15,7 +15,7 @@ export interface CircleProps extends PathProps {
 }
 class Circle extends Path<CircleProps> {
 
-    shape: CircleShape
+    declare  shape: CircleShape
 
     constructor(opts?: CircleProps) {
         super(opts);

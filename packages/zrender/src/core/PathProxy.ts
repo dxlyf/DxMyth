@@ -111,12 +111,12 @@ export default class PathProxy {
     /**
      * Version is for tracking if the path has been changed.
      */
-    private _version: number
+    declare private _version: number
 
     /**
      * If save path data.
      */
-    private _saveData: boolean
+    declare private _saveData: boolean
 
     /**
      * If the line segment is too small to draw. It will be added to the pending pt.
@@ -127,7 +127,7 @@ export default class PathProxy {
     // Distance of pending pt to previous point.
     // 0 if there is no pending point.
     // Only update the pending pt when distance is larger.
-    private _pendingPtDist: number;
+    declare private _pendingPtDist: number
 
     private _ctx: ExtendedCanvasRenderingContext2D
 
@@ -143,8 +143,8 @@ export default class PathProxy {
     private _pathSegLen: number[]
     private _pathLen: number
     // Unit x, Unit y. Provide for avoiding drawing that too short line segment
-    private _ux: number
-    private _uy: number
+    declare private _ux: number
+    declare private _uy: number
 
     static CMD = CMD
 

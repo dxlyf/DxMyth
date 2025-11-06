@@ -2,7 +2,7 @@ import { Vector2 } from "src/math";
 import { RGBColor, Color } from "src/math/Color";
 import { Matrix2D } from 'src/math/Matrix2D'
 import { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
-import type * as CanvasKit from 'src/canvaskit'
+import type {CanvasKit} from 'src/canvaskit'
 
 
 export interface GradientStop {
@@ -97,15 +97,13 @@ export class LinearGradient extends Gradient {
     }
     toCanvasKitGradient( renderer: CanvaskitRenderer,matrix?: Matrix2D) {
         const CK = renderer.ck
-        
         const points = [this.start.clone(), this.end.clone()]
-        let points2;
         if(matrix){
             matrix.mapVectors(points, points)
         }
         this.dispose()
 
-        this._shader = CK.Shader.MakeLinearGradient(points[0],points[1],this.colors, this.offsets, CK.TileMode.Clamp)
+        this._shader = CK.Shader.MakeLinearGradient(points[0],points[1],this.colors, this.offsets, CK.TileMode.Clamp,this.matrix?this.matrix.toRowMajorOrderMatrix3x3():null)
         return this._shader
     }
 
@@ -157,7 +155,7 @@ export class RadialGradient extends Gradient {
         this.dispose();
         this._shader = CK.Shader.MakeTwoPointConicalGradient(
             [sx1, sy1], sr1, [sx2, sy2], sr2, this.colors, this.offsets,
-            CK.TileMode.Clamp);
+            CK.TileMode.Clamp,this.matrix?this.matrix.toRowMajorOrderMatrix3x3():null);
         return this._shader;
     }
 }
@@ -184,7 +182,7 @@ export class ConicGradient extends Gradient {
             matrix.mapVector(center, center);
         }
         this.dispose();
-        this._shader = CK.Shader.MakeSweepGradient(center.x, center.y, this.colors, this.offsets, CK.TileMode.Clamp)
+        this._shader = CK.Shader.MakeSweepGradient(center.x, center.y, this.colors, this.offsets, CK.TileMode.Clamp,this.matrix?this.matrix.toRowMajorOrderMatrix3x3():null)
         return this._shader;
     }
 }

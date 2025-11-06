@@ -20,7 +20,7 @@ export interface IsogonProps extends PathProps {
 }
 class Isogon extends Path<IsogonProps> {
 
-    shape: IsogonShape
+    declare shape: IsogonShape
 
     constructor(opts?: IsogonProps) {
         super(opts);

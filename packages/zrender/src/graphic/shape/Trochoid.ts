@@ -22,7 +22,7 @@ export interface TrochoidProps extends PathProps {
 }
 class Trochoid extends Path<TrochoidProps> {
 
-    shape: TrochoidShape
+    declare shape: TrochoidShape
 
     constructor(opts?: TrochoidProps) {
         super(opts);

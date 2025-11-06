@@ -29,7 +29,7 @@ const subPixelOptimizeOutputShape = {};
 
 class Rect extends Path<RectProps> {
 
-    shape: RectShape
+    declare shape: RectShape
 
     constructor(opts?: RectProps) {
         super(opts);

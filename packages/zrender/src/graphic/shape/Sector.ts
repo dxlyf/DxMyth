@@ -31,7 +31,7 @@ export interface SectorProps extends PathProps {
 
 class Sector extends Path<SectorProps> {
 
-    shape: SectorShape
+    declare shape: SectorShape
 
     constructor(opts?: SectorProps) {
         super(opts);

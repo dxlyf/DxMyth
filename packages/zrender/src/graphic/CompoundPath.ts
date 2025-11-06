@@ -11,7 +11,7 @@ export default class CompoundPath extends Path {
 
     type = 'compound'
 
-    shape: CompoundPathShape
+   declare shape: CompoundPathShape
 
     private _updatePathDirty() {
         const paths = this.shape.paths;

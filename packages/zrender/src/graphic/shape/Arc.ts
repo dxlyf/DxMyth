@@ -19,7 +19,7 @@ export interface ArcProps extends PathProps {
 
 class Arc extends Path<ArcProps> {
 
-    shape: ArcShape
+    declare shape: ArcShape
 
     constructor(opts?: ArcProps) {
         super(opts);

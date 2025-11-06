@@ -56,7 +56,7 @@ function isImageLike(source: unknown): source is HTMLImageElement {
 
 class ZRImage extends Displayable<ImageProps> {
 
-    style: ImageStyleProps
+  declare  style: ImageStyleProps
 
     // FOR CANVAS RENDERER
     __image: ImageLike

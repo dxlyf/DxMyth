@@ -19,7 +19,7 @@ export interface PolylineProps extends PathProps {
 }
 class Polyline extends Path<PolylineProps> {
 
-    shape: PolylineShape
+    declare shape: PolylineShape
 
     constructor(opts?: PolylineProps) {
         super(opts);

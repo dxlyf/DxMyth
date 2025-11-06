@@ -1,10 +1,11 @@
 import initCanvaskit from 'canvaskit-wasm'
 import CanvasKitInitWasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
-import type {CanvasKit} from 'canvaskit-wasm'
+import type {CanvasKit as CanvasKitImp} from 'canvaskit-wasm'
+export type * as CanvasKit from 'canvaskit-wasm'
 
-export let CK:CanvasKit|null=null
-let loadingPromise:Promise<CanvasKit>|null=null
-export const getCanvasKit=async ():Promise<CanvasKit>=>{
+export let CK:CanvasKitImp|null=null
+let loadingPromise:Promise<CanvasKitImp>|null=null
+export const getCanvasKit=async ():Promise<CanvasKitImp>=>{
     if(CK){
         return CK
     }
@@ -12,7 +13,7 @@ export const getCanvasKit=async ():Promise<CanvasKit>=>{
     return CK
 }
 
-async function initLoadCanvaskit():Promise<CanvasKit>{
+async function initLoadCanvaskit():Promise<CanvasKitImp>{
     if(loadingPromise){
         return loadingPromise
     }

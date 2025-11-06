@@ -317,22 +317,22 @@ class Element<Props extends ElementProps = ElementProps> {
     /**
      * Element type
      */
-    type: string
+   declare type: string
 
     /**
      * Element name
      */
-    name: string
+    declare name: string
 
     /**
      * If ignore drawing and events of the element object
      */
-    ignore: boolean
+    declare ignore: boolean
 
     /**
      * Whether to respond to mouse events.
      */
-    silent: boolean
+    declare silent: boolean
 
     /**
      * When this element has `__hostTarget` (e.g., this is a `textContent`), whether
@@ -340,22 +340,22 @@ class Element<Props extends ElementProps = ElementProps> {
      * settings. e.g., the host do not have `fill` but only `stroke`, or their mouse
      * events serve for different features.
      */
-    ignoreHostSilent: boolean
+    declare ignoreHostSilent: boolean
 
     /**
      * 是否是 Group
      */
-    isGroup: boolean
+    declare isGroup: boolean
 
     /**
      * Whether it can be dragged.
      */
-    draggable: boolean | 'horizontal' | 'vertical'
+    declare draggable: boolean | 'horizontal' | 'vertical'
 
     /**
      * Whether is it dragging.
      */
-    dragging: boolean
+    declare dragging: boolean
 
     parent: Group
 
@@ -367,12 +367,12 @@ class Element<Props extends ElementProps = ElementProps> {
      *
      * NOTE: It won't affect the clipPath set on the children.
      */
-    ignoreClip: boolean
+    declare ignoreClip: boolean
 
     /**
      * If element is used as a component of other element.
      */
-    __hostTarget: Element
+    declare __hostTarget: Element
 
     /**
      * ZRender instance will be assigned when element is associated with zrender
@@ -383,7 +383,7 @@ class Element<Props extends ElementProps = ElementProps> {
      * Dirty bits.
      * From which painter will determine if this displayable object needs brush.
      */
-    __dirty: number
+    declare __dirty: number
 
     /**
      * If element was painted on the screen
@@ -395,7 +395,7 @@ class Element<Props extends ElementProps = ElementProps> {
      *
      * If so, dirty will only trigger the zrender refresh hover layer
      */
-    __inHover: boolean
+    declare __inHover: boolean
 
     __clipPaths?: Path[]
 

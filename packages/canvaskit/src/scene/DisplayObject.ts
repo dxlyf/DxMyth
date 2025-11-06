@@ -2,7 +2,7 @@ import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayOb
 import { Node } from "./Node";
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { BoundingRect } from 'src/math/BoundingRect';
-import { LineCap, LineJoin } from 'src/core/Paint';
+import { LineCap, LineJoin, PaintBorderSide } from 'src/core/Paint';
 /** 
  * 显示对象基类
 */
@@ -19,6 +19,7 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
                 lineJoin:LineJoin.Miter,
                 lineCap:LineCap.Butt,
                 miterLimit:10,
+                borderSide:PaintBorderSide.Middle
              }
           }] as Options[]
      }

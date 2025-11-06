@@ -99,50 +99,50 @@ class Displayable<Props extends DisplayableProps = DisplayableProps> extends Ele
      * Whether the displayable object is visible. when it is true, the displayable object
      * is not drawn, but the mouse event can still trigger the object.
      */
-    invisible: boolean
+    declare invisible: boolean
 
-    z: number
+   declare z: number
 
-    z2: number
+   declare  z2: number
 
     /**
      * The z level determines the displayable object can be drawn in which layer canvas.
      */
-    zlevel: number
+    declare zlevel: number
 
     /**
      * If enable culling
      */
-    culling: boolean
+    declare culling: boolean
 
     /**
      * Mouse cursor when hovered
      */
-    cursor: string
+    declare cursor: string
 
     /**
      * If hover area is bounding rect
      */
-    rectHover: boolean
+    declare rectHover: boolean
     /**
      * For increamental rendering
      */
-    incremental: boolean
+    declare incremental: boolean
 
     /**
      * Never increase to target size
      */
-    ignoreCoarsePointer?: boolean
+     ignoreCoarsePointer?: boolean
 
-    style: Dictionary<any>
+    declare style: Dictionary<any>
 
-    protected _normalState: DisplayableState
+    declare protected _normalState: DisplayableState
 
-    protected _rect: BoundingRect
+    declare protected _rect: BoundingRect
     protected _paintRect: BoundingRect
     protected _prevPaintRect: BoundingRect
 
-    dirtyRectTolerance: number
+    declare dirtyRectTolerance: number
 
     /************* Properties will be inejected in other modules. *******************/
 
@@ -154,7 +154,7 @@ class Displayable<Props extends DisplayableProps = DisplayableProps> extends Ele
     // TODO use WeakMap?
 
     // Shapes for cascade clipping.
-    __clipPaths?: Path[]
+   declare __clipPaths?: Path[]
 
     // FOR CANVAS PAINTER
     __canvasFillGradient: CanvasGradient

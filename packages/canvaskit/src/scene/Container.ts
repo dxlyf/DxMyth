@@ -4,6 +4,7 @@ import { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
 import { NodeEffectFlags } from 'src/consts';
 import { BoundingRect } from 'src/math/BoundingRect';
 import { DisplayObject } from './DisplayObject';
+import timsort from 'src/utils/timsort';
 
 interface ISpatialIndex<T> {
     insert(item: T): void;
@@ -30,12 +31,16 @@ class Container extends Node<ContainerOptions,ContainerOptionsEvents> {
         // 如果子元素有变化，则需要重新计算渲染列表
         if(effectFlag&NodeEffectFlags.Reflow){
             this._pendingRenderList.length=0
-            this.traverseSort<DisplayObject>(el=>{
+            this.traverse<DisplayObject>(el=>{
                 // 添加可渲染的元素到渲染列表中
                 if(el.shouldAddToPendingRenderList()){
                     this._pendingRenderList.push(el)
                 }
-                el.effectFlag=NodeEffectFlags.None
+                //el.effectFlag=NodeEffectFlags.None
+            })
+            timsort(this._pendingRenderList,(a,b)=>{
+                const aZ=a.zIndex??0,bZ=b.zIndex??0
+                return aZ-bZ
             })
         }
         return this._pendingRenderList

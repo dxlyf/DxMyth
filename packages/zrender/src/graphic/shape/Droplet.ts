@@ -16,7 +16,7 @@ export interface DropletProps extends PathProps {
 }
 class Droplet extends Path<DropletProps> {
 
-    shape: DropletShape
+    declare shape: DropletShape
 
     constructor(opts?: DropletProps) {
         super(opts);

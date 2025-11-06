@@ -1,4 +1,4 @@
-import {Matrix2dLike} from '../math/Matrix2d'
+import {Matrix2D,type Matrix2DLike} from 'src/math/Matrix2D'
 
 export enum PatternRepeat{
     repeat='repeat',
@@ -27,7 +27,7 @@ export class Pattern implements CanvasPattern{
     clone():Pattern{
         return new Pattern(this.image!, this.repetition)
     }
-    setTransform(transform?: Matrix2dLike|DOMMatrixInit): void {
+    setTransform(transform?: Matrix2DLike|DOMMatrixInit): void {
         throw new Error("Method not implemented.");
     }
     equals(other: Pattern): boolean {

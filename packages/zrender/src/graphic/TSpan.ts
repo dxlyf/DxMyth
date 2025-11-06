@@ -50,7 +50,7 @@ export type TSpanState = Pick<TSpanProps, DisplayableStatePropNames>
 
 class TSpan extends Displayable<TSpanProps> {
 
-    style: TSpanStyleProps
+    declare style: TSpanStyleProps
 
     hasStroke() {
         return tSpanHasStroke(this.style);

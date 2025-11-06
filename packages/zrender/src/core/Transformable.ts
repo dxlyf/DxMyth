@@ -18,34 +18,34 @@ class Transformable {
 
     parent: Transformable
 
-    x: number
-    y: number
+    declare x: number
+    declare y: number
 
-    scaleX: number
-    scaleY: number
+   declare scaleX: number
+   declare scaleY: number
 
-    skewX: number
-    skewY: number
+   declare skewX: number
+   declare skewY: number
 
     // Suppose positive y is towards screen-bottom and positive x is towards screen-right;
     // positive rotation means rotating anticlockwise. (opposite to CSS transform rotate)
-    rotation: number
+    declare rotation: number
 
     /**
      * Will translated the element to the anchor position before applying other transforms.
      */
-    anchorX: number
-    anchorY: number
+    declare anchorX: number
+    declare anchorY: number
     /**
      * Origin of scale, rotation, skew
      */
-    originX: number
-    originY: number
+    declare originX: number
+    declare originY: number
 
     /**
      * Scale ratio
      */
-    globalScaleRatio: number
+    declare  globalScaleRatio: number
 
     transform: matrix.MatrixArray
     invTransform: matrix.MatrixArray

@@ -22,7 +22,7 @@ export interface RoseProps extends PathProps {
 }
 class Rose extends Path<RoseProps> {
 
-    shape: RoseShape
+    declare shape: RoseShape
 
     constructor(opts?: RoseProps) {
         super(opts);

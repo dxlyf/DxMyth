@@ -18,7 +18,7 @@ export interface PolygonProps extends PathProps {
 }
 class Polygon extends Path<PolygonProps> {
 
-    shape: PolygonShape
+    declare shape: PolygonShape
 
     constructor(opts?: PolygonProps) {
         super(opts);

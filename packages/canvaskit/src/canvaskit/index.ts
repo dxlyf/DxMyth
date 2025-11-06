@@ -1,7 +1,9 @@
 export * from './canvaskit'
-export type * from 'canvaskit-wasm'
+export * from './htmlcanvas/htmlcanvas'
 import {DisposableManager,type IDisposable } from 'src/core/Disposable'
 import {getCanvasKit} from './canvaskit'
+
+
 // 扩展
 declare module 'canvaskit-wasm'{
     interface Paint extends IDisposable{

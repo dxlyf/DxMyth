@@ -26,7 +26,7 @@ export interface LineProps extends PathProps {
 }
 class Line extends Path<LineProps> {
 
-    shape: LineShape
+   declare shape: LineShape
 
     constructor(opts?: LineProps) {
         super(opts);

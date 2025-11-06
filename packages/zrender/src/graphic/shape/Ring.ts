@@ -16,7 +16,7 @@ export interface RingProps extends PathProps {
 }
 class Ring extends Path<RingProps> {
 
-    shape: RingShape
+    declare shape: RingShape
 
     constructor(opts?: RingProps) {
         super(opts);

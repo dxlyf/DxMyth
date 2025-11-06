@@ -275,7 +275,7 @@ class ZRText extends Displayable<TextProps> implements GroupLike {
 
     type = 'text'
 
-    style: TextStyleProps
+    declare  style: TextStyleProps
 
     /**
      * How to handling label overlap
