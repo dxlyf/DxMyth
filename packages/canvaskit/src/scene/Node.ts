@@ -21,7 +21,9 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
         super(options)
         this.uid = Node.uid++
         this.props = merge({}, ...this.getDefaultProps(), options || {})
+        this.init()
     }
+    init(){}
     updateTransform(){
         super.updateTransform()
         this.effectFlag |= NodeEffectFlags.Matrix|NodeEffectFlags.Repaint
@@ -205,6 +207,14 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     }
     onAfterUpdate(delta: number) {
 
+    }
+    dispose(){
+        this.removeAllListeners()
+        if(this.children){
+            for(let i=0;i<this.children.length;i++){
+                this.children[i].dispose()
+            }
+        }
     }
 
 }

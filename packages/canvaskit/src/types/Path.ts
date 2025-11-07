@@ -1,5 +1,7 @@
+import {type CanvasKit } from "src/canvaskit"
 import { FillRule, LineCap, LineJoin, PaintColor,PaintBorderSide } from "src/core/Paint"
-export interface StyleConfig{
+import { ProxyPath } from "src/core/ProxyPath"
+export interface PathStyleConfig{
     strokeWidth?:number
     firstFill?:boolean
     opacity?:number
@@ -16,4 +18,7 @@ export interface StyleConfig{
     fontSize?:number
     fontFamily?:string
     fontWeight?:string|number
+}
+export interface PathShapeConfig{
+    buildPath?(path:CanvasKit.Path):void
 }

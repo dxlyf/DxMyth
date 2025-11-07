@@ -1,6 +1,5 @@
-import type {ContainerOptions,ContainerOptionsEvents,IContainer} from 'src/types/Container'
+import type {ContainerOptions,ContainerOptionsEvents} from 'src/types/Container'
 import { Node } from "./Node";
-import { ICanvaskitRenderer } from "src/types/Renderer";
 
 interface ISpatialIndex<T> {
     insert(item: T): void;
@@ -14,6 +13,9 @@ class Group extends Node {
      isGroup=true
      constructor(options?:ContainerOptions){
           super(options)
+     }
+     innerCalcLocalBounds(): void {
+         
      }
 
 }

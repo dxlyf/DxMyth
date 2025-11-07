@@ -1,28 +1,28 @@
 
 
 import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayObject'
-import {  DisplayObject} from "src/scene/DisplayObject";
-import { StyleConfig } from 'src/types/Style';
-import { ShapeConfig } from 'src/types/Shape';
+import type { PathShapeConfig,PathStyleConfig } from 'src/types/Path';
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { BoundingRect } from 'src/math/BoundingRect';
+import {Path,type PathOptions } from './Path';
+import { CanvasKit, CK } from 'src/canvaskit';
 
 
-interface RectOptions extends DisplayObjectOptions<RectShapeConfig,RectStyleConfig>{
+interface RectOptions extends PathOptions<RectShapeConfig,RectStyleConfig>{
 
 }
 
-interface RectShapeConfig extends ShapeConfig{
+interface RectShapeConfig extends PathShapeConfig{
      x?:number,
      y?:number,
      width?:number,
      height?:number,
 }
-interface RectStyleConfig extends StyleConfig{
+interface RectStyleConfig extends PathStyleConfig{
 
 }
 
-class Rect extends DisplayObject<RectOptions> {
+class Rect extends Path<RectOptions> {
      type='Rect'
      constructor(options?:RectOptions){
           super(options)
@@ -37,13 +37,9 @@ class Rect extends DisplayObject<RectOptions> {
                },
                style:{}}]
     }
-    innerCalcLocalBounds(): void {
+    buildPath(path: CanvasKit.Path): void {
          const {x,y,width,height}=this.shape
-         this._localBounds.fromRect(x,y,width,height)
-    }
-    render(renderer:CanvaskitRenderer): void { 
-        const {x,y,width,height}=this.shape
-        renderer.drawRect(x,y,width,height)
+         path.addRect(CK.XYWHRect(x,y,width,height))
     }
 }
 

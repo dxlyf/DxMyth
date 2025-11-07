@@ -75,6 +75,10 @@ export class CKEngine extends EventEmitter<CKEngineEvents>{
     start(){
         this.ticker.start()
     }
+    dispose(){
+        this.renderer.dispose()
+        this.container.dispose()
+    }
 
 }
 

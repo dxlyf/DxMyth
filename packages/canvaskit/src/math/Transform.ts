@@ -86,10 +86,10 @@ export class Transform<Options, E extends EventEmitter.ValidEventTypes> extends 
     setTransformFromMatrix(matrix: Matrix2D) {
         matrix.decomposeTransform(matrix, this)
     }
-    worldToLocal(vec: Vector2, out = Vector2.create()): Vector2 {
+    worldToLocal(vec: Vector2Like, out = Vector2.create()): Vector2Like {
         return this.worldInverseMatrix.mapVector(out, vec)
     }
-    localToWorld(vec: Vector2, out = Vector2.create()): Vector2 {
+    localToWorld(vec: Vector2Like, out = Vector2.create()): Vector2Like {
         return this.worldMatrix.mapVector(out, vec)
     }
     updateTransform() {

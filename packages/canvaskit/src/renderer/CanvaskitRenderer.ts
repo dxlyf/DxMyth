@@ -20,7 +20,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     canvas: CanvasKit.Canvas
     ck: CanvasKit.CanvasKit = CK
     private disposableManager = new DisposableManager()
-    private _currentPath: CanvasKit.Path
+    public _currentPath: CanvasKit.Path
     private _paint: CanvasKit.Paint
     private _globalAlpha = 1
     private _currentTransform: number[]
@@ -196,6 +196,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
                     outerPath.stroke({
                         width:paint.width!*2,
                     })
+                    outerPath.setFillType(CK.FillType.Winding)
+                    innerPath.setFillType(CK.FillType.Winding)
                     //innerPath.offset(10,0)
                    // outerPath.op(innerPath,CK.PathOp.Difference)
                     this._currentPath.dispose()

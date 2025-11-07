@@ -16,7 +16,8 @@ export interface IPoolService<T,P=any>{
     destroyPool():void
 }
 
-
+export const poolServiceSymbol='_poolService'
+export const getPoolService=<T,P=any>(target:any)=>target[poolServiceSymbol] as PoolService<T,P>
 /**
  * 为类添加缓存池服务
  * @param target 类构造函数
@@ -24,9 +25,9 @@ export interface IPoolService<T,P=any>{
  */
 function mixinPoolService<T>(target:{new(...args:any[]):T},options:PoolServiceOptions<T>){
     const pool=new PoolService<T>(options);
+    (target as any)[poolServiceSymbol]=pool;
+    (target as any).getPool=pool.acquire.bind(pool)
     Object.assign(target.prototype,{
-        _poolService:pool,
-        getPool:pool.acquire.bind(pool),
         releasePool:function(this:T){
             pool.release(this)
         },
