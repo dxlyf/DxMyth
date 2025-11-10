@@ -4,11 +4,12 @@ import { CK } from 'src/canvaskit'
 import type  {CanvasKit} from 'src/canvaskit'
 import { CanvaskitRendererOptions, CanvaskitRendererEvents } from 'src/types/Renderer'
 import { DisplayObject } from 'src/scene/DisplayObject'
-import { FillRule, IPaint, LineCap, LineJoin, PaintBorderSide, PaintStyle, PaintType, RenderObject } from 'src/core/Paint'
+import { FillRule, getRendertList, IPaint, LineCap, LineJoin, PaintBorderSide, PaintStyle, PaintType, RenderObject } from 'src/core/Paint'
 import { RenderListConfig } from 'src/core/Paint'
 import { Matrix2D } from 'src/math'
 import { ConicGradient, LinearGradient, RadialGradient } from 'src/core/Gradient'
 import { DisposableManager } from 'src/core/Disposable'
+import { Container } from 'src/scene/Container'
 
 
 
@@ -146,6 +147,19 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     closePath() {
         this._currentPath.close();
     }
+    clip(path?:CanvasKit.Path,fillRule?:FillRule){
+        if (!path) {
+            path=this._currentPath
+        } 
+        let clip=path.copy()
+        if(fillRule===FillRule.EvenOdd){
+            clip.setFillType(CK.FillType.EvenOdd)
+        }else{
+            clip.setFillType(CK.FillType.Winding)
+        }
+        this.canvas.clipPath(clip,CK.ClipOp.Intersect,true)
+        clip.dispose()
+    }
     save() {
 
         this._stateStack.push({
@@ -191,30 +205,18 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             this._currentPath.setFillType(fillRule)
             if(paint.style===PaintStyle.Stroke){
                 if(paint.borderSide===PaintBorderSide.Outside){
-                    let outerPath=this._currentPath.copy()
                     let innerPath=this._currentPath.copy()
-                    outerPath.stroke({
-                        width:paint.width!*2,
-                    })
-                    outerPath.setFillType(CK.FillType.Winding)
-                    innerPath.setFillType(CK.FillType.Winding)
-                    //innerPath.offset(10,0)
-                   // outerPath.op(innerPath,CK.PathOp.Difference)
-                    this._currentPath.dispose()
+                    innerPath.setFillType(CK.FillType.EvenOdd)
+                    this.canvas.clipPath(innerPath,CK.ClipOp.Difference,true)
                     innerPath.dispose()
-                    this._currentPath=outerPath
-                    this.canvas.clipPath(this._currentPath,CK.ClipOp.Intersect,true)
+                    tmpPaint.setStrokeWidth(paint.width!*2)
                     
                 }else if(paint.borderSide===PaintBorderSide.Inside){
-                    let outerPath=this._currentPath.copy()
                     let innerPath=this._currentPath.copy()
-                    outerPath.stroke({
-                        width:paint.width!*2,
-                    })
-                    innerPath.op(outerPath,CK.PathOp.Difference)
-                    this._currentPath.dispose()
-                    outerPath.dispose()
-                    this._currentPath=innerPath
+                    innerPath.setFillType(CK.FillType.EvenOdd)
+                    this.canvas.clipPath(innerPath,CK.ClipOp.Intersect,true)
+                    innerPath.dispose()
+                    tmpPaint.setStrokeWidth(paint.width!*2)
                 }
             }
             this.canvas.drawPath(this._currentPath, tmpPaint)
@@ -225,8 +227,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     endDraw(renderObject: RenderObject) {
         this.restore()
     }
-    render(renderObjects: RenderObject[]): void {
+    render(container:Container): void {
         const viewport = this.viewport
+        const renderList= container.updateRenderList({viewport})
+        const renderObjects=getRendertList({
+            objects:renderList,
+            viewport,
+            dpr:this.dpr
+        })
         const canvas = this.canvas
         canvas.clear(CK.Color4f(0, 0, 0, 1))
         canvas.save()

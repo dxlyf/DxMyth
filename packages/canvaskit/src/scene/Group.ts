@@ -14,6 +14,9 @@ class Group extends Node {
      constructor(options?:ContainerOptions){
           super(options)
      }
+     shouldAddToPendingRenderList(){
+        return false
+     }
      innerCalcLocalBounds(): void {
          
      }

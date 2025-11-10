@@ -14,16 +14,13 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     props: Options
     parent: Node<Options,E>|null = null;
     children: Node<Options,E>[] | null = null
-    sortChildren: Node<Options,E>[] | null = null;
     _globalBounds: BoundingRect = null;
     _localBounds: BoundingRect = null;
     constructor(options?: Options) {
         super(options)
         this.uid = Node.uid++
         this.props = merge({}, ...this.getDefaultProps(), options || {})
-        this.init()
     }
-    init(){}
     updateTransform(){
         super.updateTransform()
         this.effectFlag |= NodeEffectFlags.Matrix|NodeEffectFlags.Repaint
@@ -111,7 +108,9 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             this._globalBounds = BoundingRect.default()
         }
         this._globalBounds.copy(this.localBounds)
-        this._globalBounds.applyMatrix(this.worldMatrix)
+        if(this.parent){
+            this._globalBounds.applyMatrix(this.parent.worldMatrix)
+        }
         return this._globalBounds
     }
     getLocalBounds(forceUpdate=false): BoundingRect {
@@ -164,38 +163,12 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             this.effectFlag |= NodeEffectFlags.Child | NodeEffectFlags.Reflow
         }
     }
-    getSortChildren():Node<Options,E>[] | null {
-        const children = this.children
-        if (children) {
-            if (this.sortChildren === null || this.effectFlag & NodeEffectFlags.Reflow) {
-                this.effectFlag &= ~NodeEffectFlags.Reflow
-                this.sortChildren = children.slice()
-                this.sortChildren.sort((a, b) => {
-                    const a_zIndex = a.props.zIndex || 0
-                    const b_zIndex = b.props.zIndex || 0
-                    return a_zIndex - b_zIndex
-                })
-                return this.sortChildren
-            }
-            return this.sortChildren
-        }
-        return null
-    }
     traverse<T extends Node<Options,E>>(fn: (el: T) => void): void {
         fn((this as unknown) as T);
         const children = this.children
         if (children) {
             for (let i = 0, len = children.length; i < len; i++) {
                 children[i].traverse<T>(fn)
-            }
-        }
-    }
-    traverseSort<T extends Node<Options,E>>(fn: (el: T) => void): void {
-        fn((this as unknown) as T);
-        const children = this.getSortChildren()
-        if (children) {
-            for (let i = 0, len = children.length; i < len; i++) {
-                children[i].traverseSort<T>(fn)
             }
         }
     }
@@ -208,13 +181,9 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     onAfterUpdate(delta: number) {
 
     }
+    
     dispose(){
-        this.removeAllListeners()
-        if(this.children){
-            for(let i=0;i<this.children.length;i++){
-                this.children[i].dispose()
-            }
-        }
+    
     }
-
+  
 }

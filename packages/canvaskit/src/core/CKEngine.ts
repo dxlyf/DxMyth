@@ -62,13 +62,7 @@ export class CKEngine extends EventEmitter<CKEngineEvents>{
     render(){
         if(this.ready){
         
-            const pendingRenderObjects=this.container.getPendingRenderList()
-            const renderObjects=getRendertList({
-                objects:pendingRenderObjects,
-                dpr:this.renderer.dpr,
-                viewport:this.renderer.viewport,
-            })
-            this.renderer.render(renderObjects)
+            this.renderer.render(this.container)
             this.needRefresh=false
         }
     }

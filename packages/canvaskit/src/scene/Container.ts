@@ -25,15 +25,18 @@ class Container extends Node<ContainerOptions,ContainerOptionsEvents> {
     shouldAddToPendingRenderList(): boolean {
         return false
     }
-    // 获取待渲染列表
-    getPendingRenderList(){
+    // 更新待渲染列表
+    updateRenderList({viewport}:{viewport:BoundingRect}):DisplayObject[]{
+    
+        this._viewport.copy(viewport)
         const effectFlag=this.getAllEffectFlag()
         // 如果子元素有变化，则需要重新计算渲染列表
         if(effectFlag&NodeEffectFlags.Reflow){
             this._pendingRenderList.length=0
+            this.effectFlag &= ~NodeEffectFlags.Reflow
             this.traverse<DisplayObject>(el=>{
                 // 添加可渲染的元素到渲染列表中
-                if(el.shouldAddToPendingRenderList()){
+                if(el.shouldAddToPendingRenderList()&&el.isInViewport(viewport)){
                     this._pendingRenderList.push(el)
                 }
                 //el.effectFlag=NodeEffectFlags.None

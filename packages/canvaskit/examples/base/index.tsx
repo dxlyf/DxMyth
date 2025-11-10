@@ -39,7 +39,7 @@ let rect=new Rect({
      style:{
         fillStyle:'#ffff00'
      },
-     position:[100,100]
+     position:[340,100]
 })
 engine.add(rect)
 let rect2=new Rect({
@@ -68,7 +68,19 @@ let rect22=new Rect({
    position:[100,340]
 })
 engine.add(rect22)
-
+let rect223=new Rect({
+   shape:{
+      width:100,
+      height:100,
+   },
+   style:{
+      strokeStyle:'#ff0000',
+      lineWidth:10,
+      borderSide:PaintBorderSide.Inside
+   },
+   position:[100,100]
+})
+engine.add(rect223)
 let linear=engine.renderer.createLinearGradient(0,0,100,100)
 linear.addColorStop(0,'#ff0000')
 linear.addColorStop(0.5,'#00ff00')
