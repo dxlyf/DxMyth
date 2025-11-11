@@ -8,7 +8,7 @@ import { Ticker } from 'src/animation/Ticker';
 import { BrowserEnvPresets } from 'src/plugins';
 import { Container } from 'src/scene/Container';
 import { Node } from 'src/scene/Node';
-import { getRendertList } from './Paint';
+
 
 
 export interface CKEngine{
@@ -61,8 +61,7 @@ export class CKEngine extends EventEmitter<CKEngineEvents>{
     }
     render(){
         if(this.ready){
-        
-            this.renderer.render(this.container)
+            this.renderer.render({container:this.container,delta:this.ticker.delta})
             this.needRefresh=false
         }
     }

@@ -4,6 +4,7 @@ import { BoundingRect } from 'src/math/BoundingRect'
 import { merge } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
 import type { NodeOptions,NodeEvents} from 'src/types/Node'
+import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer'
 
 
 export abstract class Node<Options extends NodeOptions = NodeOptions, E extends NodeEvents = NodeEvents> extends Transform<Options, E>  {
@@ -29,7 +30,8 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
         return [{
             zIndex: 0,
             visible: true,
-            opacity: 1,
+            silent:false,
+            ingore: false,
             cache: false
         }] as Options[]
     }
@@ -53,12 +55,12 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
         }
 
     }
-    get opacity() {
-        return this.props.opacity
+    get ingore() {
+        return this.props.ingore
     }
-    set opacity(v: number) {
-        if (this.props.opacity !== v) {
-            this.props.opacity = v
+    set ingore(v: boolean) {
+        if (this.props.ingore !== v) {
+            this.props.ingore = v
             this.effectFlag |= NodeEffectFlags.Repaint
         }
     }
@@ -84,15 +86,15 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     }
     // 是否应该渲染
     shouldRender() {
-        return this.props.opacity > 0 && this.visible
+        return !this.props.ingore&& this.visible
     }
     // 是否应该响应事件
     shouldInteraction() {
-        return this.props.silent!==true
+        return !this.props.ingore&&this.props.silent!==true
     }
     // 是否应该添加到渲染列表中,包括不可见，但需要响应事件的节点
     shouldAddToPendingRenderList() {
-        return this.props.visible
+        return this.shouldInteraction()
     }
     get globalBounds() {
         return this.getGlobalBounds()
@@ -172,6 +174,15 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             }
         }
     }
+    traverseBackward<T extends Node<Options,E>>(fn: (el: T) => void): void {
+        const children = this.children
+        if (children) {
+            for (let i = 0, len = children.length; i < len; i++) {
+                children[i].traverse<T>(fn)
+            }
+        }
+        fn((this as unknown) as T);
+    }
     onBeforeUpdate(delta: number): void {
 
     }
@@ -181,7 +192,6 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     onAfterUpdate(delta: number) {
 
     }
-    
     dispose(){
     
     }

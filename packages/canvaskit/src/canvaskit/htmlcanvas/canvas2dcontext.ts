@@ -1,6 +1,5 @@
 import { CK } from '../index'
-import type * as CanvasKit from  '../index'
-import type {Paint} from  '../index'
+import type {CanvasKit} from  '../index'
 import { parseColor, colorToString } from './color'
 import { getTypeface } from './font'
 import { HTMLImage } from './htmlimage'
@@ -586,9 +585,9 @@ export class CanvasRenderingContext2D {
       path = (path as Path2D)._getPath();
     }
     if (fillRule === 'evenodd') {
-      this._currentPath.setFillType(CK.FillType.EvenOdd);
+      (path as CanvasKit.Path).setFillType(CK.FillType.EvenOdd);
     } else if (fillRule === 'nonzero' || !fillRule) {
-      this._currentPath.setFillType(CK.FillType.Winding);
+      (path as CanvasKit.Path).setFillType(CK.FillType.Winding);
     } else {
       throw 'invalid fill rule';
     }

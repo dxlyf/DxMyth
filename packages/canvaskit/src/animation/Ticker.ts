@@ -10,6 +10,7 @@ export class Ticker {
         private runing = false;
         private callbacks = new Set<TickHandle>();
         private animationFrameId: number | null = null;
+        delta:number=0
         start() {
             if (this.runing) {
                 return
@@ -19,6 +20,7 @@ export class Ticker {
             const loop = (now: number) => {
      
                 const dt = now - last;
+                this.delta=dt
                 if(this.runing){
                   for (const cb of this.callbacks) {
                     cb(dt);

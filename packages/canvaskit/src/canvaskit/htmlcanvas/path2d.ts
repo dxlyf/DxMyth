@@ -1,5 +1,5 @@
 import { CK } from '../index'
-import * as CanvasKit from '../index'
+import type {CanvasKit} from '../index'
 import { allAreFinite, almostEqual, radiansToDegrees } from './util'
 // CanvasPath methods, which all take an Path object as the first param
 

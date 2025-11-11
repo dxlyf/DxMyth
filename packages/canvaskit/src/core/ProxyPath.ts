@@ -14,8 +14,24 @@ type CommandParameter={
 type CommandType = keyof CommandParameter
 type CommandData=[CommandType,...CommandParameter[CommandType]]
 
-
+enum SegmentType{
+    Line=1,
+    Quad=1<<1,
+    Cubic=1<<2,
+    Conic=1<<3,
+    Arc=1<<4,
+    Rect=1<<5,
+}
+const SegmentTypeMap={
+    quadTo:SegmentType.Quad,
+    cubicTo:SegmentType.Cubic,
+    conicTo:SegmentType.Conic,
+    arcTo:SegmentType.Arc,
+    rect:SegmentType.Rect,
+ 
+}
 class ProxyPath{
+    segmentType:number
     cmds:CommandData[] = []
     lastPosition:number[] = [0,0]
     _bounds:BoundingRect|null = null
@@ -48,9 +64,6 @@ class ProxyPath{
     }
     rect(x:number,y:number,width:number,height:number){
         this.add('rect',x,y,width,height)
-    }
-    beginPath(){
-        this.add('moveTo',0,0)
     }
     closePath(){
         this.add('close')

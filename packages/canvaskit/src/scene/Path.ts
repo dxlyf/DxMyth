@@ -5,11 +5,12 @@ import { DisplayObject } from "src/scene/DisplayObject";
 import type { PathShapeConfig, PathStyleConfig } from 'src/types/Path';
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { BoundingRect } from 'src/math/BoundingRect';
-import { LineCap, LineJoin, PaintBorderSide } from 'src/core/Paint';
+import { LineCap, LineJoin, BorderSide } from 'src/enum';
 import { CK,type CanvasKit } from 'src/canvaskit';
 import { ProxyPath } from 'src/core/ProxyPath';
-import { merge } from 'src/utils';
+import { isValidPaintValue, merge } from 'src/utils';
 import { NodeEffectFlags } from 'src/consts';
+import type {PaintBrushStyle} from 'src/types/Renderer'
 
 
 export interface PathOptions<Shape extends PathShapeConfig=PathShapeConfig,Style extends PathStyleConfig=PathStyleConfig> extends DisplayObjectOptions<Style> {
@@ -37,7 +38,7 @@ export class Path<Options extends PathOptions=PathOptions> extends DisplayObject
                 lineJoin: LineJoin.Miter,
                 lineCap: LineCap.Butt,
                 miterLimit: 10,
-                borderSide: PaintBorderSide.Middle
+                borderSide: BorderSide.Middle
             }
         }] as Options[]
     }
@@ -61,8 +62,16 @@ export class Path<Options extends PathOptions=PathOptions> extends DisplayObject
     buildPath(path:CanvasKit.Path){
         this.shape.buildPath?.(path)
     }
+    hasFill(){
+        const fillStyle=this.style.fillStyle
+        return (fillStyle===null||fillStyle===undefined||fillStyle==='none')
+    }
+    hasStroke(){
+        const strokeStyle=this.style.strokeStyle
+        return (strokeStyle===null||strokeStyle===undefined||strokeStyle==='none')
+    }
     render(renderer: CanvaskitRenderer): void {
-        this.buildInnerPath()
+        this.buildInnerPath()       
         renderer._currentPath.addPath(this._ckPath)
     }
     dispose(): void {

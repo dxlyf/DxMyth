@@ -3,8 +3,8 @@ import { BoundingRect } from 'src/math/BoundingRect';
 import {type Transform, type TransformOptions} from 'src/math/Transform'
 
 export interface NodeOptions extends TransformOptions{
-    visible?:boolean // 是否显示
-    opacity?:number // 为0时，不渲染，但响应事件
+    visible?:boolean // 是否显示，但响应事件
+    ingore?:boolean // 不显示，不响应事件
     silent?:boolean // 是否静默，不响应事件
     zIndex?:number // 层级
     cache?:boolean // 是否缓存绘制结果，默认为false
