@@ -57,7 +57,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     ck: CanvasKit.CanvasKit = CK
     private disposableManager = new DisposableManager()
     public _currentPath: CanvasKit.Path
-     public _paint: CanvasKit.Paint
+    public _paint: CanvasKit.Paint
     private _globalAlpha = 1
     private _currentTransform: number[]
     private _stateStack: any[] = []
@@ -70,42 +70,15 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
         this._currentTransform = CK.Matrix.identity();
+        
 
-
+    }
+    get currentState(){
+        return this._stateStack[this._stateStack.length-1]
     }
 
     drawRect(x: number, y: number, width: number, height: number) {
         this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
-    }
-    getCKLineJoin(lineJoin: LineJoin) {
-        switch (lineJoin) {
-            case LineJoin.Miter:
-                return CK.StrokeJoin.Miter
-            case LineJoin.Round:
-                return CK.StrokeJoin.Round
-            case LineJoin.Bevel:
-                return CK.StrokeJoin.Bevel
-        }
-    }
-    getCKLineCap(lineCap: LineCap) {
-        switch (lineCap) {
-            case LineCap.Butt:
-                return CK.StrokeCap.Butt
-            case LineCap.Round:
-                return CK.StrokeCap.Round
-            case LineCap.Square:
-                return CK.StrokeCap.Square
-        }
-    }
-    getCKFillRule(fillRule: FillRule) {
-        switch (fillRule) {
-            case FillRule.NonZero:
-                return CK.FillType.Winding
-            case FillRule.EvenOdd:
-                return CK.FillType.EvenOdd
-            default:
-                return CK.FillType.Winding
-        }
     }
 
     createLinearGradient(x0: number, y0: number, x1: number, y1: number) {
@@ -171,21 +144,6 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
         this.canvas.clipPath(clip, CK.ClipOp.Intersect, true)
         clip.dispose()
-    }
-    setStrokeWidth(width: number) {
-        this._paint.setStrokeWidth(width)
-    }
-    setFillRule(fillRule: FillRule) {
-        this._paint.setStyle(this.getCKFillRule(fillRule))
-    }
-    setLineJoin(lineJoin: LineJoin) {
-        this._paint.setStrokeJoin(this.getCKLineJoin(lineJoin))
-    }
-    setLineCap(lineCap: LineCap) {
-        this._paint.setStrokeCap(this.getCKLineCap(lineCap))
-    }
-    setColor(color: Color) {
-        this._paint.setColor(color)
     }
     fill(path?: CanvasKit.Path | FillRule, fillRule?: FillRule) {
         if (typeof path === 'string') {
