@@ -62,8 +62,8 @@ export class CKEngine extends EventEmitter<CKEngineEvents>{
      
     }
     render(){
-        this.emit('render',this)
         this.renderer.render({container:this.container,delta:this.ticker.delta})
+        this.emit('render',this)
         this.needRefresh=false
     }
     start(){

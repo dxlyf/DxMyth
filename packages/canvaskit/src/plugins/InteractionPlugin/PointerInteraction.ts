@@ -39,8 +39,8 @@ export class PointerInteractionEvent<E extends Event=PointerEvent> {
 
     }
     reset(){
-        this.target=null
-        this.currentTarget=null
+        // this.target=null
+        // this.currentTarget=null
         this.cancelBubble=true 
         this.defaultPrevented=false
         this.cancelBubble=false

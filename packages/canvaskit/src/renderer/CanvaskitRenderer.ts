@@ -155,7 +155,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._paint.setStrokeMiter(value)
     }
     get miterLimit() {
-        return this._miterLimit
+        return this._paint.getStrokeMiter()
     }
     set lineJoin(value: LineJoin) {
         switch (value) {
