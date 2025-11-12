@@ -17,7 +17,7 @@ export class Group extends Node {
      shouldAddToPendingRenderList(){
         return false
      }
-     innerCalcLocalBounds(): void {
+     innerCalcBounds(): void {
          
      }
 
