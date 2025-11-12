@@ -5,6 +5,7 @@ import { NodeEffectFlags } from 'src/consts';
 import { BoundingRect } from 'src/math/BoundingRect';
 import { DisplayObject } from './DisplayObject';
 import timsort from 'src/utils/timsort';
+import { Vector2 } from 'src/math';
 
 interface ISpatialIndex<T> {
     insert(item: T): void;
@@ -19,12 +20,32 @@ class Container extends Node<ContainerOptions, ContainerOptionsEvents> {
     constructor(options?: ContainerOptions) {
         super(options)
     }
-    innerCalcLocalBounds(): void { }
+    innerCalcBounds(): void { }
     shouldAddToPendingRenderList(): boolean {
         return false
     }
+    // 根据鼠标查找目标元素
+    findTarget(x: number, y: number) {
+        const list = this._interactionRenderList
+        const len = list.length
+        const tmp = Vector2.getPool(0, 0)
+        for (let i = len - 1; i >= 0; i--) {
+            const obj = list[i]
+            // 是否可以响应交互事件
+            if (obj.shouldInteraction()) {
+                tmp.set(x, y)
+                tmp.applyMatrix(obj.worldInverseMatrix)
+                if (obj.hit(tmp[0], tmp[1])) {
+                    tmp.releasePool()
+                    return obj
+                }
+            }
+        }
+        tmp.releasePool()
+        return null
+    }
     // 更新待渲染列表
-    updateRenderList({ viewport,delta }: { viewport: BoundingRect,delta:number }): DisplayObject[] {
+    updateRenderList({ viewport, delta }: { viewport: BoundingRect, delta: number }): DisplayObject[] {
 
         this._interactionRenderList.length = 0
         this.traverse<DisplayObject>(el => {

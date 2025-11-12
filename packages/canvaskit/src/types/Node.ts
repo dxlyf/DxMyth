@@ -1,6 +1,7 @@
 
 import { BoundingRect } from 'src/math/BoundingRect';
 import {type Transform, type TransformOptions} from 'src/math/Transform'
+import { PointerInteractionEvent } from 'src/plugins/InteractionPlugin/PointerInteraction';
 
 export interface NodeOptions extends TransformOptions{
     visible?:boolean // 是否显示，但响应事件
@@ -11,7 +12,13 @@ export interface NodeOptions extends TransformOptions{
 
 }
 export interface NodeEvents{
-
+        pointerdown: [PointerInteractionEvent]
+        pointermove: [PointerInteractionEvent]
+        pointerup:  [PointerInteractionEvent]
+        dragStart:  [PointerInteractionEvent]
+        drag:  [PointerInteractionEvent]
+        dragEnd:  [PointerInteractionEvent]
+        click:  [PointerInteractionEvent]    
 }
 
 

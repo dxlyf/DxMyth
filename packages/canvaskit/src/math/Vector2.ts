@@ -3,6 +3,10 @@ import type {Matrix2D} from './Matrix2D'
 const toRadian=glMatrix.toRadian
 const toDegree=glMatrix.toDegree
 export type Vector2Like=Float32Array|number[]
+
+export interface Vector2{
+    
+}
 export class Vector2 extends Float32Array{
     static toRadian=toRadian
     static toDegree=toDegree
@@ -28,7 +32,7 @@ export class Vector2 extends Float32Array{
         this[1]=y;
     }
     set x(v:number){
-        this.set(v,this[0]);
+        this.set(v,this[1]);
     }
     get x(){
         return this[0];

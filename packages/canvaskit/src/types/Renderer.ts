@@ -2,6 +2,8 @@ import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
+import type { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
+import type { DisplayObject } from "src/scene/DisplayObject";
 
 export type RendererOptions={
     canvas:HTMLCanvasElement
@@ -11,9 +13,9 @@ export type RendererOptions={
 }
 export interface RendererEvents{
     resize:[width:number,height:number]
+    'object:rendered':[{renderer:CanvaskitRenderer,object:DisplayObject}] // 对象渲染完
 }
 export type CanvaskitRendererOptions=RendererOptions & {
-
 }
 export interface CanvaskitRendererEvents extends RendererEvents{
     mousedown:[e:any]

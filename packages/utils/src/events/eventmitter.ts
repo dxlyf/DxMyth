@@ -168,15 +168,15 @@ export function getEventNames(target: EventTargetObj): string[] {
     return Object.keys(listeners)
 }
 export function dispatchBubbleEvent(target: EventTargetObj, listenerName: string, captureListenerName: string, listenerNameNs: string, e: IEmitter4Event<any>) {
-    e.currentTarget = target
+    e.target = target
     const type = e.type
     const nodePath = e.composedPath(target)
     const nodePathLength = nodePath.length
     // 执行capture
     for (let i = nodePathLength - 1; i >= 0; i--) {
         const emitter = nodePath[i]
-        e.target = nodePath[i]
-        e.eventPhase = e.target !== target ? EventPhase.CAPTURING_PHASE : EventPhase.AT_TARGET
+        e.currentTarget = nodePath[i]
+        e.eventPhase = e.currentTarget !== target ? EventPhase.CAPTURING_PHASE : EventPhase.AT_TARGET
         const listeners = getListeners(emitter as any, captureListenerName, type)
         for (let j = 0, len = listeners.length; j < len; j++) {
             const event = listeners[j]
@@ -196,8 +196,8 @@ export function dispatchBubbleEvent(target: EventTargetObj, listenerName: string
     if (!e.cancelBubble) {
         for (let i = 0; i < nodePathLength; i++) {
             const emitter = nodePath[i]
-            e.target = nodePath[i]
-            e.eventPhase = e.target !== target ? EventPhase.BUBBLING_PHASE : EventPhase.AT_TARGET
+            e.currentTarget = nodePath[i]
+            e.eventPhase = e.currentTarget !== target ? EventPhase.BUBBLING_PHASE : EventPhase.AT_TARGET
             const listeners = getListeners(emitter as any, listenerName, type)
             for (let j = 0, len = listeners.length; j < len; j++) {
                 const event = listeners[j]

@@ -15,8 +15,8 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     props: Options
     parent: Node<Options,E>|null = null;
     children: Node<Options,E>[] | null = null
-    _globalBounds: BoundingRect = null;
-    _localBounds: BoundingRect = null;
+    _bounds: BoundingRect = null;// 包围合
+    _globalBounds: BoundingRect = null;//应用了全局矩阵的包围合 
     constructor(options?: Options) {
         super(options)
         this.uid = Node.uid++
@@ -86,7 +86,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     }
     // 是否应该渲染
     shouldRender() {
-        return !this.props.ingore&& this.visible
+        return !this.props.ingore&&this.visible
     }
     // 是否应该响应事件
     shouldInteraction() {
@@ -94,51 +94,54 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     }
     // 是否应该添加到渲染列表中,包括不可见，但需要响应事件的节点
     shouldAddToPendingRenderList() {
-        return this.shouldInteraction()
+        return !this.props.ingore&&(this.visible||!this.props.silent)
+    }
+    get bounds() {
+        return this.getBounds()
     }
     get globalBounds() {
         return this.getGlobalBounds()
     }
-    get localBounds() {
-        return this.getLocalBounds()
-    }
     isInViewport(viewport:BoundingRect){
           return viewport.intersectionBox(this.globalBounds)
     }
-    getGlobalBounds(): BoundingRect {
+    getGlobalBounds(forceUpdate=true): BoundingRect {
+        let needUpdate=false
         if (this._globalBounds === null) {
             this._globalBounds = BoundingRect.default()
+        }else {
+            if(this.effectFlag&NodeEffectFlags.Matrix){
+                needUpdate=true
+            }
         }
-        this._globalBounds.copy(this.localBounds)
-        if(this.parent){
-            this._globalBounds.applyMatrix(this.parent.worldMatrix)
+        if(needUpdate||forceUpdate){
+            this._globalBounds.copy(this.bounds).applyMatrix(this.worldMatrix)
         }
         return this._globalBounds
     }
-    getLocalBounds(forceUpdate=false): BoundingRect {
-        if (this._localBounds === null) {
-            this._localBounds = BoundingRect.default()
-            forceUpdate=true
+    getBounds(forceUpdate=false): BoundingRect {
+        let needUpdate=false
+        if (this._bounds === null) {
+            this._bounds = BoundingRect.default()
+            needUpdate=true
         } else {
-            if(this.effectFlag&NodeEffectFlags.Matrix){
-                this.effectFlag &= ~NodeEffectFlags.Matrix
-                forceUpdate=true
+            if(this.effectFlag&NodeEffectFlags.Shape){
+                needUpdate=true
             }
         }
-        if(forceUpdate){
-            this.innerCalcLocalBounds()
-            this._localBounds.applyMatrix(this.matrix)
+        if(forceUpdate||needUpdate){
+            this.innerCalcBounds()
             if (this.children) {
                 const children = this.children
                 for (let i = 0; i < children.length; i++) {
-                    const localBounds=children[i].getLocalBounds()
-                    this._localBounds.union(localBounds)
+                    const bounds=children[i].getBounds(forceUpdate)
+                    this._bounds.union(bounds)
                 }
             }
         }
-        return this._localBounds
+        return this._bounds
     }
-    abstract innerCalcLocalBounds():void
+    abstract innerCalcBounds():void
     add(child: Node<Options,E>): void {
         if (this.children === null) {
             this.children = []
@@ -193,7 +196,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
 
     }
     dispose(){
-    
+        this.removeAllListeners()
     }
   
 }

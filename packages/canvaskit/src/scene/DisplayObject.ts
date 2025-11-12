@@ -26,12 +26,22 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
      }
      setStyle(style:Options['style']){
           merge(this.props.style,style)
-          this.effectFlag |= NodeEffectFlags.Repaint|NodeEffectFlags.Style
+          this.dirtyStyle()
+     }
+     dirtyStyle(){
+           this.effectFlag |= NodeEffectFlags.Repaint|NodeEffectFlags.Style
      }
      shouldRender(){
           return super.shouldRender()&&this.props.style.opacity>0
      }
-     abstract innerCalcLocalBounds(): void
+     hit(x:number,y:number):boolean{
+          // 如果开启了只命中包围合就行
+          if(this.props.hitRect){
+               return this.bounds.containsXY(x,y)
+          }
+          return false
+     }
+     abstract innerCalcBounds(): void
      abstract renderBefore(renderer:CanvaskitRenderer): void 
      abstract render(renderer: CanvaskitRenderer): void 
      abstract renderAfter(renderer:CanvaskitRenderer): void 

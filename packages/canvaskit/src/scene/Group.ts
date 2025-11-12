@@ -1,6 +1,6 @@
-import type {ContainerOptions,ContainerOptionsEvents} from 'src/types/Container'
-import { Node } from "./Node";
 
+import type { NodeOptions } from "src/types/Node";
+import { Node } from "./Node";
 interface ISpatialIndex<T> {
     insert(item: T): void;
     remove(item: T): void;
@@ -8,10 +8,10 @@ interface ISpatialIndex<T> {
     queryRange(rect: { x: number, y: number, width: number, height: number }): T[];
 }
 
-class Group extends Node {
+export class Group extends Node {
      type: string='Group'
      isGroup=true
-     constructor(options?:ContainerOptions){
+     constructor(options?:NodeOptions){
           super(options)
      }
      shouldAddToPendingRenderList(){
@@ -21,7 +21,4 @@ class Group extends Node {
          
      }
 
-}
-export {
-    Group
 }

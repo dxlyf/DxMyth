@@ -8,7 +8,7 @@ class Matrix2D extends Float32Array {
     }
     static fromValues(a: number, b: number, c: number, d: number, tx: number, ty: number) {
         const m = this.identity()
-        return m.formValues(a, b, c, d, tx, ty);
+        return m.fromValues(a, b, c, d, tx, ty);
     }
     static fromRotation(angleInRad: number) {
         const m = this.identity()
@@ -30,7 +30,7 @@ class Matrix2D extends Float32Array {
         mat2d.identity(this);
     }
     copy(m: Matrix2D) {
-        return (this.constructor as typeof Matrix2D).fromValues(m[0], m[1], m[2], m[3], m[4], m[5]);
+        return this.fromValues(m[0], m[1], m[2], m[3], m[4], m[5]);
     }
     clone() {
         return (this.constructor as typeof Matrix2D).fromValues(this[0], this[1], this[2], this[3], this[4], this[5]);
@@ -38,7 +38,7 @@ class Matrix2D extends Float32Array {
     hasIdentity() {
         return this[0] === 1 && this[1] === 0 && this[2] === 0 && this[3] === 1 && this[4] === 0 && this[5] === 0;
     }
-    formValues(a: number, b: number, c: number, d: number, tx: number, ty: number) {
+    fromValues(a: number, b: number, c: number, d: number, tx: number, ty: number) {
         mat2d.set(this, a, b, c, d, tx, ty)
         return this;
     }
@@ -159,14 +159,14 @@ class Matrix2D extends Float32Array {
         // 4️⃣ 提取 pivot
         // 构造 R*S 矩阵
         const rs = new Matrix2D();
-        rs.formValues(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0)
+        rs.fromValues(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0)
 
         // invert(R*S)
         const det = rs[0] * rs[3] - rs[1] * rs[2];
         if (det === 0) throw new Error('Matrix is not invertible for pivot extraction');
 
         const invRS = new Matrix2D();
-        invRS.formValues(rs[3] / det, -rs[1] / det, -rs[2] / det, rs[0] / det, 0, 0);
+        invRS.fromValues(rs[3] / det, -rs[1] / det, -rs[2] / det, rs[0] / det, 0, 0);
 
         // pivot = - inv(R*S) * 0 ?  => 实际上是逆算原 T(-pivot) 影响
         pivot.x = - (invRS[0] * matrix[4] + invRS[2] * matrix[5] - position.x);

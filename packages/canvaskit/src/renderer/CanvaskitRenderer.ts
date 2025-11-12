@@ -712,7 +712,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     renderObject(object: DisplayObject) {
         this.save()
         object.renderBefore(this)
-        const objMat = object.matrix
+        const objMat = object.worldMatrix
         if (!objMat.hasIdentity()) {
             this.transform(objMat[0], objMat[1], objMat[2], objMat[3], objMat[4], objMat[5])
         }
@@ -721,6 +721,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         object.renderAfter(this)
         this.restore()
         object.effectFlag=NodeEffectFlags.None
+        this.emit('object:rendered',{object:object,renderer:this})
     }
 
     render({ container, delta }: { container: Container, delta: number }): void {
@@ -752,5 +753,6 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._stateStack.length=0
         this._fillStyle?.dispose?.()
         this._strokeStyle?.dispose?.()
+        this.removeAllListeners()
     }
 }

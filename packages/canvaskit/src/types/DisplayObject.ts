@@ -8,4 +8,5 @@ export interface DisplayObjectStyle {
 }
 export interface DisplayObjectOptions<Style extends DisplayObjectStyle=DisplayObjectStyle> extends NodeOptions{
      style:Style
+     hitRect?:boolean // 合中包围合就行
 }

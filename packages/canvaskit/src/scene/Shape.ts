@@ -1,19 +1,15 @@
 
 
-import type { DisplayObjectOptions, DisplayObjectEvents } from 'src/types/DisplayObject'
+import type { DisplayObjectOptions } from 'src/types/DisplayObject'
 import { DisplayObject } from "src/scene/DisplayObject";
-import type { PathShapeConfig, PathStyleConfig } from 'src/types/Path';
+import type { ShapeStyleConfig, ShapeConfig } from 'src/types/Shape';
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
-import { BoundingRect } from 'src/math/BoundingRect';
-import { LineCap, LineJoin, BorderSide, FillRule } from 'src/enum';
 import { CK, type CanvasKit } from 'src/canvaskit';
-import { ProxyPath } from 'src/core/ProxyPath';
 import { isNullOrUndefined, isValidPaintValue, merge } from 'src/utils';
 import { NodeEffectFlags } from 'src/consts';
-import type { PaintBrushStyle } from 'src/types/Renderer'
+import { BorderSide } from 'src/enum';
 
-
-export interface PathOptions<Shape extends PathShapeConfig = PathShapeConfig, Style extends PathStyleConfig = PathStyleConfig> extends DisplayObjectOptions<Style> {
+export interface ShapeOptions<Shape extends ShapeConfig = ShapeConfig, Style extends ShapeStyleConfig = ShapeStyleConfig> extends DisplayObjectOptions<Style> {
     shape: Shape
 }
 const stylePropertiesMap = {
@@ -37,8 +33,8 @@ type StylePropertyName = keyof StylePropertyNames
 const styleProperties = Object.keys(stylePropertiesMap)
 
 
-export class Path<Options extends PathOptions = PathOptions> extends DisplayObject<Options> {
-    type = 'Rect'
+export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayObject<Options> {
+    type = 'Shape'
     _ckPath: CanvasKit.Path
     constructor(options?: Options) {
         super(options)
@@ -46,8 +42,17 @@ export class Path<Options extends PathOptions = PathOptions> extends DisplayObje
     get shape(): Options['shape'] {
         return this.props.shape
     }
+    get ckPath(){
+        if(!this._ckPath){
+            this.buildInnerPath()
+        }
+        return this._ckPath
+    }
     setShape(shape: Options['shape']) {
         merge(this.props.shape, shape)
+        this.dirtyShape()
+    }
+    dirtyShape(){
         this.effectFlag |= NodeEffectFlags.Repaint | NodeEffectFlags.Shape
     }
     getDefaultProps() {
@@ -67,10 +72,10 @@ export class Path<Options extends PathOptions = PathOptions> extends DisplayObje
             }
         }] as Options[]
     }
-    innerCalcLocalBounds(): void {
+    innerCalcBounds(): void {
         this.buildInnerPath()
         let bounds = this._ckPath.computeTightBounds()
-        this._localBounds.fromRect(bounds[0], bounds[1], bounds[2], bounds[3])
+        this._bounds.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
     }
     buildInnerPath() {
         let needUpdatePath = !!(this.effectFlag & NodeEffectFlags.Shape)
@@ -113,12 +118,6 @@ export class Path<Options extends PathOptions = PathOptions> extends DisplayObje
     }
     applyPathStyle(renderer: CanvaskitRenderer) {
         const style = this.style
-        let { lineWidth, lineJoin, lineCap, miterLimit, opacity } = style
-        renderer.lineWidth = lineWidth
-        renderer.lineJoin = lineJoin
-        renderer.lineCap = lineCap
-        renderer.miterLimit = miterLimit
-        renderer.globalAlpha = opacity
         styleProperties.forEach((name) => {
             const propName = name as keyof typeof style
             if (!isNullOrUndefined(style[propName])) {
@@ -153,6 +152,12 @@ export class Path<Options extends PathOptions = PathOptions> extends DisplayObje
                 renderer.fill(this.style.fillRule)
             }
         }
+    }
+    hit(x:number,y:number){
+       if(super.hit(x,y)){
+         return true
+       }
+       return this.ckPath.contains(x,y)
     }
     dispose(): void {
         if (this._ckPath) {

@@ -127,7 +127,11 @@ export class BoundingRect {
         this.setFromPoints(points as Vector2[])
         return this
     }
-    fromRect(x:number, y:number, w:number, h:number) {
+    fromLTRB(left:number,top:number,right:number,bottom:number){
+        this.min.set(left,top)
+        this.max.set(right,bottom)
+    }
+    fromXYWH(x:number, y:number, w:number, h:number) {
         this.min.set(x,y)
         this.max.set(x+w,y+h)
         return this
@@ -310,10 +314,10 @@ export class BoundingRect {
             return
         }
       
-        const topLeft = Vector2.create(this.left, this.top)
-        const topRight = Vector2.create(this.right, this.top)
-        const bottomLeft = Vector2.create(this.left, this.bottom)
-        const bottomRight = Vector2.create(this.right, this.bottom)
+        const topLeft = Vector2.getPool(this.left, this.top)
+        const topRight = Vector2.getPool(this.right, this.top)
+        const bottomLeft = Vector2.getPool(this.left, this.bottom)
+        const bottomRight = Vector2.getPool(this.right, this.bottom)
         topLeft.applyMatrix(matrix)
         topRight.applyMatrix(matrix)
         bottomLeft.applyMatrix(matrix)
@@ -324,5 +328,10 @@ export class BoundingRect {
         this.expandByPoint(topRight)
         this.expandByPoint(bottomLeft)
         this.expandByPoint(bottomRight)
+
+        Vector2.releasePool(topLeft)
+        Vector2.releasePool(topRight)
+        Vector2.releasePool(bottomLeft)
+        Vector2.releasePool(bottomRight)
     }
 }

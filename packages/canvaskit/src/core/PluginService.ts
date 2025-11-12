@@ -3,19 +3,21 @@ export type PluginServiceOPtions = {
     plugins?: IPlugin[]
     presets?: IPreset[]
 }
-export type PluginContext<HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
+export type PluginContext<Ctx=any,HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
     pluginName: string
+    ctx:Ctx
     register<K extends keyof HookList>(hook: IHook<K, HookList[K]>): void
     registerMethod<K extends keyof HookMethods>(name: K, fn?: IMethod<Parameters<HookMethods[K]>, ReturnType<HookMethods[K]>>): void
-} & PluginMethods<HookMethods>
+} & PluginMethods<HookMethods>&PluginService<Ctx,HookList,HookMethods>
 export type PluginMethods<HookMethods extends Record<string, IMethod> = any> = {
     [k in Exclude<keyof HookMethods, 'pluginName' | 'register' | 'registerMethod'>]: IMethod<Parameters<HookMethods[k]>, ReturnType<HookMethods[k]>>
 }
 
-export type IPlugin<HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
+export type IPlugin<Ctx=any,HookList extends HookListType = any, HookMethods extends Record<string, IMethod> = any> = {
     name: string
     config?: any
-    apply: (api: PluginContext<HookList, HookMethods>, config?: any) => void
+    apply: (api: PluginContext<Ctx,HookList, HookMethods>, config?: any) => void
+    dispose?:(api: PluginContext<Ctx,HookList, HookMethods>)=>void
 }
 export type IPreset = Omit<IPlugin, 'apply'> & {
     apply: (api: PluginContext, config?: any) => ({ presets?: IPreset[], plugins?: IPlugin[] })
@@ -42,14 +44,18 @@ export type IMethod<T extends any = any, R = any> = (...args: T extends Array<an
 export type HookListType = Record<string, any>
 
 
-export class PluginService<HookList extends HookListType, HookMethods extends Record<string, IMethod> = any> {
+export class PluginService<Ctx,HookList extends HookListType, HookMethods extends Record<string, IMethod> = any> {
     private hooks: Map<string, IHook[]> = new Map()
     private methods: Map<string, IMethod[]> = new Map()
     private plugins: Map<string, IPlugin> = new Map()
     private extraPresets: IPreset[] = []
     private extraPlugins: IPlugin[] = []
-    constructor(public config?: PluginServiceOPtions) {
-
+    public context:Ctx
+    constructor(context:Ctx,public config?: PluginServiceOPtions) {
+        this.context=context
+        if(this.config){
+            this.initPresetsAndPlugins(this.config)
+        }
     }
     initPresetsAndPlugins(config: PluginServiceOPtions) {
         this.extraPlugins = []
@@ -103,9 +109,10 @@ export class PluginService<HookList extends HookListType, HookMethods extends Re
             }
         })(...args)
     }
-    private initPluginContext(plugin: IPlugin | IPreset) {
+    private getPluginContext(plugin: IPlugin | IPreset) {
         const pluginContext: any = {
             pluginName: plugin.name,
+            ctx:this.context,
             registerMethod: this.registerMethod.bind(this),
             register: this.register.bind(this)
         }
@@ -120,7 +127,7 @@ export class PluginService<HookList extends HookListType, HookMethods extends Re
     }
     private initPreset(preset: IPreset) {
         this.registerPlugin(preset)
-        const ctx = this.initPluginContext(preset)
+        const ctx = this.getPluginContext(preset)
         const { plugins, presets } = preset.apply(ctx, preset.config)
         if (presets) {
             this.extraPresets.push(...presets)
@@ -131,7 +138,7 @@ export class PluginService<HookList extends HookListType, HookMethods extends Re
     }
     private initPlugin(plugin: IPlugin) {
         this.registerPlugin(plugin)
-        const ctx = this.initPluginContext(plugin)
+        const ctx = this.getPluginContext(plugin)
         plugin.apply(ctx, plugin.config)
     }
     registerPlugin(plugin: IPlugin | IPreset) {
@@ -230,7 +237,17 @@ export class PluginService<HookList extends HookListType, HookMethods extends Re
 
         }
     }
-    destroy(): void {
+    uninstallPlugin(plugin: IPlugin | IPreset) {
+        if(this.plugins.has(plugin.name)){
+            const ctx=this.getPluginContext(plugin)
+            plugin.dispose?.(ctx)
+            this.plugins.delete(plugin.name)
+        }
+    }
+    dispose(): void {
+        this.plugins.forEach(plugin=>{
+            plugin?.dispose?.(this.getPluginContext(plugin))
+        })
         this.extraPlugins = []
         this.extraPresets = []
         this.plugins.clear()

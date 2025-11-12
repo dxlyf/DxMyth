@@ -1,28 +1,21 @@
 
 
-import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayObject'
-import type { PathShapeConfig,PathStyleConfig } from 'src/types/Path';
-import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
-import { BoundingRect } from 'src/math/BoundingRect';
-import {Path,type PathOptions } from './Path';
+import type {ShapeConfig } from 'src/types/Shape';
+import {Shape,type ShapeOptions } from './Shape';
 import { CanvasKit, CK } from 'src/canvaskit';
 
 
-interface RectOptions extends PathOptions<RectShapeConfig,RectStyleConfig>{
+export interface RectOptions extends ShapeOptions<RectShapeConfig>{
 
 }
-
-interface RectShapeConfig extends PathShapeConfig{
+export interface RectShapeConfig extends ShapeConfig{
      x?:number,
      y?:number,
      width?:number,
      height?:number,
 }
-interface RectStyleConfig extends PathStyleConfig{
 
-}
-
-class Rect extends Path<RectOptions> {
+export class Rect extends Shape<RectOptions> {
      type='Rect'
      constructor(options?:RectOptions){
           super(options)
@@ -43,6 +36,3 @@ class Rect extends Path<RectOptions> {
     }
 }
 
-export {
-    Rect
-}

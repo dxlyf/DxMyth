@@ -47,4 +47,4 @@ export class Ticker {
         clear() {
             this.callbacks.clear();
         }
-    }
+}

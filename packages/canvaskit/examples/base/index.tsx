@@ -25,7 +25,7 @@ import { BorderSide } from 'src'
 const engine=new CKEngine()
 await engine.init({
     canvas:document.querySelector('#canvas')!,
-    dpr:1,
+   // dpr:1,
     width:500,
     height:500
 })

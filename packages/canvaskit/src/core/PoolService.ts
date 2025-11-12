@@ -11,9 +11,12 @@ export type PoolServiceOptions<T>={
 }
 export interface IPoolService<T,P=any>{
     _poolService:PoolService<T,P>
-    getPool(...args:GetArgs<P>):T
     releasePool():void
     destroyPool():void
+}
+export type IPoolServiceStatic<T,P=any>={
+    getPool:(...args:GetArgs<P>)=>T
+    releasePool:(item:T)=>void
 }
 
 export const poolServiceSymbol='_poolService'
@@ -26,7 +29,8 @@ export const getPoolService=<T,P=any>(target:any)=>target[poolServiceSymbol] as 
 function mixinPoolService<T>(target:{new(...args:any[]):T},options:PoolServiceOptions<T>){
     const pool=new PoolService<T>(options);
     (target as any)[poolServiceSymbol]=pool;
-    (target as any).getPool=pool.acquire.bind(pool)
+    (target as any).getPool=pool.acquire.bind(pool);
+    (target as any).releasePool=pool.release.bind(pool)
     Object.assign(target.prototype,{
         releasePool:function(this:T){
             pool.release(this)

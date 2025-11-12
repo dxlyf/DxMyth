@@ -7,10 +7,10 @@ import {TextDrawingStyles,ShadowStyles,LineStyles,FillStrokeStyles} from './Rend
 import {DisplayObjectStyle} from './DisplayObject'
 type PaintColor=Gradient|Pattern|ColorValue|'none'|null
 
-export interface PathStyleConfig extends DisplayObjectStyle,TextDrawingStyles,ShadowStyles,LineStyles,FillStrokeStyles{
+export interface ShapeStyleConfig extends DisplayObjectStyle,TextDrawingStyles,ShadowStyles,LineStyles,FillStrokeStyles{
     firstFill?:boolean
     fillRule?:FillRule
 }
-export interface PathShapeConfig{
+export interface ShapeConfig{
     buildPath?(path:CanvasKit.Path):void
 }

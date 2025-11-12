@@ -1,7 +1,5 @@
-import { Vector2 } from "src/math";
+import { Vector2,Matrix2D } from "src/math";
 import { RGBColor, Color } from "src/math/Color";
-import { Matrix2D } from 'src/math/Matrix2D'
-import { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
 import type { CanvasKit } from 'src/canvaskit'
 import { CK } from 'src/canvaskit'
 

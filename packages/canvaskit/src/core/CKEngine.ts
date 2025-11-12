@@ -16,28 +16,28 @@ export interface CKEngine{
 }
 export class CKEngine extends EventEmitter<CKEngineEvents>{
     static defaultPresets=[BrowserEnvPresets]
-    pluginService=new PluginService<CKEnginePluginHooks,CKEnginePluginMethods>();
+    pluginService:PluginService<CKEngine,CKEnginePluginHooks,CKEnginePluginMethods>
     needRefresh:boolean=false
-    ready:boolean=false
     options:CKEngineOptions
     ticker:Ticker
     renderer:CanvaskitRenderer
     container:Container
     constructor(){
         super(); 
+        this.pluginService=new PluginService<CKEngine,CKEnginePluginHooks,CKEnginePluginMethods>(this)
         this.container=new Container()
         this.update=this.update.bind(this)
         this.ticker=Ticker.getInstance()
         this.ticker.add(this.update)
     }
     async init(options:CKEngineOptions){
-        this.options=merge({},this.options,options);
-        this.pluginService.initPresetsAndPlugins({
+         this.options=merge({},this.options,options);
+         this.pluginService.initPresetsAndPlugins({
             plugins:[...(this.options.plugins??[])],
             presets:[...CKEngine.defaultPresets,...(this.options.presets??[])],
-        });
+         });
          await this.initRenderer()
-         this.ready=true
+         this.emit('init',this)
     }
     async initRenderer(){
         this.renderer=new CanvaskitRenderer(this.options)
@@ -54,23 +54,27 @@ export class CKEngine extends EventEmitter<CKEngineEvents>{
         this.ticker.start()
     }
     update(delta:number){
+        this.emit('update',this)
         if(this.needRefresh){
             this.render()
             this.needRefresh=false
         }
+     
     }
     render(){
-        if(this.ready){
-            this.renderer.render({container:this.container,delta:this.ticker.delta})
-            this.needRefresh=false
-        }
+        this.emit('render',this)
+        this.renderer.render({container:this.container,delta:this.ticker.delta})
+        this.needRefresh=false
     }
     start(){
         this.ticker.start()
     }
     dispose(){
+        this.emit('dispose',this)
         this.renderer.dispose()
         this.container.dispose()
+        this.pluginService.dispose()
+        this.removeAllListeners()
     }
 
 }

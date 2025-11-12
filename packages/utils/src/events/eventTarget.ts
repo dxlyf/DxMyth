@@ -53,7 +53,7 @@ export class Event<T=any,E extends Extract<keyof Record<string,any>,string>=''> 
      * @returns {EventTarget[]}
      */
     composedPath() {
-        let current = this.currentTarget;
+        let current = this.target;
         let composePath:EventTarget[] = []
         while (current) {
             composePath.push(current)
@@ -130,7 +130,7 @@ export class EventTarget<Events extends Record<string,any>={}>  {
      * @param {Event} e 
      */
     dispatchEvent<K extends Extract<keyof Events, string>>(e:Event<Events[K],K>) {
-        e.currentTarget=this
+        e.target=this
         const type = e.type
         const nodePath = e.composedPath()
         const nodePathLength=nodePath.length
@@ -139,8 +139,8 @@ export class EventTarget<Events extends Record<string,any>={}>  {
             const emitter=nodePath[i]._capture_emitter
             const listenerCount = emitter.listenerCount(type)
             if (listenerCount > 0) {
-                e.target=nodePath[i]
-                e.eventPhase=e.target!==this?CAPTURING_PHASE:AT_TARGET
+                e.currentTarget=nodePath[i]
+                e.eventPhase=e.currentTarget!==this?CAPTURING_PHASE:AT_TARGET
                 const listeners = getEmitterListenerEvents(emitter,type)
                 for(let j=0,len=listeners.length;j<len;j++){
                     const event=listeners[j]
@@ -163,8 +163,8 @@ export class EventTarget<Events extends Record<string,any>={}>  {
                 const emitter=nodePath[i]._bubble_emitter
                 const listenerCount = emitter.listenerCount(type)
                 if (listenerCount>0) {
-                    e.target=nodePath[i]
-                    e.eventPhase=e.target!==this?BUBBLING_PHASE:AT_TARGET
+                    e.currentTarget=nodePath[i]
+                    e.eventPhase=e.currentTarget!==this?BUBBLING_PHASE:AT_TARGET
                     const listeners = getEmitterListenerEvents(emitter,type)
                     for(let j=0,len=listeners.length;j<len;j++){
                         const event=listeners[j]

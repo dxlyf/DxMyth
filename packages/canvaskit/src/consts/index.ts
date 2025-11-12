@@ -7,5 +7,4 @@ export const NodeEffectFlags={
    Style:1<<4,// 样式变化，样式属性发生变化
    Reflow:1<<5,// 层级变化，属性zindex或子节点层级变化
    Repaint:1<<6,// 绘制变化，绘制属性发生变化,如矩阵，样式，形状等变化
-   All:(1<<7)-1,// 所有变化
 }
