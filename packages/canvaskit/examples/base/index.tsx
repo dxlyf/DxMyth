@@ -1,6 +1,6 @@
 import {CKEngine,MakeCanvas, Matrix2D} from 'src'
 import {Rect} from 'src'
-import { PaintBorderSide } from 'src/core/Paint'
+import { BorderSide } from 'src'
 
 // const canvas=MakeCanvas(500,500)
 // const ctx=canvas.getContext('2d')!
@@ -63,7 +63,7 @@ let rect22=new Rect({
    style:{
       strokeStyle:'#ff0000',
       lineWidth:10,
-      borderSide:PaintBorderSide.Outside
+      borderSide:BorderSide.Outside
    },
    position:[100,340]
 })
@@ -76,7 +76,7 @@ let rect223=new Rect({
    style:{
       strokeStyle:'#ff0000',
       lineWidth:10,
-      borderSide:PaintBorderSide.Inside
+      borderSide:BorderSide.Inside
    },
    position:[100,100]
 })

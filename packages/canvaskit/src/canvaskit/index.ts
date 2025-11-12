@@ -1,5 +1,4 @@
 export * from './canvaskit'
-export * from './htmlcanvas/htmlcanvas'
 import {DisposableManager,type IDisposable } from 'src/core/Disposable'
 import {getCanvasKit} from './canvaskit'
 import {PoolService,getPoolService,type IPoolService} from 'src/core/PoolService'

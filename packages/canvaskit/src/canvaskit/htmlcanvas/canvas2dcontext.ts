@@ -1,5 +1,4 @@
-import { CK } from '../index'
-import type {CanvasKit} from  '../index'
+import { CK,type CanvasKit } from '../index'
 import { parseColor, colorToString } from './color'
 import { getTypeface } from './font'
 import { HTMLImage } from './htmlimage'
@@ -121,7 +120,7 @@ export class CanvasRenderingContext2D {
     return this._fontString;
   }
   set font(newFont) {
-    var tf = getTypeface(newFont);
+    const tf = getTypeface(newFont);
     if (tf) {
       // tf is a "dict" according to closure, that is, the field
       // names are not minified. Thus, we need to access it via
@@ -460,7 +459,7 @@ export class CanvasRenderingContext2D {
       path = this._currentPath;
     }
 
-    var clip = path.copy();
+    const clip = path.copy();
     if (fillRule && fillRule.toLowerCase() === 'evenodd') {
       clip.setFillType(CK.FillType.EvenOdd);
     } else {
@@ -480,14 +479,14 @@ export class CanvasRenderingContext2D {
     //  - imagedata on which to copy *width* and *height* only
     //  - width, height
     if (arguments.length === 1) {
-      var oldData = arguments[0];
-      var byteLength = 4 * oldData.width * oldData.height;
+      const oldData = arguments[0];
+      const byteLength = 4 * oldData.width * oldData.height;
       return new ImageData(new Uint8ClampedArray(byteLength),
         oldData.width, oldData.height);
     } else if (arguments.length === 2) {
-      var width = arguments[0];
-      var height = arguments[1];
-      var byteLength = 4 * width * height;
+      const width = arguments[0];
+      const height = arguments[1];
+      const byteLength = 4 * width * height;
       return new ImageData(new Uint8ClampedArray(byteLength),
         width, height);
     } else {
@@ -498,13 +497,13 @@ export class CanvasRenderingContext2D {
     if (!allAreFinite(arguments)) {
       return;
     }
-    var lcg = new LinearCanvasGradient(x1, y1, x2, y2);
+    const lcg = new LinearCanvasGradient(x1, y1, x2, y2);
     this._toCleanUp.push(lcg);
     return lcg;
   };
 
   createPattern(image:HTMLImage, repetition:any) {
-    var cp = new CanvasPattern(image, repetition);
+    const cp = new CanvasPattern(image, repetition);
     this._toCleanUp.push(cp);
     return cp;
   }
@@ -513,12 +512,12 @@ export class CanvasRenderingContext2D {
     if (!allAreFinite(arguments)) {
       return;
     }
-    var rcg = new RadialCanvasGradient(x1, y1, r1, x2, y2, r2);
+    const rcg = new RadialCanvasGradient(x1, y1, r1, x2, y2, r2);
     this._toCleanUp.push(rcg);
     return rcg;
   }
 
-  drawImage(img:any) {
+  drawImage(img:CanvasKit.Image|HTMLImage) {
     // 3 potential sets of arguments
     // - image, dx, dy
     // - image, dx, dy, dWidth, dHeight
@@ -528,15 +527,17 @@ export class CanvasRenderingContext2D {
     if (img instanceof HTMLImage) {
       img = img.getSkImage();
     }
-    var iPaint = this._fillPaint();
+    const iPaint = this._fillPaint();
+    let destRect:CanvasKit.Rect;
+    let srcRect:CanvasKit.Rect;
     if (arguments.length === 3 || arguments.length === 5) {
-      var destRect = CK.XYWHRect(arguments[1], arguments[2],
+       destRect = CK.XYWHRect(arguments[1], arguments[2],
         arguments[3] || img.width(), arguments[4] || img.height());
-      var srcRect = CK.XYWHRect(0, 0, img.width(), img.height());
+       srcRect = CK.XYWHRect(0, 0, img.width(), img.height());
     } else if (arguments.length === 9) {
-      var destRect = CK.XYWHRect(arguments[5], arguments[6],
+       destRect = CK.XYWHRect(arguments[5], arguments[6],
         arguments[7], arguments[8]);
-      var srcRect = CK.XYWHRect(arguments[1], arguments[2],
+       srcRect = CK.XYWHRect(arguments[1], arguments[2],
         arguments[3], arguments[4]);
     } else {
       throw 'invalid number of args for drawImage, need 3, 5, or 9; got ' + arguments.length;
@@ -556,13 +557,13 @@ export class CanvasRenderingContext2D {
   // This applies the global alpha.
   // Call dispose() after to clean up.
   _fillPaint() {
-    var paint = this._paint.copy();
+    const paint = this._paint.copy();
     paint.setStyle(CK.PaintStyle.Fill);
     if (isCKColor(this._fillStyle)) {
-      var alphaColor = CK.multiplyByAlpha(this._fillStyle, this._globalAlpha);
+      const alphaColor = CK.multiplyByAlpha(this._fillStyle, this._globalAlpha);
       paint.setColor(alphaColor);
     } else {
-      var shader = this._fillStyle._getShader(this._currentTransform);
+      const shader = this._fillStyle._getShader(this._currentTransform);
       paint.setColor(CK.Color(0, 0, 0, this._globalAlpha));
       paint.setShader(shader);
     }
@@ -595,9 +596,9 @@ export class CanvasRenderingContext2D {
       path = this._currentPath;
     }
 
-    var fillPaint = this._fillPaint();
+    const fillPaint = this._fillPaint();
 
-    var shadowPaint = this._shadowPaint(fillPaint);
+    const shadowPaint = this._shadowPaint(fillPaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -610,9 +611,9 @@ export class CanvasRenderingContext2D {
   };
 
   fillRect(x:number, y:number, width:number, height:number) {
-    var fillPaint = this._fillPaint();
+    const fillPaint = this._fillPaint();
 
-    var shadowPaint = this._shadowPaint(fillPaint);
+    const shadowPaint = this._shadowPaint(fillPaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -627,10 +628,10 @@ export class CanvasRenderingContext2D {
 
   fillText(text:string, x:number, y:number, maxWidth:number) {
     // TODO do something with maxWidth, probably involving measure
-    var fillPaint = this._fillPaint();
-    var blob = CK.TextBlob.MakeFromText(text, this._font);
+    const fillPaint = this._fillPaint();
+    const blob = CK.TextBlob.MakeFromText(text, this._font);
 
-    var shadowPaint = this._shadowPaint(fillPaint);
+    const shadowPaint = this._shadowPaint(fillPaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -644,7 +645,7 @@ export class CanvasRenderingContext2D {
   };
 
   getImageData(x:number, y:number, w:number, h:number) {
-    var pixels = this._canvas.readPixels(x, y, {
+    const pixels = this._canvas.readPixels(x, y, {
       'width': w,
       'height': h,
       'colorType': CK.ColorType.RGBA_8888,
@@ -664,17 +665,18 @@ export class CanvasRenderingContext2D {
   };
 
   _mapToLocalCoordinates(pts:number[]) {
-    var inverted = CK.Matrix.invert(this._currentTransform);
+    const inverted = CK.Matrix.invert(this._currentTransform);
     CK.Matrix.mapPoints(inverted, pts);
     return pts;
   };
 
   isPointInPath(x:number, y:number, fillmode:string) {
-    var args = arguments;
+    const args = arguments;
+    let path:CanvasKit.Path;
     if (args.length === 3) {
-      var path = this._currentPath;
+       path = this._currentPath;
     } else if (args.length === 4) {
-      var path = args[0] as CanvasKit.Path;
+       path = args[0] as CanvasKit.Path;
       x = args[1];
       y = args[2];
       fillmode = args[3];
@@ -689,7 +691,7 @@ export class CanvasRenderingContext2D {
       return false;
     }
     // x and y are in canvas coordinates (i.e. unaffected by CTM)
-    var pts = this._mapToLocalCoordinates([x, y]);
+    const pts = this._mapToLocalCoordinates([x, y]);
     x = pts[0];
     y = pts[1];
     path.setFillType(fillmode === 'nonzero' ?
@@ -699,11 +701,12 @@ export class CanvasRenderingContext2D {
   };
 
   isPointInStroke(x:number, y:number) {
-    var args = arguments;
+    const args = arguments;
+    let path:CanvasKit.Path;
     if (args.length === 2) {
-      var path = this._currentPath;
+       path = this._currentPath;
     } else if (args.length === 3) {
-      var path = args[0] as CanvasKit.Path;
+       path = args[0] as CanvasKit.Path;
       x = args[1];
       y = args[2];
     } else {
@@ -712,10 +715,10 @@ export class CanvasRenderingContext2D {
     if (!isFinite(x) || !isFinite(y)) {
       return false;
     }
-    var pts = this._mapToLocalCoordinates([x, y]);
+    const pts = this._mapToLocalCoordinates([x, y]);
     x = pts[0];
     y = pts[1];
-    var temp = path.copy();
+    const temp = path.copy();
     // fillmode is always nonzero
     temp.setFillType(CK.FillType.Winding);
     temp.stroke({
@@ -723,7 +726,7 @@ export class CanvasRenderingContext2D {
       'cap': this._paint.getStrokeCap(), 'join': this._paint.getStrokeJoin(),
       'precision': 0.3, // this is what Chrome uses to compute this
     });
-    var retVal = temp.contains(x, y);
+    const retVal = temp.contains(x, y);
     temp.delete();
     return retVal;
   };
@@ -782,16 +785,16 @@ export class CanvasRenderingContext2D {
     if (dirtyWidth <= 0 || dirtyHeight <= 0) {
       return;
     }
-    var img = CK.MakeImage({
+    const img = CK.MakeImage({
       'width': imageData.width,
       'height': imageData.height,
       'alphaType': CK.AlphaType.Unpremul,
       'colorType': CK.ColorType.RGBA_8888,
       'colorSpace': CK.ColorSpace.SRGB
     }, imageData.data, 4 * imageData.width);
-    var src = CK.XYWHRect(dirtyX, dirtyY, dirtyWidth, dirtyHeight);
-    var dst = CK.XYWHRect(x + dirtyX, y + dirtyY, dirtyWidth, dirtyHeight);
-    var inverted = CK.Matrix.invert(this._currentTransform);
+    const src = CK.XYWHRect(dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+    const dst = CK.XYWHRect(x + dirtyX, y + dirtyY, dirtyWidth, dirtyHeight);
+    const inverted = CK.Matrix.invert(this._currentTransform);
     this._canvas.save();
     // putImageData() operates in device space.
     this._canvas.concat(inverted);
@@ -812,21 +815,21 @@ export class CanvasRenderingContext2D {
     // Apply the current transform to the path and then reset
     // to the identity. Essentially "commit" the transform.
     this._currentPath.transform(this._currentTransform);
-    var inverted = CK.Matrix.invert(this._currentTransform);
+    const inverted = CK.Matrix.invert(this._currentTransform);
     this._canvas.concat(inverted);
     // This should be identity, modulo floating point drift.
     this._currentTransform = this._canvas.getTotalMatrix();
   };
 
   restore() {
-    var newState = this._canvasStateStack.pop();
+    const newState = this._canvasStateStack.pop();
     if (!newState) {
       return;
     }
     // "commit" the current transform. We pop, then apply the inverse of the
     // popped state, which has the effect of applying just the delta of
     // transforms between old and new.
-    var combined = CK.Matrix.multiply(
+    const combined = CK.Matrix.multiply(
       this._currentTransform,
       CK.Matrix.invert(newState.ctm)
     );
@@ -860,25 +863,27 @@ export class CanvasRenderingContext2D {
     }
     // retroactively apply the inverse of this transform to the previous
     // path so it cancels out when we apply the transform at draw time.
-    var inverted = CK.Matrix.rotated(-radians);
+    const inverted = CK.Matrix.rotated(-radians);
     this._currentPath.transform(inverted);
     this._canvas.rotate(radiansToDegrees(radians), 0, 0);
     this._currentTransform = this._canvas.getTotalMatrix();
   };
 
   save() {
+    let fs:any;
+    let ss:any;
     if (this._fillStyle._copy) {
-      var fs = this._fillStyle._copy();
+       fs = this._fillStyle._copy();
       this._toCleanUp.push(fs);
     } else {
-      var fs = this._fillStyle;
+       fs = this._fillStyle;
     }
 
     if (this._strokeStyle._copy) {
-      var ss = this._strokeStyle._copy();
+       ss = this._strokeStyle._copy();
       this._toCleanUp.push(ss);
     } else {
-      var ss = this._strokeStyle;
+       ss = this._strokeStyle;
     }
 
     this._canvasStateStack.push({
@@ -908,14 +913,14 @@ export class CanvasRenderingContext2D {
     }
     // retroactively apply the inverse of this transform to the previous
     // path so it cancels out when we apply the transform at draw time.
-    var inverted = CK.Matrix.scaled(1 / sx, 1 / sy);
+    const inverted = CK.Matrix.scaled(1 / sx, 1 / sy);
     this._currentPath.transform(inverted);
     this._canvas.scale(sx, sy);
     this._currentTransform = this._canvas.getTotalMatrix();
   };
 
   setLineDash(dashes:number[]) {
-    for (var i = 0; i < dashes.length; i++) {
+    for (let i = 0; i < dashes.length; i++) {
       if (!isFinite(dashes[i]) || dashes[i] < 0) {
       //  Debug('dash list must have positive, finite values');
         return;
@@ -940,7 +945,7 @@ export class CanvasRenderingContext2D {
   // We need to apply the shadowOffsets on the device coordinates, so we undo
   // the CTM, apply the offsets, then re-apply the CTM.
   _applyShadowOffsetMatrix() {
-    var inverted = CK.Matrix.invert(this._currentTransform);
+    const inverted = CK.Matrix.invert(this._currentTransform);
     this._canvas.concat(inverted);
     this._canvas.concat(CK.Matrix.translated(this._shadowOffsetX, this._shadowOffsetY));
     this._canvas.concat(this._currentTransform);
@@ -951,7 +956,7 @@ export class CanvasRenderingContext2D {
   // paint with a blur maskfilter and the correct color.
   _shadowPaint(basePaint:CanvasKit.Paint) {
     // multiply first to see if the alpha channel goes to 0 after multiplication.
-    var alphaColor = CK.multiplyByAlpha(this._shadowColor, this._globalAlpha);
+    const alphaColor = CK.multiplyByAlpha(this._shadowColor, this._globalAlpha);
     // if alpha is zero, no shadows
     if (!CK.getColorComponents(alphaColor)[3]) {
       return null;
@@ -961,9 +966,9 @@ export class CanvasRenderingContext2D {
     if (!(this._shadowBlur || this._shadowOffsetY || this._shadowOffsetX)) {
       return null;
     }
-    var shadowPaint = basePaint.copy();
+    const shadowPaint = basePaint.copy();
     shadowPaint.setColor(alphaColor);
-    var blurEffect = CK.MaskFilter.MakeBlur(CK.BlurStyle.Normal,
+    const blurEffect = CK.MaskFilter.MakeBlur(CK.BlurStyle.Normal,
       BlurRadiusToSigma(this._shadowBlur),
       false);
     shadowPaint.setMaskFilter(blurEffect);
@@ -981,21 +986,21 @@ export class CanvasRenderingContext2D {
   // This applies the global alpha and the dashedness.
   // Call dispose() after to clean up.
   _strokePaint() {
-    var paint = this._paint.copy();
+    const paint = this._paint.copy();
     paint.setStyle(CK.PaintStyle.Stroke);
     if (isCKColor(this._strokeStyle)) {
-      var alphaColor = CK.multiplyByAlpha(this._strokeStyle, this._globalAlpha);
+      const alphaColor = CK.multiplyByAlpha(this._strokeStyle, this._globalAlpha);
       paint.setColor(alphaColor);
     } else {
-      var shader = this._strokeStyle._getShader(this._currentTransform);
+      const shader = this._strokeStyle._getShader(this._currentTransform);
       paint.setColor(CK.Color(0, 0, 0, this._globalAlpha));
       paint.setShader(shader);
     }
 
     paint.setStrokeWidth(this._strokeWidth);
-
+    let dashedEffect:CanvasKit.PathEffect;
     if (this._lineDashList.length) {
-      var dashedEffect = CK.PathEffect.MakeDash(this._lineDashList, this._lineDashOffset);
+       dashedEffect = CK.PathEffect.MakeDash(this._lineDashList, this._lineDashOffset);
       paint.setPathEffect(dashedEffect);
     }
 
@@ -1007,9 +1012,9 @@ export class CanvasRenderingContext2D {
   }
   stroke(newpath?:Path2D) {
     let path = newpath ? newpath._getPath() : this._currentPath;
-    var strokePaint = this._strokePaint();
+    const strokePaint = this._strokePaint();
 
-    var shadowPaint = this._shadowPaint(strokePaint);
+    const shadowPaint = this._shadowPaint(strokePaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -1022,9 +1027,9 @@ export class CanvasRenderingContext2D {
     strokePaint.dispose();
   }
   strokeRect(x:number, y:number, width:number, height:number) {
-    var strokePaint = this._strokePaint();
+    const strokePaint = this._strokePaint();
 
-    var shadowPaint = this._shadowPaint(strokePaint);
+    const shadowPaint = this._shadowPaint(strokePaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -1038,10 +1043,10 @@ export class CanvasRenderingContext2D {
 
   strokeText(text:string, x:number, y:number, maxWidth:number) {
     // TODO do something with maxWidth, probably involving measure
-    var strokePaint = this._strokePaint();
-    var blob = CK.TextBlob.MakeFromText(text, this._font);
+    const strokePaint = this._strokePaint();
+    const blob = CK.TextBlob.MakeFromText(text, this._font);
 
-    var shadowPaint = this._shadowPaint(strokePaint);
+    const shadowPaint = this._shadowPaint(strokePaint);
     if (shadowPaint) {
       this._canvas.save();
       this._applyShadowOffsetMatrix();
@@ -1059,19 +1064,19 @@ export class CanvasRenderingContext2D {
     }
     // retroactively apply the inverse of this transform to the previous
     // path so it cancels out when we apply the transform at draw time.
-    var inverted = CK.Matrix.translated(-dx, -dy);
+    const inverted = CK.Matrix.translated(-dx, -dy);
     this._currentPath.transform(inverted);
     this._canvas.translate(dx, dy);
     this._currentTransform = this._canvas.getTotalMatrix();
   };
 
   transform(a:number, b:number, c:number, d:number, e:number, f:number) {
-    var newTransform = [a, c, e,
+    const newTransform = [a, c, e,
       b, d, f,
       0, 0, 1];
     // retroactively apply the inverse of this transform to the previous
     // path so it cancels out when we apply the transform at draw time.
-    var inverted = CK.Matrix.invert(newTransform);
+    const inverted = CK.Matrix.invert(newTransform);
     this._currentPath.transform(inverted);
     this._canvas.concat(newTransform);
     this._currentTransform = this._canvas.getTotalMatrix();

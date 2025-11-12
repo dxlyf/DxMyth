@@ -300,7 +300,7 @@ const colorMap = {
 export class Color extends Float32Array{
     static Transparent=Color.fromRGBA(0, 0, 0,0);
     static BLACK=Color.fromRGB(0, 0, 0);
-    static WHITE=Color.fromRGB(255, 255, 255);
+    static WHITE=Color.fromRGB(1, 1, 1);
     static isColor(color: string | Color | number|unknown){
         if(color===null||color===undefined||color==='none'){
             return false
@@ -361,6 +361,8 @@ export class Color extends Float32Array{
         const { r, g, b } = hsvToRgb(h, s, v);
         return new Color(r, g, b);
     }
+    type='Color'
+    isColor=true
     
     // 构造函数，支持RGB、HSL和HSV初始化
     constructor(r: number = 0, g: number = 0, b: number = 0,a:number=1) {
@@ -490,6 +492,12 @@ export class Color extends Float32Array{
     }
     toCssRGB(){
         return `rgb(${Math.round(this.r)},${Math.round(this.g)},${Math.round(this.b)})`
+    }
+    toCssRGBA(){
+        return `rgba(${Math.round(this.r)},${Math.round(this.g)},${Math.round(this.b)},${this.alpha})`
+    }
+    dispose(){
+        
     }
 
 

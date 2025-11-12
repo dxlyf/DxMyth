@@ -1,5 +1,5 @@
-import { CK } from '../index'
-import * as CanvasKit from '../index'
+import { CK,type CanvasKit } from '../index'
+
 export class HTMLImage{
   _skImage:CanvasKit.Image
   width:number

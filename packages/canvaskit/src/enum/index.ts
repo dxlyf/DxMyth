@@ -77,8 +77,64 @@ enum FontKerning{
     Auto='auto', // 自动字体间距
     Normal='normal', // 正常字体间距
 }
+enum FontDirection{
+    Inherit='inherit', // 继承方向
+    Ltr='ltr', // 从左到右方向
+    Rtl='rtl', // 从右到左方向
+}
+
+
+enum GlobalCompositeOperation{
+    SourceOver='source-over', // 源图像在目标图像上方绘制
+    DestinationOver='destination-over', // 目标图像在源图像上方绘制
+    SourceIn='source-in', // 源图像在目标图像内绘制
+    DestinationIn='destination-in', // 目标图像在源图像内绘制
+    SourceOut='source-out', // 源图像在目标图像外绘制
+    DestinationOut='destination-out', // 目标图像在源图像外绘制
+    SourceAtop='source-atop', // 源图像在目标图像上方绘制，目标图像在源图像外绘制的部分透明
+    DestinationAtop='destination-atop', // 目标图像在源图像上方绘制，源图像在目标图像外绘制的部分透明
+    Xor='xor', // 源图像与目标图像的异或操作
+    Multiply='multiply', // 源图像与目标图像的乘法操作
+    Screen='screen', // 源图像与目标图像的加法操作
+    Overlay='overlay', // 源图像与目标图像的叠加操作
+    Darken='darken', // 源图像与目标图像的变暗操作
+    Lighten='lighten', // 源图像与目标图像的变亮操作
+    ColorDodge='color-dodge', // 源图像与目标图像的颜色混合操作
+    ColorBurn='color-burn', // 源图像与目标图像的颜色混合操作
+    HardLight='hard-light', // 源图像与目标图像的颜色混合操作
+    SoftLight='soft-light', // 源图像与目标图像的颜色混合操作
+    Difference='difference', // 源图像与目标图像的颜色混合操作
+    Exclusion='exclusion', // 源图像与目标图像的颜色混合操作
+    Hue='hue', // 源图像与目标图像的颜色混合操作
+    Saturation='saturation', // 源图像与目标图像的颜色混合操作
+    Color='color', // 源图像与目标图像的颜色混合操作
+    Luminosity='luminosity', // 源图像与目标图像的颜色混合操作
+    Copy='copy', // 复制源图像
+    Lighter='lighter', //  lighter 混合模式
+} 
+enum BlendMode{
+    Normal='normal', // 正常混合模式
+    Multiply='multiply', // 乘法混合模式
+    Screen='screen', // 加法混合模式
+    Overlay='overlay', // 叠加混合模式
+    Darken='darken', // 变暗混合模式
+    Lighten='lighten', // 变亮混合模式
+    ColorDodge='color-dodge', // 颜色混合模式
+    ColorBurn='color-burn', // 颜色混合模式
+    HardLight='hard-light', // 颜色混合模式
+    SoftLight='soft-light', // 颜色混合模式
+    Difference='difference', // 颜色混合模式
+    Exclusion='exclusion', // 颜色混合模式
+    Hue='hue', // 颜色混合模式
+    Saturation='saturation', // 颜色混合模式
+    Color='color', // 颜色混合模式
+    Luminosity='luminosity', // 颜色混合模式
+}
 
 export {
+    GlobalCompositeOperation,
+    BlendMode,
+    FontDirection,
     FontKerning,
     FontStretch,
     FontVariant,

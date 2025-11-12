@@ -32,7 +32,9 @@ abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectO
           return super.shouldRender()&&this.props.style.opacity>0
      }
      abstract innerCalcLocalBounds(): void
+     abstract renderBefore(renderer:CanvaskitRenderer): void 
      abstract render(renderer: CanvaskitRenderer): void 
+     abstract renderAfter(renderer:CanvaskitRenderer): void 
 }
 export {
      DisplayObject

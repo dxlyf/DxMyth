@@ -1,5 +1,4 @@
-import {CK} from '../index'
-import type * as CanvasKit from '../index'
+import {CK,type CanvasKit} from '../index'
 // Functions dealing with parsing/stringifying fonts go here.
 var fontStringRegex = new RegExp(
   '(italic|oblique|normal|)\\s*' +              // style

@@ -144,6 +144,14 @@ function rect(skpath: CanvasKit.Path, x: number, y: number, width: number, heigh
   // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
   skpath.addRect(rect);
 }
+function roundRect(skpath: CanvasKit.Path, x: number, y: number, width: number, height: number, rx: number, ry: number) {
+  var rect = CK.XYWHRect(x, y, width, height);
+  if (!allAreFinite(rect)) {
+    return;
+  }
+  // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
+  skpath.addRRect(CK.RRectXY(rect, rx, ry));
+}
 class Path2D {
   _path: CanvasKit.Path;
   constructor(path?: string | CanvasKit.Path | Path2D) {
@@ -207,6 +215,30 @@ class Path2D {
   rect(x:number, y:number, width:number, height:number) {
     rect(this._path, x, y, width, height);
   }
+  roundRect(x:number, y:number, width:number, height:number, rx:number, ry:number) {
+    roundRect(this._path, x, y, width, height, rx, ry);
+  }
+  getBounds(){
+    return this._path.getBounds()
+  }
+  computeTightBounds(){
+    return this._path.computeTightBounds()
+  }
+  contains(x:number, y:number){
+    return this._path.contains(x, y)
+  }
+  simplify(){
+    return  this._path.simplify()
+  }
+  stroke(opts?:CanvasKit.StrokeOpts){
+    return this._path.stroke(opts)
+  }
+  setFillType(fillType:CanvasKit.FillType){
+    this._path.setFillType(fillType)
+  }
+  clone(){
+    return new Path2D(this)
+  }
 }
 
 
@@ -221,4 +253,5 @@ export {
   moveTo,
   quadraticCurveTo,
   rect,
+  roundRect
 }

@@ -1,4 +1,4 @@
-import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning } from "src/enum";
+import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection } from "src/enum";
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
@@ -18,7 +18,8 @@ export type CanvaskitRendererOptions=RendererOptions & {
 export interface CanvaskitRendererEvents extends RendererEvents{
     mousedown:[e:any]
 }
-export type TextStyle={
+export type TextDrawingStyles={
+    direction?: FontDirection; // 字体方向
     fontSize?: number // 字体大小
     fontFamily?: string // 字体
     fontStretch?: FontStretch // 字体拉伸
@@ -30,13 +31,13 @@ export type TextStyle={
     letterSpacing?: string // 字母间距
     wordSpacing?: string // 单词间距
 }
-export type ShadowStyle={
+export type ShadowStyles={
     shadowColor?: Color;// 阴影颜色
     shadowBlur?: number;// 阴影模糊半径
     shadowOffsetX?: number; // 阴影水平偏移
     shadowOffsetY?: number;// 阴影垂直偏移
 }
-export type LineStyle={
+export type LineStyles={
     miterLimit?: number;// 斜接限制
     lineJoin?: LineJoin;// 线连接样式
     lineCap?: LineCap; // 线帽样式
@@ -46,16 +47,19 @@ export type LineStyle={
     dash?: number[];// 虚线模式
     lineDashOffset?: number// 虚线偏移量
 }
-
-export type FillStyle={
-   fillStyle:Gradient|Pattern|ColorValue|'none'|null
-   fillRule?:FillRule
+export type FillStrokeValue=Gradient|Pattern|ColorValue|'none'|null
+export type FillStrokeStyles={
+   fillStyle?:FillStrokeValue
+   strokeStyle?:FillStrokeValue
 }
-export type StrokeStyle={
-   strokeStyle:Gradient|Pattern|ColorValue|'none'|null
+export type FillStrokeObject=Gradient|Pattern|Color
+
+export type CanvasCompositing={
+    globalAlpha?: number;
+    globalCompositeOperation?: GlobalCompositeOperation;
 }
 //PaintBrush
-export type PaintBrushStyle = LineStyle&ShadowStyle&TextStyle&{
+export type PaintBrushStyle = LineStyles&ShadowStyles&TextDrawingStyles&{
     type?: PaintStyle;
     mode?: PaintMode
     opacity?: number;
@@ -63,4 +67,14 @@ export type PaintBrushStyle = LineStyle&ShadowStyle&TextStyle&{
     gradient?: Gradient
     pattern?: Pattern;
     fillRule?: FillRule;
+}
+
+export type RendererContextState= CanvasCompositing&FillStrokeStyles&LineStyles&ShadowStyles&TextDrawingStyles&{
+
+}
+
+export interface ICanvasContextService extends CanvasCompositing, CanvasDrawImage, CanvasDrawPath, CanvasFillStrokeStyles, CanvasFilters, CanvasImageData, CanvasImageSmoothing, CanvasPath, CanvasPathDrawingStyles, CanvasRect, CanvasShadowStyles, CanvasState, CanvasText, CanvasTextDrawingStyles, CanvasTransform   {
+    
+
+
 }
