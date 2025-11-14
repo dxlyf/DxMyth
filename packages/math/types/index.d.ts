@@ -5,3 +5,4 @@ export * as gMath from './g-math';
 export { EventEmitter } from './eventmitter3';
 export * as algebra from './utils/algebra-js';
 export * as d3 from './d3';
+export * from './2d/tldraw';

@@ -1,5 +1,7 @@
 import { MagnificationTextureFilter, Mapping, MinificationTextureFilter, PixelFormat, TextureDataType, Wrapping } from '../constants.js';
 import { OffscreenCanvas, Texture } from './Texture.js';
+
+
 /**
  * Creates a texture from a {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas | canvas element}.
  * @remarks

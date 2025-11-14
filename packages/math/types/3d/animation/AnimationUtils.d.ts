@@ -1,5 +1,7 @@
 import { TypedArray, TypedArrayConstructor } from '../core/BufferAttribute.js';
 import { AnimationClip } from './AnimationClip.js';
+
+
 /**
  * Converts an array to a specific type.
  *

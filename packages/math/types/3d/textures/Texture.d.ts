@@ -6,6 +6,8 @@ import { Vector2 } from '../math/Vector2.js';
 import { CompressedTextureMipmap } from './CompressedTexture.js';
 import { CubeTexture } from './CubeTexture.js';
 import { Source } from './Source.js';
+
+
 // NOTE: DOM upload fields are not implemented where parameters are accepted.
 export interface TextureParameters {
     mapping?: AnyMapping | undefined;

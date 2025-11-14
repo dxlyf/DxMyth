@@ -1,4 +1,6 @@
 import { RenderTarget, RenderTargetOptions } from './RenderTarget.js';
+
+
 declare class RenderTarget3D extends RenderTarget {
     readonly isRenderTarget3D: true;
 

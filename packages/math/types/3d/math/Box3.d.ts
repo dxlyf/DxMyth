@@ -5,6 +5,8 @@ import { Plane } from './Plane.js';
 import { Sphere } from './Sphere.js';
 import { Triangle } from './Triangle.js';
 import { Vector3 } from './Vector3.js';
+
+
 export class Box3 {
     constructor(min?: Vector3, max?: Vector3);
 

@@ -1,4 +1,6 @@
 import { BufferGeometry } from '../core/BufferGeometry.js';
+
+
 /**
  * {@link CircleGeometry} is a simple shape of Euclidean geometry
  * @remarks

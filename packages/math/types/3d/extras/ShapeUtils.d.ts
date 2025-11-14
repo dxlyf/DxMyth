@@ -1,4 +1,6 @@
 import { Vector2Like } from '../math/Vector2.js';
+
+
 /**
  * A class containing utility functions for shapes.
  * @remarks Note that these are all linear functions so it is necessary to calculate separately for x, y (and z, w if present) components of a vector.

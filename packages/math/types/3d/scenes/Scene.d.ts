@@ -6,6 +6,8 @@ import { CubeTexture } from '../textures/CubeTexture.js';
 import { Texture } from '../textures/Texture.js';
 import { Fog, FogJSON } from './Fog.js';
 import { FogExp2, FogExp2JSON } from './FogExp2.js';
+
+
 export interface SceneJSONObject extends Object3DJSONObject {
     fog?: FogJSON | FogExp2JSON;
 

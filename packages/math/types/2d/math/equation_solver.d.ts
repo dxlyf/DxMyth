@@ -198,7 +198,26 @@ export declare class LineEquation {
      * 构造与当前直线垂直，经过给定点的直线
      */
     perpendicularThrough(p: Point): LineEquation;
+    /***
+     * 参数方程转代数方程求交点
+     * 克莱姆法求相交
+     * x0=Ax+ (Bx -Ax)t x1=Cx+ (Dx -Cx)u
+     * y0=Ay+ (By -Ay)t y1=Cy+ (Dy -Cy)u
+     *
+        Ax+ (Bx -Ax)t=Cx+ (Dx -Cx)u = (Bx -Ax)t-(Dx -Cx)u=Cx-Ax
+        Ay+ (By -Ay)t=Cy+ (Dy -Cy)u = (By -Ay)t-(Dy -Cy)u=Cy-Ay
+
+        A=(Bx -Ax)  B=-(Dx -Cx)  C=Cx-Ax
+        E=(By -Ay)  F=-(Dy -Cy)  G=Cy-Ay
+
+        det=A*F-B*E
+        t=(C*F-B*G)/det
+     */
     getLineIntersection(line: LineLike): {
+        x: number;
+        y: number;
+    };
+    getGeneralLineIntersection(line: LineLike): {
         x: number;
         y: number;
     };

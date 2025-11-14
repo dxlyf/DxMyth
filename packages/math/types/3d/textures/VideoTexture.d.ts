@@ -1,5 +1,7 @@
 import { MagnificationTextureFilter, Mapping, MinificationTextureFilter, PixelFormat, TextureDataType, Wrapping } from '../constants.js';
 import { Texture } from './Texture.js';
+
+
 /**
  * Creates a texture for use with a video.
  * @remarks

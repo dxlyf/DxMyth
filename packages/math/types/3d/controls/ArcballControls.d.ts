@@ -1,4 +1,4 @@
-import { Controls, Vector3, Vector2, Matrix4, Quaternion, Raycaster } from '../../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3, Vector2, Matrix4, Quaternion, Raycaster } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * Arcball controls allow the camera to be controlled by a virtual trackball with full touch support and advanced navigation functionality.
  * Cursor/finger positions and movements are mapped over a virtual trackball surface represented by a gizmo and mapped in intuitive and

@@ -1,3 +1,4 @@
+import { Vector2 } from './vec2';
 export declare const PI: number;
 export declare const PI2: number;
 export declare const PI_2: number;
@@ -143,6 +144,47 @@ export declare function floorPrecision(value: number, p: number): number;
 export declare function ceilPrecision(value: number, p: number): number;
 export declare function bSplineBasis(i: number, k: number, t: number, knots: number[]): number;
 export declare function bSplineCurve(controlPoints: number[][], degree: number, knots: number[], t: number): number[];
+export declare function createLowMatrix(r: number, c: number, n: number, m: Float32Array | number[]): Float32Array<ArrayBuffer>;
+export declare function determinantFromNthMatrix(m: Float32Array | number[]): number;
+export declare function transposeFromNthMatrix(m: Float32Array | number[]): Float32Array<ArrayBuffer>;
+export declare function adjointFromNthMatrix(m: Float32Array | number[]): Float32Array<ArrayBuffer>;
+export declare function invertFromNMatrix(m: Float32Array | number[]): Float32Array<ArrayBuffer>;
+export declare function identityMatrix(out: Float32Array | number[], n: number): number[] | Float32Array<ArrayBufferLike>;
+export declare const getIntersectionGridCell: (options: {
+    start: Vector2;
+    dir: Vector2;
+    rows: number;
+    cols: number;
+    cellWidth: number;
+    cellHeight: number;
+    onCollisionDetection?: (x: number, y: number) => boolean;
+}) => Vector2[];
+export declare const getRays3D: (player: {
+    rotate: number;
+    x: number;
+    y: number;
+}, map: number[][], fovAngle: number, width: number, height: number, cellSize: number, fish?: boolean) => {
+    diffuse: number;
+    x: number;
+    row: number;
+    col: number;
+    value: number;
+    side: boolean;
+    dir: Vector2;
+    origin: Vector2;
+    distance: number;
+    noFishDistance: number;
+}[];
+export declare const drawRays3d: (options: {
+    getStrokeColor: (ray: any) => string;
+    ctx: CanvasRenderingContext2D;
+    rays: any[];
+    map: number[][];
+}) => void;
+export declare function invertFromNMatrixByElementary(m: Float32Array | number[]): Float32Array<ArrayBuffer>;
+export declare function multiplyMatrices(result: Float32Array | number[] | null, a: Float32Array | number[], b: Float32Array | number[]): number[] | Float32Array<ArrayBufferLike>;
+export declare function invertFromNMatrixByLU(matrix: Float32Array | number[]): number[] | Float32Array<ArrayBufferLike>;
+export declare function trapezoidalIntegralArea(f: (x: number) => number, a: number, b: number, n: number): number;
 /**
  * 二维点接口
  */

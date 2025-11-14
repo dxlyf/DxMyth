@@ -1,8 +1,3 @@
-/**
- * @desc 信息
- * @ref preact-signals
-
-*/
 declare const BRAND_SYMBOL: unique symbol;
 type Node = {
     _source: Signal;
@@ -51,14 +46,19 @@ declare class Signal<T = any> {
     _node?: Node;
     /** @internal */
     _targets?: Node;
-    constructor(value?: T);
+    constructor(value?: T, options?: SignalOptions<T>);
     /** @internal */
     _refresh(): boolean;
     /** @internal */
     _subscribe(node: Node): void;
     /** @internal */
     _unsubscribe(node: Node): void;
+    /** @internal */
+    _watched?(this: Signal<T>): void;
+    /** @internal */
+    _unwatched?(this: Signal<T>): void;
     subscribe(fn: (value: T) => void): () => void;
+    name?: string;
     valueOf(): T;
     toString(): string;
     toJSON(): T;
@@ -67,26 +67,35 @@ declare class Signal<T = any> {
     get value(): T;
     set value(value: T);
 }
+export interface SignalOptions<T = any> {
+    watched?: (this: Signal<T>) => void;
+    unwatched?: (this: Signal<T>) => void;
+    name?: string;
+}
 /** @internal */
-declare function Signal(this: Signal, value?: unknown): void;
+declare function Signal(this: Signal, value?: unknown, options?: SignalOptions): void;
 /**
  * Create a new plain signal.
  *
  * @param value The initial value for the signal.
  * @returns A new signal.
  */
-export declare function signal<T>(value: T): Signal<T>;
+export declare function signal<T>(value: T, options?: SignalOptions<T>): Signal<T>;
 export declare function signal<T = undefined>(): Signal<T | undefined>;
+/**
+ * The base class for computed signals.
+ */
 declare class Computed<T = any> extends Signal<T> {
     _fn: () => T;
     _sources?: Node;
     _globalVersion: number;
     _flags: number;
-    constructor(fn: () => T);
+    constructor(fn: () => T, options?: SignalOptions<T>);
     _notify(): void;
     get value(): T;
 }
-declare function Computed(this: Computed, fn: () => unknown): void;
+/** @internal */
+declare function Computed(this: Computed, fn: () => unknown, options?: SignalOptions): void;
 declare namespace Computed {
     var prototype: Computed<any>;
 }
@@ -111,21 +120,32 @@ interface ReadonlySignal<T = any> {
  * @param fn The effect callback.
  * @returns A new read-only signal.
  */
-declare function computed<T>(fn: () => T): ReadonlySignal<T>;
-type EffectFn = () => void | (() => void);
+declare function computed<T>(fn: () => T, options?: SignalOptions<T>): ReadonlySignal<T>;
+type EffectFn = ((this: {
+    dispose: () => void;
+}) => void | (() => void)) | (() => void | (() => void));
+/**
+ * The base class for reactive effects.
+ */
 declare class Effect {
     _fn?: EffectFn;
     _cleanup?: () => void;
     _sources?: Node;
     _nextBatchedEffect?: Effect;
     _flags: number;
-    constructor(fn: EffectFn);
+    name?: string;
+    constructor(fn: EffectFn, options?: EffectOptions);
     _callback(): void;
     _start(): () => void;
     _notify(): void;
     _dispose(): void;
+    dispose(): void;
 }
-declare function Effect(this: Effect, fn: EffectFn): void;
+export interface EffectOptions {
+    name?: string;
+}
+/** @internal */
+declare function Effect(this: Effect, fn: EffectFn, options?: EffectOptions): void;
 /**
  * Create an effect to run arbitrary code in response to signal changes.
  *
@@ -139,6 +159,5 @@ declare function Effect(this: Effect, fn: EffectFn): void;
  * @param fn The effect callback.
  * @returns A function for disposing the effect.
  */
-declare function effect(fn: EffectFn): () => void;
-export { computed, effect, batch, untracked, Signal };
-export type { ReadonlySignal };
+declare function effect(fn: EffectFn, options?: EffectOptions): () => void;
+export { computed, effect, batch, untracked, Signal, ReadonlySignal, Effect, Computed, };

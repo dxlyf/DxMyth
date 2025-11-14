@@ -1,4 +1,4 @@
-import { Controls, Raycaster, MOUSE, TOUCH } from '../../../../../../../../../src/3d/index.core.ts';
+import { Controls, Raycaster, MOUSE, TOUCH } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * This class can be used to provide a drag'n'drop interaction.
  *
