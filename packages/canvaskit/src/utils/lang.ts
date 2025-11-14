@@ -129,3 +129,34 @@ export const merge = (target: any, ...sources: any[]) => {
     }
     return target
 }
+
+
+// function _extends(child: any, parent: any): void {
+//     child.prototype = Object.create(parent && parent.prototype, {
+//         constructor: {
+//             value: child,
+//             enumerable: false,
+//             writable: true,
+//             configurable: true
+//         }
+//     });
+//     if (parent) {
+//         // 设置静态属性继承
+//         Object.setPrototypeOf 
+//             ? Object.setPrototypeOf(child, parent)
+//             : child.__proto__ = parent;
+//     }
+// }
+// let extendStatics = function (d:any, b:any) {
+//         extendStatics = Object.setPrototypeOf ||
+//             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+//             function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+//         return extendStatics(d, b);
+// };
+// let __extends=function (d, b) {
+//         if (typeof b !== "function" && b !== null)
+//             throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+//         extendStatics(d, b);
+//         function __() { this.constructor = d; }
+//         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+// };
