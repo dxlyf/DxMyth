@@ -1,4 +1,4 @@
-import { Controls, Vector3 } from '../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3 } from '../../../../../../../../../src/3d/index.core.ts';
 /**
  * The implementation of this class is based on the [Pointer Lock API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API}.
  * `PointerLockControls` is a perfect choice for first person 3D games.
@@ -64,7 +64,7 @@ export class PointerLockControls extends Controls<any> {
     _onPointerlockChange: typeof onPointerlockChange;
     _onPointerlockError: typeof onPointerlockError;
     connect(element: any): void;
-    getObject(): import('../../../../../../../../src/3d/index.core.ts').Object3D<import('../../../../../../../../src/3d/index.core.ts').Object3DEventMap>;
+    getObject(): import('../../../../../../../../../src/3d/index.core.ts').Object3D<import('../../../../../../../../../src/3d/index.core.ts').Object3DEventMap>;
     /**
      * Returns the look direction of the camera.
      *

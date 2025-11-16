@@ -9,7 +9,7 @@ export default {
         if(!api.ctx.options.debug?.showBounds){
       
             api.ctx.on('init',(engine)=>{
-                engine.renderer.on('object:rendered',info=>{
+                engine.renderer.on('object:renderAfter',info=>{
                         const obj=info.object
                         const rnederer=info.renderer
                         const bounds=obj.globalBounds.clone()

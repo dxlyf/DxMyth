@@ -1,6 +1,4 @@
 import { CylinderGeometry } from './CylinderGeometry.js';
-
-
 /**
  * A class for generating cone geometries.
  * @example

@@ -1,4 +1,4 @@
-import { Controls, Vector3, Quaternion } from '../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3, Quaternion } from '../../../../../../../../../src/3d/index.core.ts';
 /**
  * This class enables a navigation similar to fly modes in DCC tools like Blender.
  * You can arbitrarily transform the camera in 3D space without any limitations

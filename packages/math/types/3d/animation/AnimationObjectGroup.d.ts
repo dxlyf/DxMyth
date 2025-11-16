@@ -1,6 +1,4 @@
 import { Object3D } from '../core/Object3D.js';
-
-
 /**
  * A group of objects that receives a shared animation state.
  *

@@ -1271,6 +1271,12 @@ export class BezierExtremaFinder {
 }
 export function solveQuadratic(a: number, b: number, c: number): number[] {
     const discriminant = b * b - 4 * a * c;
+    if(a===0){
+        if(b===0){
+            return []
+        }
+        return [-c/b]
+    }
     if (discriminant < 0) return []; // 无实数解
     let roots: number[] = [];
     if (discriminant === 0) {

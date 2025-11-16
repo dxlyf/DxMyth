@@ -1,106 +1,126 @@
-import {type CanvasKit,CK } from "src/canvaskit"
-import { BoundingRect } from "src/math/BoundingRect"
+import { CK, type CanvasKit } from "src/canvaskit"
+import { arcTo, rect, roundRect, ellipse, arc } from "src/canvaskit/htmlcanvas/path2d"
 
-type CommandParameter={
-    moveTo:[number,number]
-    lineTo:[number,number]
-    quadTo:[number,number,number,number]
-    cubicTo:[number,number,number,number,number,number]
-    conicTo:[number,number,number,number,number]
-    arcTo:[number,number,number,number,number]
-    rect:[number,number,number,number]
-    close:[]
+type CommandParameter = {
+    moveTo: [number, number]
+    lineTo: [number, number]
+    quadraticCurveTo: [number, number, number, number]
+    bezierCurveTo: [number, number, number, number, number, number]
+    conicTo: [number, number, number, number, number]
+    arcTo: [number, number, number, number, number]
+    rect: [number, number, number, number]
+    roundRect: [number, number, number, number, number | [number, number]]
+    arc: [number, number, number, number, number, boolean]
+    ellipse: [number, number, number, number, number, number, number, boolean]
+    closePath: []
 }
 type CommandType = keyof CommandParameter
-type CommandData=[CommandType,...CommandParameter[CommandType]]
+type CommandData = [CommandType, ...CommandParameter[CommandType]]
 
-enum SegmentType{
-    Line=1,
-    Quad=1<<1,
-    Cubic=1<<2,
-    Conic=1<<3,
-    Arc=1<<4,
-    Rect=1<<5,
+function applyCKPath(path: CanvasKit.Path, type:string,params:any[]) {
+
+        switch (type) {
+            case 'moveTo':
+                path.moveTo(...params as CommandParameter['moveTo'])
+                break
+            case 'lineTo':
+                path.lineTo(...params as CommandParameter['lineTo'])
+                break
+            case 'quadraticCurveTo':
+                path.quadTo(...params as CommandParameter['quadraticCurveTo'])
+                break
+            case 'bezierCurveTo':
+                path.cubicTo(...params as CommandParameter['bezierCurveTo'])
+                break
+            case 'conicTo':
+                path.conicTo(...params as CommandParameter['conicTo'])
+                break
+            case 'arcTo':
+                path.arcToTangent(...params as CommandParameter['arcTo'])
+                break
+            case 'rect':
+                path.addRRect(CK.XYWHRect(...params as CommandParameter['rect']))
+                break
+            case 'roundRect':
+                roundRect(path, ...params as CommandParameter['roundRect'])
+                break
+            case 'arc':
+                arc(path, ...params as CommandParameter['arc'])
+                break
+            case 'ellipse':
+                ellipse(path, ...params as CommandParameter['ellipse'])
+                break
+            case 'closePath':
+                path.close()
+                break
+        }
 }
-const SegmentTypeMap={
-    quadTo:SegmentType.Quad,
-    cubicTo:SegmentType.Cubic,
-    conicTo:SegmentType.Conic,
-    arcTo:SegmentType.Arc,
-    rect:SegmentType.Rect,
- 
-}
-class ProxyPath{
-    segmentType:number
-    cmds:CommandData[] = []
-    lastPosition:number[] = [0,0]
-    _bounds:BoundingRect|null = null
-    _computeTightBounds:BoundingRect|null = null
+class ProxyPath {
+    segmentType: number
+    cmds: CommandData[] = []
+    lastPosition: number[] = [0, 0]
     constructor() {
-       
     }
-    add(type:CommandType,...params:CommandParameter[CommandType]){
-        this.cmds.push([type,...params])
-        this._bounds=null
-        this._computeTightBounds=null
+    addCmd(type: CommandType, ...params: CommandParameter[CommandType]) {
+        this.cmds.push([type, ...params])
     }
-    moveTo(x:number,y:number){
-        this.add('moveTo',x,y)
+    setLastPosition(x: number, y: number) {
+        this.lastPosition[0] = x
+        this.lastPosition[1] = y
     }
-    lineTo(x:number,y:number){
-        this.add('lineTo',x,y)
+    moveTo(x: number, y: number) {
+        this.addCmd('moveTo', x, y)
+        this.setLastPosition(x, y)
     }
-    quadraticCurveTo(cp1x:number,cp1y:number,x:number,y:number){
-        this.add('quadTo',cp1x,cp1y,x,y)
+    lineTo(x: number, y: number) {
+        this.addCmd('lineTo', x, y)
+        this.setLastPosition(x, y)
     }
-    cubicCurveTo(cp1x:number,cp1y:number,cp2x:number,cp2y:number,x:number,y:number){
-        this.add('cubicTo',cp1x,cp1y,cp2x,cp2y,x,y)
+    quadraticCurveTo(cp1x: number, cp1y: number, x: number, y: number) {
+        this.addCmd('quadraticCurveTo', cp1x, cp1y, x, y)
+        this.setLastPosition(x, y)
     }
-    conicTo(cp1x:number,cp1y:number,x:number,y:number,w:number){
-        this.add('conicTo',cp1x,cp1y,x,y,w)
+    bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number) {
+        this.addCmd('bezierCurveTo', cp1x, cp1y, cp2x, cp2y, x, y)
+        this.setLastPosition(x, y)
     }
-    arcTo(x1:number,y1:number,x2:number,y2:number,radius:number){
-        this.add('arcTo',x1,y1,x2,y2,radius)
+    conicTo(cp1x: number, cp1y: number, x: number, y: number, w: number) {
+        this.addCmd('conicTo', cp1x, cp1y, x, y, w)
+        this.setLastPosition(x, y)
     }
-    rect(x:number,y:number,width:number,height:number){
-        this.add('rect',x,y,width,height)
+    arcTo(x1: number, y1: number, x: number, y: number, radius: number) {
+        this.addCmd('arcTo', x1, y1, x, y, radius)
+        this.setLastPosition(x, y)
     }
-    closePath(){
-        this.add('close')
+    rect(x: number, y: number, width: number, height: number) {
+        this.addCmd('rect', x, y, width, height)
+        this.setLastPosition(x, y)
     }
-    getBounds(){
-        if(!this._bounds){
-            this._bounds=new BoundingRect()
-            const path=CK.Path.getPool()
-            this.toCKPath(path)
-            const bounds=path.getBounds()
-            this._bounds.fromRect(bounds[0],bounds[1],bounds[2],bounds[3])
-            path.releasePool()
-        }
-        return this._bounds
+    roundRect(x: number, y: number, width: number, height: number, radius: number) {
+        this.addCmd('roundRect', x, y, width, height, radius)
+        this.setLastPosition(x, y)
     }
-    computeTightBounds(){
-        if(!this._computeTightBounds){
-            this._computeTightBounds=new BoundingRect()
-            const path=CK.Path.getPool()
-            this.toCKPath(path)
-            const bounds=path.computeTightBounds()
-            this._computeTightBounds.fromRect(bounds[0],bounds[1],bounds[2],bounds[3])
-            path.releasePool()
-        }
-        return this._computeTightBounds
+    arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, anticlockwise: boolean) {
+        this.addCmd('arc', x, y, radius, startAngle, endAngle, anticlockwise)
+        this.setLastPosition(x, y)
     }
-    toCKPath(path:CanvasKit.Path){
-        for(const cmd of this.cmds){
-            const [type,...params]=cmd
-            if(path[type as keyof CanvasKit.Path]){
-                (path[type as keyof CanvasKit.Path] as (...args:any[])=>void)(...params)
-            }
+    ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation: number, startAngle: number, endAngle: number, anticlockwise: boolean) {
+        this.addCmd('ellipse', x, y, radiusX, radiusY, rotation, startAngle, endAngle, anticlockwise)
+        this.setLastPosition(x, y)
+    }
+    closePath() {
+        this.addCmd('closePath')
+    }
+    toCKPath(path: CanvasKit.Path) {
+        for (const cmd of this.cmds) {
+            const [type, ...params] = cmd
+            applyCKPath(path, type, params)
         }
         return path
     }
 }
 
 export {
-    ProxyPath
+    ProxyPath,
+    applyCKPath
 }

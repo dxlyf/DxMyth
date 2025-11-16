@@ -144,11 +144,13 @@ function rect(skpath: CanvasKit.Path, x: number, y: number, width: number, heigh
   // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
   skpath.addRect(rect);
 }
-function roundRect(skpath: CanvasKit.Path, x: number, y: number, width: number, height: number, rx: number, ry: number) {
+function roundRect(skpath: CanvasKit.Path, x: number, y: number, width: number, height: number,radius:number|[number,number]) {
   var rect = CK.XYWHRect(x, y, width, height);
   if (!allAreFinite(rect)) {
     return;
   }
+  const radiusArr=Array.isArray(radius)?radius:[radius??0,radius??0]
+  const rx=radiusArr[0],ry=radiusArr[1]
   // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
   skpath.addRRect(CK.RRectXY(rect, rx, ry));
 }
@@ -215,8 +217,8 @@ class Path2D {
   rect(x:number, y:number, width:number, height:number) {
     rect(this._path, x, y, width, height);
   }
-  roundRect(x:number, y:number, width:number, height:number, rx:number, ry:number) {
-    roundRect(this._path, x, y, width, height, rx, ry);
+  roundRect(x:number, y:number, width:number, height:number, radius:number|[number,number]) {
+    roundRect(this._path, x, y, width, height, radius);
   }
   getBounds(){
     return this._path.getBounds()

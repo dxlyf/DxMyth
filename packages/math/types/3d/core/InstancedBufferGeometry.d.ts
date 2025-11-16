@@ -1,6 +1,4 @@
 import { BufferGeometry } from './BufferGeometry.js';
-
-
 /**
  * An instanced version of {@link THREE.BufferGeometry | BufferGeometry}.
  * @see {@link https://threejs.org/docs/index.html#api/en/core/InstancedBufferGeometry | Official Documentation}

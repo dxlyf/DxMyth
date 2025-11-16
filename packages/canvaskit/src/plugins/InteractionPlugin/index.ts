@@ -15,10 +15,9 @@ function getEmitterListenerEvents(emitter:any,evt:string) {
 }
 function dispatchNodeEvent(engine:CKEngine,e:PointerInteractionEvent){
         const type=e.type,x=e.x,y=e.y;
-        const container=engine.container
         let target=e.target
         if(type==='pointermove'){
-            target=e.target=container.findTarget(x,y)
+            target=e.target=engine.hitObject(x,y)
         }
         if(target){
             const targetPaths=e.composedPath() as Node[]

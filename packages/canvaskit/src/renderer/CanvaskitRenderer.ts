@@ -2,7 +2,7 @@
 import { BaseRenderer } from 'src/base/BaseRenderer'
 import { CK } from 'src/canvaskit'
 import { CanvasKit } from 'src/canvaskit'
-import { CanvaskitRendererOptions, CanvaskitRendererEvents, FillStrokeValue, FillStrokeObject } from 'src/types/Renderer'
+import { CanvaskitRendererOptions, CanvaskitRendererEvents, FillStrokeValue, FillStrokeObject, CanvasDrawStyle } from 'src/types/Renderer'
 import { DisplayObject } from 'src/scene/DisplayObject'
 import { Matrix2D } from 'src/math'
 import { ConicGradient, LinearGradient, RadialGradient } from 'src/core/Gradient'
@@ -11,25 +11,19 @@ import { Container } from 'src/scene/Container'
 import { Color } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern, PatternRepeat } from "src/core/Pattern";
-import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation } from "src/enum";
+import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation, ClipPathUnits } from "src/enum";
 import { getTypeface } from 'src/canvaskit/htmlcanvas/font'
 import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
 import {arc,ellipse,arcTo,rect,roundRect,lineTo,moveTo,quadraticCurveTo,bezierCurveTo, Path2D} from 'src/canvaskit/htmlcanvas/path2d'
-import { isValidPaintValue } from 'src/utils'
+import { hasOwnProperty, isNullOrUndefined, isValidPaintValue } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
+import { DrawStylePropertiesMap, DrawStylePropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
 
 
 const objTransformMatrix = new Float32Array(9)
 const tmpMatrix = Matrix2D.identity()
 
-type ContextState = {
-    ctm: CanvasKit.InputMatrix
-    globalAlpha: number
-    blend: CanvasKit.BlendMode
-    fillStyle: FillStrokeObject
-    strokeStyle: FillStrokeObject
-}
 export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, CanvaskitRendererEvents> {
     static CK: CanvasKit.CanvasKit = CK
     surface: CanvasKit.Surface
@@ -47,7 +41,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     private _miterLimit = 10
     // private _strokeJoin:CanvasKit.StrokeJoin
     // private _strokeCap:CanvasKit.StrokeCap
-    private _lineDashList: number[] = []
+    private _lineDash: number[] = []
     private _lineDashOffset = 0
     private _fillStyle: FillStrokeObject=Color.BLACK
     private _strokeStyle: FillStrokeObject=Color.BLACK
@@ -204,7 +198,13 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
     }
     setLineDash(segments: number[]) {
-        this._lineDashList = segments.length % 2 === 0 ? segments : segments.concat(segments)
+        this._lineDash = segments.length % 2 === 0 ? segments : segments.concat(segments)
+    }
+    set LineDash(value: number[]) {
+        this.setLineDash(value)
+    }
+    get LineDash() {
+        return this._lineDash
     }
     set lineDashOffset(value: number) {
         this._lineDashOffset = value
@@ -252,10 +252,25 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             this._fontString = newFont;
         }
     }
+    createCanvaskitPath(){
+        const path= new CK.Path()
+        this.disposableManager.addPersistent(path)
+        return path
+    }
+    createCanvaskitPaint(){
+        const paint= new CK.Paint()
+        this.disposableManager.addPersistent(paint)
+        return paint
+    }
+    clearRect(x: number, y: number, width: number, height: number) {
+        this._paint.setStyle(CK.PaintStyle.Fill);
+        this._paint.setBlendMode(CK.BlendMode.Clear);
+        this.canvas.drawRect(CK.XYWHRect(x, y, width, height), this._paint);
+        this._paint.setBlendMode(this._globalCompositeOperation);
+    }
     drawRect(x: number, y: number, width: number, height: number) {
         this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
     }
-
     createLinearGradient(x0: number, y0: number, x1: number, y1: number) {
         const gradient = new LinearGradient(x0, y0, x1, y1)
         this.disposableManager.addPersistent(gradient)
@@ -277,6 +292,29 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.disposableManager.addPersistent(gradient)
         return gradient
     }
+    translate(dx: number, dy: number) {
+        const inverted = CK.Matrix.translated(-dx, -dy);
+        this._currentPath.transform(inverted);
+        this.canvas.translate(dx, dy);
+        this._currentTransform = this.canvas.getTotalMatrix();
+    }
+    scale(sx: number, sy: number) {
+        const inverted = CK.Matrix.scaled(1/sx, 1/sy);
+        this._currentPath.transform(inverted);
+        this.canvas.scale(sx, sy);
+        this._currentTransform = this.canvas.getTotalMatrix();
+    }
+    rotate(angle: number) {
+         // 回溯性地将此变换的逆变换应用到之前的
+         // 路径上，这样在绘制时应用变换时就会相互抵消。
+        const inverted = CK.Matrix.rotated(-angle);
+        this._currentPath.transform(inverted);
+        this.canvas.rotate(angle, 0, 0);
+        this._currentTransform = this.canvas.getTotalMatrix();
+    }
+    getCurrentTransform(){
+        return this._currentTransform
+    }
     setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
         this.resetTransform();
         this.transform(a, b, c, d, e, f);
@@ -286,7 +324,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             b, d, f,
             0, 0, 1];
         const inverted = CK.Matrix.invert(newTransform);
-        this._currentPath.transform(inverted);// 让canvas totalMatrix不影响之前的路径
+        this._currentPath.transform(inverted);// 让canvas totalMatrix不影响之前已添加的路径
         this.canvas.concat(newTransform);
         this._currentTransform = this.canvas.getTotalMatrix();
     }
@@ -304,9 +342,11 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     }
     moveTo(x: number, y: number) {
         this._currentPath.moveTo(x, y)
-        moveTo(this._currentPath, x, y)
+       // moveTo(this._currentPath, x, y)
+       this._currentPath.moveTo(x,y)
     }
     lineTo(x: number, y: number) {
+        //lineTo(this._currentPath, x, y)
         this._currentPath.lineTo(x, y)
     }
     quadraticCurveTo(cp1x: number, cp1y: number, x: number, y: number) {
@@ -318,14 +358,16 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     rect(x: number, y: number, width: number, height: number) {
         this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
     }
-    roundRect(x: number, y: number, width: number, height: number, rx: number, ry: number) {
-        this._currentPath.addRRect(CK.RRectXY(CK.XYWHRect(x, y, width, height), rx, ry))
+    roundRect(x: number, y: number, width: number, height: number, radius:number|[number,number]) {
+        const radiusArr=Array.isArray(radius)?radius:[radius??0,radius??0]
+        const rx=radiusArr[0],ry=radiusArr[1]
+        this._currentPath.addRRect(CK.RRectXY(CK.XYWHRect(x, y, width, height),rx,ry))
     }
     arc(x: number, y: number,radius:number, startAngle: number, endAngle: number, clockwise: boolean) {
         arc(this._currentPath, x, y, radius, startAngle, endAngle, clockwise)
     }
     arcTo(x1: number, y1: number, x2: number, y2: number, radius: number) {
-       arcTo(this._currentPath, x1, y1, x2, y2, radius)
+        this._currentPath.arcToTangent(x1, y1, x2, y2, radius)
     }
     ellipse(x: number, y: number, rx: number, ry: number, rotation: number, startAngle: number, endAngle: number, clockwise: boolean) {
         ellipse(this._currentPath, x, y, rx, ry, rotation, startAngle, endAngle, clockwise)
@@ -340,6 +382,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             path = this._currentPath
         }else if(_path&&(_path as Path2D)._getPath){
             path = (_path as Path2D)._getPath()
+        }else{
+            path = _path as CanvasKit.Path
         }
         if (!path) {
             path = this._currentPath
@@ -355,6 +399,100 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
         this.canvas.clipPath(clip, CK.ClipOp.Intersect, true)
         clip.dispose()
+    }
+     applyPathBorderSide(path: CanvasKit.Path,style:CanvasDrawStyle) {
+        const  canvas = this.canvas
+        let { borderSide, lineWidth } = style
+        if (borderSide === BorderSide.Outside) {
+            let innerPath = path.copy()
+            innerPath.setFillType(CK.FillType.EvenOdd)
+            canvas.clipPath(innerPath, CK.ClipOp.Difference, true)
+            innerPath.dispose()
+            this.lineWidth = lineWidth * 2
+
+        } else if (borderSide === BorderSide.Inside) {
+            let innerPath = path.copy()
+            innerPath.setFillType(CK.FillType.EvenOdd)
+            canvas.clipPath(innerPath, CK.ClipOp.Intersect, true)
+            innerPath.dispose()
+            this.lineWidth = lineWidth * 2
+        }
+    }
+    applyMask(obj:DisplayObject) {
+        const style=obj.style as CanvasDrawStyle
+        const mask=style.mask
+        if(mask){
+            const {path:maskPath,object:maskObject,maskFilter}=mask
+            const maskPaint=this._paint.copy()
+            maskPaint.setBlendMode(CK.BlendMode.Src);       // 覆盖 alpha
+            maskPaint.setAntiAlias(true);
+            // this.canvas.saveLayer(null,maskPaint)
+            if(maskPath){
+               //maskPaint.setMaskFilter(CK.MaskFilter.MakeBlur(CK.BlurStyle.))
+            }
+            maskPaint.dispose()
+        }
+    }
+    applyClipPath(obj:DisplayObject) {
+        const style=obj.style as CanvasDrawStyle
+        const clip=style.clip
+        if(clip&&clip){
+          //  this.save()
+            const {path:clipPath,object:clipObject}=clip
+            if(clipObject){
+                const clipPathUnits=clip.clipPathUnits??ClipPathUnits.UserSpaceOnUse
+                const objClipPath=clipObject.ckPath
+                const clipMatrix=Matrix2D.getPool()
+                const clipInverseMatrix=Matrix2D.getPool()
+               // const cts=this.getCurrentTransform()
+                if(clipPathUnits===ClipPathUnits.ObjectBoundingBox){
+                    clipMatrix.copy(obj.worldMatrix)
+                    clipInverseMatrix.copy(obj.worldInverseMatrix)
+                }else{
+                    clipMatrix.copy(clipObject.worldMatrix)
+                    clipInverseMatrix.copy(clipObject.worldInverseMatrix)
+                }
+                this.transform(clipMatrix[0],clipMatrix[1],clipMatrix[2],clipMatrix[3],clipMatrix[4],clipMatrix[5])
+                this.clip(objClipPath,(clipObject.style as any).fillRule)
+                this.transform(clipInverseMatrix[0],clipInverseMatrix[1],clipInverseMatrix[2],clipInverseMatrix[3],clipInverseMatrix[4],clipInverseMatrix[5])
+                clipMatrix.releasePool()
+                clipInverseMatrix.releasePool()
+            }else if(clipPath){
+                this.clip(clipPath,clip.fillRule)
+            }
+        }
+    }
+    applyPathStyle(style: CanvasDrawStyle) {
+        Object.keys(style).forEach((name) => {
+            let propName = name as keyof typeof style
+            let value=style[propName]
+            if (DrawStylePropertiesSet.has(propName)&&!isNullOrUndefined(value)) {
+                if(HasDrawStylePropertiesMap.has(propName)){
+                   propName=DrawStylePropertiesMap[name as keyof typeof DrawStylePropertiesMap] as keyof typeof style
+                }
+                (this as any)[propName] = value
+            }
+        })
+    }
+    drawPathStyle(path:CanvasKit.Path,style:CanvasDrawStyle){
+       this.applyPathStyle(style)
+       if (style.firstFill) {
+            if (isValidPaintValue(style.fillStyle)) {
+                this.fill(path,style.fillRule)
+            }
+            if (isValidPaintValue(style.strokeStyle)) {
+                this.applyPathBorderSide(path, style)
+                this.stroke(path)
+            }
+        }else{
+            if (isValidPaintValue(style.strokeStyle)) {
+                this.applyPathBorderSide(path, style)
+                this.stroke(path)
+            }
+             if (isValidPaintValue(style.fillStyle)) {
+                this.fill(path,style.fillRule)
+            }
+        }
     }
     _fillPaint() {
         const paint = this._paint
@@ -387,8 +525,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             paint.setShader(shader);
         }
         let dashedEffect: CanvasKit.PathEffect = null
-        if (this._lineDashList.length) {
-            dashedEffect = CK.PathEffect.MakeDash(this._lineDashList, this._lineDashOffset);
+        if (this._lineDash.length) {
+            dashedEffect = CK.PathEffect.MakeDash(this._lineDash, this._lineDashOffset);
             paint.setPathEffect(dashedEffect);
         }
         this.disposableManager.add({
@@ -709,35 +847,41 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.canvas.restore()
         this._currentTransform = this.canvas.getTotalMatrix()
     }
-    renderObject(object: DisplayObject) {
-        this.save()
-        object.renderBefore(this)
+    transformObject(object: DisplayObject) {
         const objMat = object.worldMatrix
         if (!objMat.hasIdentity()) {
             this.transform(objMat[0], objMat[1], objMat[2], objMat[3], objMat[4], objMat[5])
         }
-        // tmpMatrix.fromRowMajorOrderMatrix3x3(this._currentTransform)
-        object.render(this)
-        object.renderAfter(this)
+    }
+    renderObject(object: DisplayObject) {
+        this.emit('object:renderBefore',{object:object,renderer:this})
+        object.renderBefore(this)
+        this.save()
+        this.applyClipPath(object)
+        object.startDraw(this)
+        this.transformObject(object)
+        object.draw(this)
+        object.endDraw(this)
         this.restore()
         object.effectFlag=NodeEffectFlags.None
-        this.emit('object:rendered',{object:object,renderer:this})
+        object.renderAfter(this)
+        this.emit('object:renderAfter',{object:object,renderer:this})
     }
 
-    render({ container, delta }: { container: Container, delta: number }): void {
-        const viewport = this.viewport
-        const renderList = container.updateRenderList({ viewport, delta })
-
+    render({ renderObjects, delta }: { renderObjects: DisplayObject[], delta: number }): void {
         const canvas = this.canvas
-
-        canvas.clear(CK.Color4f(0, 0, 0, 1))
+        if(this.options.backgroundColor){
+            canvas.clear(Color.parse(this.options.backgroundColor).normalize())
+        }else{
+            this.clearRect(0,0,this.pixelWidth,this.pixelHeight)
+        }
         canvas.save()
         canvas.scale(this.dpr, this.dpr)
 
-        renderList.forEach((object) => {
+        renderObjects.forEach((object) => {
             if (object.shouldRender()) {
                 this.disposableManager.run(() => {
-                    this.renderObject(object)
+                   object.render(this)
                 })
             }
         })

@@ -1,7 +1,5 @@
 import { Vector3 } from '../../math/Vector3.js';
 import { Curve } from '../core/Curve.js';
-
-
 /**
  * A curve representing a **3D** line segment.
  * @see {@link https://threejs.org/docs/index.html#api/en/extras/curves/LineCurve3 | Official Documentation}

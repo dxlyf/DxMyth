@@ -5,8 +5,6 @@ import { Vector3 } from '../math/Vector3.js';
 import { XRTargetRaySpace } from '../renderers/webxr/WebXRController.js';
 import { Layers } from './Layers.js';
 import { Object3D } from './Object3D.js';
-
-
 export interface Face {
     a: number;
     b: number;

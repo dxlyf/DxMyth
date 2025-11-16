@@ -1,6 +1,4 @@
 import { PerspectiveCamera } from './PerspectiveCamera.js';
-
-
 /**
  * {@link ArrayCamera} can be used in order to efficiently render a scene with a predefined set of cameras
  * @remarks

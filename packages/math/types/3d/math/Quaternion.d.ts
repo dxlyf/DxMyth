@@ -3,8 +3,6 @@ import { InterleavedBufferAttribute } from '../core/InterleavedBufferAttribute.j
 import { Euler } from './Euler.js';
 import { Matrix4 } from './Matrix4.js';
 import { Vector3, Vector3Like } from './Vector3.js';
-
-
 export interface QuaternionLike {
     readonly x: number;
     readonly y: number;

@@ -1,6 +1,4 @@
 import { Vector3 } from './Vector3.js';
-
-
 export class Cylindrical {
     constructor(radius?: number, theta?: number, y?: number);
 

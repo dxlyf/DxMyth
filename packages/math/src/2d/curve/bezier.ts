@@ -35,7 +35,16 @@ export class QuadBezier {
     split(t: number) {
         return chopQuadBezierAt(this.p0, this.p1, this.p2, t)
     }
+    // 关于t一元二次多项式展开形式：(p0-2p1+p2)t^2+2(p1-p0)t+p0
+    getPolynomial() {
+        return {
+            a: this.p0.clone().subtract(this.p1.clone().multiplyScalar(2)).add(this.p2),
+            b: this.p1.clone().subtract(this.p0).multiplyScalar(2),
+            c: this.p0.clone(),
+        }
+    }
 
+    
     /**
      * 获取贝塞尔曲线上某一点的坐标
      * @param {number} t
@@ -91,6 +100,15 @@ export class CubicBezier {
         return bounds
     }
 
+    // 关于t一元三次多项式展开形式：(p0-3p1+3p2-p3)t^3+3(p1-2p0+p2)t^2+3(p0-p1)t+p0
+    getPolynomial() {
+        return {
+            a: this.p0.clone().subtract(this.p1.clone().multiplyScalar(3)).add(this.p2.clone().multiplyScalar(3)).subtract(this.p3),
+            b: this.p1.clone().subtract(this.p0.clone().multiplyScalar(2)).add(this.p2),
+            c: this.p0.clone().subtract(this.p1),
+            d: this.p0.clone(),
+        }
+    }
     split(t: number) {
         return chopCubicBezierAt(this.p0, this.p1, this.p2, this.p3, t)
     }
@@ -116,7 +134,29 @@ export class CubicBezier {
 export function bernstein(n: number, i: number, t: number): number {
     return nCr(n, i) * Math.pow(t, i) * Math.pow(1 - t, n - i)
 }
-
+function binomial(n: number, r: number): number {
+   if(n < r) return 0;
+   if(r === 0 || r === n) return 1;
+   return binomial(n - 1, r - 1) + binomial(n - 1, r);
+}
+export function getBezierPowerBasis(controls:{x:number,y:number}[]){
+    const n = controls.length - 1;
+    const coefficients =new Array(n+1);
+    
+    for (let i = 0; i <= n; i++) {
+        const binomialCoeff = binomial(n, i);
+        coefficients[i]={x:0,y:0};
+        for(let j = 0; j <=(n-i); j++){
+            const subbinomialCoeff = binomial(n, j);
+            const sign= i % 2 === 0 ? 1 : -1;
+            coefficients[i].x += controls[j].x * subbinomialCoeff * sign;
+            coefficients[i].y += controls[j].y * subbinomialCoeff * sign;
+        }
+        coefficients[i].x*=binomialCoeff;
+        coefficients[i].y*=binomialCoeff;
+    }
+    return coefficients;
+} 
 /**
  * 伯恩斯坦多项式，用于计算贝塞尔曲线上的点
  * B(t)=∑(nCi)ti(1-t)(n-i)p_i

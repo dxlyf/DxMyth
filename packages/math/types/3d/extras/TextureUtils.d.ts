@@ -1,7 +1,5 @@
 import { CompressedPixelFormat, PixelFormat, TextureDataType } from '../constants.js';
 import { Texture } from '../textures/Texture.js';
-
-
 /**
  * Scales the texture as large as possible within its surface without cropping or stretching the texture. The method
  * preserves the original aspect ratio of the texture. Akin to CSS `object-fit: contain`.

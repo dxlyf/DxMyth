@@ -1,19 +1,24 @@
-import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection } from "src/enum";
+import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits } from "src/enum";
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
 import type { CanvaskitRenderer } from "src/renderer/CanvaskitRenderer";
 import type { DisplayObject } from "src/scene/DisplayObject";
+import type { CanvasKit } from "src/canvaskit";
+import type { Shape } from "src/scene/Shape";
+import type { GraphicPath } from "src/scene/GraphicPath";
 
 export type RendererOptions={
     canvas:HTMLCanvasElement
     dpr?:number // 设备像素比
     width?:number
     height?:number
+    backgroundColor?:ColorValue
 }
 export interface RendererEvents{
     resize:[width:number,height:number]
-    'object:rendered':[{renderer:CanvaskitRenderer,object:DisplayObject}] // 对象渲染完
+    'object:renderBefore':[{renderer:CanvaskitRenderer,object:DisplayObject}] // 对象渲染前
+    'object:renderAfter':[{renderer:CanvaskitRenderer,object:DisplayObject}] // 对象渲染完
 }
 export type CanvaskitRendererOptions=RendererOptions & {
 }
@@ -46,7 +51,7 @@ export type LineStyles={
     lineWidth?: number;// 线宽
     borderSide?: BorderSide;// 边框边
     borderStyle?: BorderStyle // 边框样式
-    dash?: number[];// 虚线模式
+    LineDash?: number[];// 虚线模式
     lineDashOffset?: number// 虚线偏移量
 }
 export type FillStrokeValue=Gradient|Pattern|ColorValue|'none'|null
@@ -70,9 +75,26 @@ export type PaintBrushStyle = LineStyles&ShadowStyles&TextDrawingStyles&{
     pattern?: Pattern;
     fillRule?: FillRule;
 }
+export type ClipPathStyle={
+    clip?:{
+        object?:Shape|GraphicPath
+        path?:CanvasKit.Path
+        fillRule?:FillRule
+        clipPathUnits?:ClipPathUnits
+    }
+}
+export type MaskStyle={
+    mask?:{
+        image?:CanvasKit.Image
+        path?:CanvasKit.Path
+        object?:Shape|GraphicPath
+        maskFilter?:CanvasKit.MaskFilter
+    }
+}
 
-export type RendererContextState= CanvasCompositing&FillStrokeStyles&LineStyles&ShadowStyles&TextDrawingStyles&{
-
+export type CanvasDrawStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&TextDrawingStyles&{
+    firstFill?:boolean
+    fillRule?:FillRule
 }
 
 export interface ICanvasContextService extends CanvasCompositing, CanvasDrawImage, CanvasDrawPath, CanvasFillStrokeStyles, CanvasFilters, CanvasImageData, CanvasImageSmoothing, CanvasPath, CanvasPathDrawingStyles, CanvasRect, CanvasShadowStyles, CanvasState, CanvasText, CanvasTextDrawingStyles, CanvasTransform   {

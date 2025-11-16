@@ -9,4 +9,7 @@ export * from 'src/scene/Group'
 export * from 'src/scene/Shape'
 export * from 'src/scene/Rect'
 export * from 'src/scene/Circle'
+export * from 'src/scene/Ellipse'
+export * from 'src/scene/GraphicPath'
+
 

@@ -1,6 +1,4 @@
 import { PolyhedronGeometry } from './PolyhedronGeometry.js';
-
-
 /**
  * A class for generating a dodecahedron geometries.
  * @see {@link https://threejs.org/docs/index.html#api/en/geometries/DodecahedronGeometry | Official Documentation}

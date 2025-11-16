@@ -1,7 +1,5 @@
 import { MagnificationTextureFilter, Mapping, MinificationTextureFilter, PixelFormat, TextureDataType, Wrapping } from '../constants.js';
 import { Texture } from './Texture.js';
-
-
 /**
  * Creates a texture directly from raw data, width and height.
  * @example

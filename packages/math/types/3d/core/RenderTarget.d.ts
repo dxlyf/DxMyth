@@ -2,8 +2,6 @@ import { Vector4 } from '../math/Vector4.js';
 import { DepthTexture } from '../textures/DepthTexture.js';
 import { Texture, TextureParameters } from '../textures/Texture.js';
 import { EventDispatcher } from './EventDispatcher.js';
-
-
 export interface RenderTargetOptions extends TextureParameters {
     depthBuffer?: boolean | undefined; // true
     stencilBuffer?: boolean | undefined; // false

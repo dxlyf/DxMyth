@@ -1,7 +1,5 @@
 import { CompressedPixelFormat, TextureDataType, Wrapping } from '../constants.js';
 import { CompressedTexture, CompressedTextureMipmap } from './CompressedTexture.js';
-
-
 /**
  * Creates an texture 2D array based on data in compressed form, for example from a
  * {@link https://en.wikipedia.org/wiki/DirectDraw_Surface | DDS} file.

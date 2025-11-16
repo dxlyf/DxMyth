@@ -9,6 +9,11 @@ export declare class QuadBezier {
     constructor(p0: Vector2, p1: Vector2, p2: Vector2);
     getBoundingBox(): BoundingRect;
     split(t: number): Vector2[];
+    getPolynomial(): {
+        a: Vector2;
+        b: Vector2;
+        c: Vector2;
+    };
     /**
      * 获取贝塞尔曲线上某一点的坐标
      * @param {number} t
@@ -30,6 +35,12 @@ export declare class CubicBezier {
     p3: Vector2;
     constructor(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2);
     getBoundingBox(): BoundingRect;
+    getPolynomial(): {
+        a: Vector2;
+        b: Vector2;
+        c: Vector2;
+        d: Vector2;
+    };
     split(t: number): Vector2[];
     getPoint(t: number): Vector2;
     getPoints(tolerance?: number): Vector2[];
@@ -37,6 +48,10 @@ export declare class CubicBezier {
     fatten(tessellationTolerance?: number): Vector2[];
 }
 export declare function bernstein(n: number, i: number, t: number): number;
+export declare function getBezierPowerBasis(controls: {
+    x: number;
+    y: number;
+}[]): any[];
 /**
  * 伯恩斯坦多项式，用于计算贝塞尔曲线上的点
  * B(t)=∑(nCi)ti(1-t)(n-i)p_i

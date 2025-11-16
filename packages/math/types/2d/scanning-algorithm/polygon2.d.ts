@@ -1,4 +1,4 @@
-import { Vector2 } from '../../../../../../../../src/2d/math/vec2';
+import { Vector2 } from '../../../../../../../../../src/2d/math/vec2';
 type FillRule = "evenodd" | "nonzero";
 export declare const fillPolygon2: (polygons: Vector2[], setPixel: (x: number, y: number, coverage?: number) => void, fillRule?: FillRule) => void;
 export declare const fillPolygon: (polygons: Vector2[], setPixel: (x: number, y: number, coverage?: number) => void, fillRule?: FillRule) => void;

@@ -454,6 +454,9 @@ export class Vector2 extends Float32Array {
     static fromPoint(values: {x:number, y:number}) {
         return this.create(values.x,values.y)
     }
+    static fromVectorLike(values: Vector2Like) {
+        return this.create(values[0],values[1])
+    }
     static fromRotation(rad: number) {
         const cos = Math.cos(rad)
         const sin = Math.sin(rad)

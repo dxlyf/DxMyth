@@ -1,4 +1,4 @@
-import { Vector4, Vector3 } from '../../../../../../../../src/3d/index.core.ts';
+import { Vector4, Vector3 } from '../../../../../../../../../src/3d/index.core.ts';
 /**
  * @module NURBSUtils
  * @three_import import * as NURBSUtils from 'three/addons/curves/NURBSUtils.js';

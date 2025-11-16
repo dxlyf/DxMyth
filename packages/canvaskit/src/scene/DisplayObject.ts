@@ -1,4 +1,4 @@
-import type {DisplayObjectOptions,DisplayObjectEvents} from 'src/types/DisplayObject'
+import type { DisplayObjectOptions, DisplayObjectEvents } from 'src/types/DisplayObject'
 import { Node } from "./Node";
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { BoundingRect } from 'src/math/BoundingRect';
@@ -8,43 +8,62 @@ import { NodeEffectFlags } from 'src/consts';
  * 显示对象基类
 */
 
-abstract class DisplayObject<Options extends DisplayObjectOptions=DisplayObjectOptions> extends Node<Options,DisplayObjectEvents>{
-     type='DisplayObject'
-     constructor(options?:Options){
+abstract class DisplayObject<Options extends DisplayObjectOptions = DisplayObjectOptions> extends Node<Options, DisplayObjectEvents> {
+     type = 'DisplayObject'
+     constructor(options?: Options) {
           super(options)
      }
-     init(){}
-     getDefaultProps(){
-          return [...super.getDefaultProps(),{
-               style:{
-                    opacity:1
+     init() { }
+     getDefaultProps() {
+          return [...super.getDefaultProps(), {
+               style: {
+                    opacity: 1
                }
           }] as Options[]
      }
-     get style():Options['style']{
+     get style(): Options['style'] {
           return this.props.style
      }
-     setStyle(style:Options['style']){
-          merge(this.props.style,style)
+     setStyle(style: Options['style']) {
+          merge(this.props.style, style)
           this.dirtyStyle()
      }
-     dirtyStyle(){
-           this.effectFlag |= NodeEffectFlags.Repaint|NodeEffectFlags.Style
+     dirtyStyle() {
+          this.effectFlag |= NodeEffectFlags.Repaint | NodeEffectFlags.Style
      }
-     shouldRender(){
-          return super.shouldRender()&&this.props.style.opacity>0
+     shouldRender() {
+          return super.shouldRender() && this.props.style.opacity > 0
      }
-     hit(x:number,y:number):boolean{
+     hit(x: number, y: number): boolean {
           // 如果开启了只命中包围合就行
-          if(this.props.hitRect){
-               return this.bounds.containsXY(x,y)
+          if (this.props.hitRect) {
+               return this.bounds.containsXY(x, y)
           }
           return false
      }
      abstract innerCalcBounds(): void
-     abstract renderBefore(renderer:CanvaskitRenderer): void 
-     abstract render(renderer: CanvaskitRenderer): void 
-     abstract renderAfter(renderer:CanvaskitRenderer): void 
+     renderBefore(renderer: CanvaskitRenderer) { }
+     /**
+      * renderer.render
+      *   object.render
+      * renderer.renderObject
+      *   object.renderBefore
+      *   object.startDraw
+      *   object.draw
+      *   object.endDraw
+      *   object.renderAfter
+      * 
+      * 渲染对象
+      * @param renderer 渲染器
+      */
+     render(renderer: CanvaskitRenderer) {
+          renderer.renderObject(this)
+     }
+     startDraw(renderer: CanvaskitRenderer) { }
+     draw(renderer: CanvaskitRenderer) { }
+     endDraw(renderer: CanvaskitRenderer) { }
+     // internalRender(renderer: CanvaskitRenderer){}
+     renderAfter(renderer: CanvaskitRenderer) { }
 }
 export {
      DisplayObject

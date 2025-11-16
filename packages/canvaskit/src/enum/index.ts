@@ -130,8 +130,12 @@ enum BlendMode{
     Color='color', // 颜色混合模式
     Luminosity='luminosity', // 颜色混合模式
 }
-
+enum ClipPathUnits{
+    UserSpaceOnUse='userSpaceOnUse', // 用户空间 clipPathUnits
+    ObjectBoundingBox='objectBoundingBox', // 对象边界 clipPathUnits
+}
 export {
+    ClipPathUnits,
     GlobalCompositeOperation,
     BlendMode,
     FontDirection,

@@ -1,4 +1,4 @@
-import { Controls, Vector3, Vector2 } from '../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3, Vector2 } from '../../../../../../../../../src/3d/index.core.ts';
 /**
  * This class is similar to {@link OrbitControls}. However, it does not maintain a constant camera
  * `up` vector. That means if the camera orbits over the “north” and “south” poles, it does not flip

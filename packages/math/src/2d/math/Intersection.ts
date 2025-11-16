@@ -13,11 +13,9 @@
  * - 分离轴定理（SAT）的应用
  * - 投影法和向量运算优化
  * 
- * @author DxMyth Team
- * @version 1.0.0
  */
 
-import { Vector2,type Vector2Like } from "./Vector2";
+import { Vector2,type Vector2Like } from "./vec2";
 
 /**
  * 计算两条无限直线的交点
@@ -757,7 +755,144 @@ function circlePolygonIntersections(center: Vector2Like, radius: number, vertice
     return uniqueIntersections;
 }
 
-// 导出所有相交检测相关的函数
+/**
+ * 求解三次方程 k3*x³ + k2*x² + k1*x + k0 = 0 的实根
+ */
+function solveCubic(k3: number, k2: number, k1: number, k0: number,epsilon = 1e-10): number[] {
+  if (Math.abs(k3) < epsilon) {
+    // 退化为二次方程
+    return solveQuadratic(k2, k1, k0);
+  }
+  // 归一化
+  const a = k2 / k3;
+  const b = k1 / k3;
+  const c = k0 / k3;
+
+  const Q = (a * a - 3 * b) / 9;
+  const R = (2 * a * a * a - 9 * a * b + 27 * c) / 54;
+  const D = Q * Q * Q - R * R;
+
+  const roots: number[] = [];
+  if (D >= 0) {
+    // 三个实根
+    const theta = Math.acos(R / Math.sqrt(Q * Q * Q));
+    const sqrtQ = Math.sqrt(Q);
+    roots.push(-2 * sqrtQ * Math.cos(theta / 3) - a / 3);
+    roots.push(-2 * sqrtQ * Math.cos((theta + 2 * Math.PI) / 3) - a / 3);
+    roots.push(-2 * sqrtQ * Math.cos((theta - 2 * Math.PI) / 3) - a / 3);
+  } else {
+    // 一个实根
+    const sqrtD = Math.sqrt(-D);
+    const S = Math.cbrt(R + sqrtD);
+    const T = Math.cbrt(R - sqrtD);
+    roots.push(S + T - a / 3);
+  }
+  return roots;
+}
+
+/**
+ * 求解二次方程 a*x² + b*x + c = 0 的实根
+ */
+function solveQuadratic(a: number, b: number, c: number, epsilon = 1e-10): number[] {
+  if (Math.abs(a) < epsilon) {
+    if (Math.abs(b) < epsilon) return [];
+    return [-c / b];
+  }
+  const D = b * b - 4 * a * c;
+  if (D < 0) return [];
+  if (D === 0) return [-b / (2 * a)];
+  const sqrtD = Math.sqrt(D);
+  return [(-b + sqrtD) / (2 * a), (-b - sqrtD) / (2 * a)];
+}
+
+/**
+ * 线段与两次贝塞尔曲线求交点
+ * 直线隐式方程：Ax+By+C=0
+ * 二次贝塞尔曲线参数方程：B(t)=(x(t),y(t))=(1-t)²p0+2(1-t)p1+t²p2，t∈[0,1]
+ * 多项式展开形式：(p0-2p1+p2)t^2+2(p1-p0)t+p0
+ * A=p0-2p1+p2
+ * B=2(p1-p0)
+ * C=p0
+ * B(t)=At^2+Bt+C,x(t)=Axt^2+Bxt+Cx,y(t)=Ayt^2+Byt+Cy
+ * 
+ * 代入直线隐式方程：Ax(t)+By(t)+C=0
+ * 得到一个关于求解t 的一元二次方程：At^2+Bt+C=0
+ */
+function lineQuadraticBezierIntersections(start:Vector2Like, end:Vector2Like,cp:Vector2Like[]):Vector2Like[] {
+    // 直线一般式：Ax+By+C=0
+    const A_line = end[1] - start[1];
+    const B_line = start[0] - end[0];
+    const C_line = end[0] * start[1] - start[0] * end[1];
+    // 二次贝塞尔多项式：B(t)=At^2+Bt+C
+    const A_bezier_x = cp[0][0] - 2 * cp[1][0] + cp[2][0];
+    const B_bezier_x = 2 * (cp[1][0] - cp[0][0]);
+    const C_bezier_x = cp[0][0];
+
+    const A_bezier_y = cp[0][1] - 2 * cp[1][1] + cp[2][1];
+    const B_bezier_y = 2 * (cp[1][1] - cp[0][1]);
+    const C_bezier_y = cp[0][1];
+
+    // Ab(t).x+Ba(t).y+C=0
+    // 代入
+    const A =A_line*A_bezier_x+B_line*A_bezier_y;
+    const B =A_line*B_bezier_x+B_line*B_bezier_y;
+    const C =A_line*C_bezier_x+B_line*C_bezier_y+C_line;
+
+    const roots= solveQuadratic(A,B,C);
+    // 返回在[0,1]范围内的交点
+    return roots.filter(t=>t>=0&&t<=1).map(t=>{
+        const tt=t*t;
+        return Vector2.create(
+            A_bezier_x*tt+B_bezier_x*t+C_bezier_x,
+            A_bezier_y*tt+B_bezier_y*t+C_bezier_y
+        );
+    });
+}
+/**
+ * 计算线段与三次贝塞尔曲线的交点
+ * @param start 线段起点
+ * @param end 线段终点
+ * @param cp 三次贝塞尔曲线控制点数组，长度必须为3
+ * @returns 交点数组，可能为空
+ */
+function lineCubicBezierIntersections(start:Vector2Like, end:Vector2Like,cp:Vector2Like[]):Vector2Like[] {
+    // 三次贝塞尔曲线一般式：B(t)=At^3+Bt^2+Ct+D
+    // 展开成多项式：B(t)=At^3+3At^2*B+3At*C+D
+    // A=p0-3p1+3p2-p3
+    // B=3(p1-p0)-6p2+3p3
+    // C=3(p2-p1)+3p3-p0
+    // D=p0
+    const A_bezier_x = cp[0][0] - 3 * cp[1][0] + 3 * cp[2][0] - cp[3][0];
+    const B_bezier_x = 3 * (cp[1][0] - cp[0][0]) - 6 * cp[2][0] + 3 * cp[3][0];
+    const C_bezier_x = 3 * (cp[2][0] - cp[1][0]) + 3 * cp[3][0] - cp[0][0];
+    const D_bezier_x = cp[0][0];
+    const A_bezier_y = cp[0][1] - 3 * cp[1][1] + 3 * cp[2][1] - cp[3][1];
+    const B_bezier_y = 3 * (cp[1][1] - cp[0][1]) - 6 * cp[2][1] + 3 * cp[3][1];
+    const C_bezier_y = 3 * (cp[2][1] - cp[1][1]) + 3 * cp[3][1] - cp[0][1];
+    const D_bezier_y = cp[0][1];
+    // 直线一般式：Ax+By+C=0
+    const A_line = end[1] - start[1];
+    const B_line = start[0] - end[0];
+    const C_line = end[0] * start[1] - start[0] * end[1];
+    // 三次贝塞尔多项式：B(t)=At^3+Bt^2+Ct+D
+    // 代入直线隐式方程：Ax(t)+By(t)+C=0
+    // 得到一个关于求解t 的一元三次方程：At^3+Bt^2+Ct+D=0
+    const A =A_line*A_bezier_x+B_line*A_bezier_y;
+    const B =A_line*B_bezier_x+B_line*B_bezier_y;
+    const C =A_line*C_bezier_x+B_line*C_bezier_y+C_line;
+    const D =A_line*D_bezier_x+B_line*D_bezier_y+C_line;
+    // 求解三次方程的根
+    const roots= solveCubic(A,B,C,D);
+    // 返回在[0,1]范围内的交点
+    return roots.filter(t=>t>=0&&t<=1).map(t=>{
+        const tt=t*t;
+        return Vector2.create(
+            A_bezier_x*tt*tt+B_bezier_x*tt*2*t+C_bezier_x*tt+D_bezier_x,
+            A_bezier_y*tt*tt+B_bezier_y*tt*2*t+C_bezier_y*tt+D_bezier_y
+        );
+    });
+}
+
 export {
     // 基础相交检测函数
     lineLineIntersection,      // 直线-直线相交检测
@@ -784,7 +919,8 @@ export {
     rectRectIntersections,     // 矩形-矩形交点计算
     circleRectIntersections,   // 圆-矩形交点计算
     polygonPolygonIntersections, // 多边形-多边形交点计算
-    circlePolygonIntersections  // 圆-多边形交点计算
+    circlePolygonIntersections,  // 圆-多边形交点计算
+    lineQuadraticBezierIntersections // 线段-二次贝塞尔曲线交点计算
 };
 
 

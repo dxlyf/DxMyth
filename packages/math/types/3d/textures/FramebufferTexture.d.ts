@@ -1,7 +1,5 @@
 import { MagnificationTextureFilter, MinificationTextureFilter } from '../constants.js';
 import { Texture } from './Texture.js';
-
-
 /**
  * This class can only be used in combination with {@link THREE.WebGLRenderer.copyFramebufferToTexture | WebGLRenderer.copyFramebufferToTexture()}.
  * @example

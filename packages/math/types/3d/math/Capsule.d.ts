@@ -1,4 +1,4 @@
-import { Vector3 } from '../../../../../../../../src/3d/index.core.ts';
+import { Vector3 } from '../../../../../../../../../src/3d/index.core.ts';
 /**
  * A capsule is essentially a cylinder with hemispherical caps at both ends.
  * It can be thought of as a swept sphere, where a sphere is moved along a line segment.

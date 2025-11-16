@@ -230,7 +230,6 @@ class Matrix2D extends Float32Array {
         out[8] = 1
         return out
     }
-
     toString(): string {
         return `Matrix2D(${this.join(',')})`;
     }

@@ -177,6 +177,7 @@ export declare class Vector2 extends Float32Array {
         x: number;
         y: number;
     }): Vector2;
+    static fromVectorLike(values: Vector2Like): Vector2;
     static fromRotation(rad: number): Vector2;
     static default(): Vector2;
     static zero(): Vector2;

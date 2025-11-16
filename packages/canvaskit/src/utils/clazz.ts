@@ -1,7 +1,7 @@
 
-export function mixin<TBase, TMixin>(base: TBase, mixin: TMixin): TBase & TMixin {
-    Object.assign(base, mixin);
-    return base as TBase & TMixin;
+export function mixinClass(base: {new(...args: any[]): any}, ...mixin: {new(...args: any[]): any}[]) {
+    Object.assign(base.prototype, ...mixin.map(d=>d.prototype));
+    return base
 }
 // 继承
 export const inherit = (child: any, parent: any, copyStatic: boolean = false) => {

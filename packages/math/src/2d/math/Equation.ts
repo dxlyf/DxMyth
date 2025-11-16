@@ -12,13 +12,14 @@ export function solveQuadratic(a: number, b: number, c: number): number[] {
     return [-c / b];
   }
 
-  const discriminant = b * b - 4 * a * c;
+  const discriminant = b * b - 4 * a * c; // 判别式
   
   if (discriminant < 0) {
     return []; // 无实数根
   } else if (Math.abs(discriminant) < Number.EPSILON) {
     return [-b / (2 * a)]; // 重根
   } else {
+    // 两个不同的实数根
     const sqrtDiscriminant = Math.sqrt(discriminant);
     return [
       (-b - sqrtDiscriminant) / (2 * a),
@@ -360,6 +361,30 @@ export function solvePolynomial(coefficients: number[]): number[] {
 /** 检查是否为根 */
 function isRoot(coefficients: number[], x: number): boolean {
   return Math.abs(evaluatePolynomial(coefficients, x)) < 1e-10;
+}
+// 二项式系数
+function binomial(n: number, r: number): number {
+   if(n < r) return 0;
+   if(r === 0 || r === n) return 1;
+   return binomial(n - 1, r - 1) + binomial(n - 1, r);
+}
+export function getBezierPowerBasis(controls:{x:number,y:number}[]){
+    const n = controls.length - 1;
+    const coefficients =new Array(n+1);
+    
+    for (let i = 0; i <= n; i++) {
+        const binomialCoeff = binomial(n, i);
+        coefficients[i]={x:0,y:0};
+        for(let j = 0; j <=(n-i); j++){
+            const subbinomialCoeff = binomial(n, j);
+            const sign= i % 2 === 0 ? 1 : -1;
+            coefficients[i].x += controls[j].x * subbinomialCoeff * sign;
+            coefficients[i].y += controls[j].y * subbinomialCoeff * sign;
+        }
+        coefficients[i].x*=binomialCoeff;
+        coefficients[i].y*=binomialCoeff;
+    }
+    return coefficients;
 }
 
 /** 计算多项式值 */

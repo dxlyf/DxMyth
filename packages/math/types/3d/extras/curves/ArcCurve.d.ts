@@ -1,6 +1,4 @@
 import { EllipseCurve } from './EllipseCurve.js';
-
-
 /**
  * Alias for {@link THREE.EllipseCurve | EllipseCurve}.
  * @see {@link https://threejs.org/docs/index.html#api/en/extras/curves/ArcCurve | Official Documentation}

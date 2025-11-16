@@ -1,4 +1,4 @@
-import { CKEngine,Circle,Rect,Group } from "src/index"
+import { CKEngine,Circle,Rect,Group,Ellipse,GraphicPath } from "src/index"
 
 const engine=new CKEngine()
 await engine.init({
@@ -6,48 +6,53 @@ await engine.init({
     width:500,
     height:500
 })
-const group=new Group()
-group.position.set(100,100)
-const rect=new Rect({
+
+const ellipse=new Ellipse({
     style:{
         fillStyle:'red'
     },
     shape:{
-        x:50,
-        y:50,
-        width:100,
-        height:200
-    }
+        rx:50,
+        ry:70,
+    },
+    position:[100,100]
 })
-group.add(rect)
-
-
-
-const circle=new Circle({
-    silent:true,
+engine.add(ellipse)
+const ellipse3=new Ellipse({
     style:{
-        fillStyle:'red'
+        fillStyle:'#ffff00'
     },
     shape:{
-        r:50
+        rx:50,
+        ry:70,
     },
+    position:[100,150]
+})
+engine.add(ellipse3)
+
+const ellipse2=new Ellipse({
+    style:{
+        fillStyle:'green'
+    },
+    shape:{
+        rx:50,
+        ry:70,
+    },
+    position:[150,100],
+})
+engine.add(ellipse2)
+
+const path=new GraphicPath({
     position:[300,100]
 })
-group.add(rect)
-group.add(circle)
-circle.on('pointerdown',e=>{
-   // e.stopImmediatePropagation()
-    console.log('circle',e.x,e.y)
+path.beginPath()
+path.rect(0,0,100,100)
+path.moveTo(0,220)
+path.arc(0,220,50,0,Math.PI*2)
+path.drawPaint({
+    fillStyle:'green',
 })
-circle.on('pointerdown',e=>{
-   
-    console.log('circle2',e.x,e.y)
-})
-group.on('pointerdown',e=>{
-    
-    console.log('group',e.target?.type,e.x,e.y)
-})
-engine.add(group)
+engine.add(path)
 
 
-engine.render()
+engine.start()
