@@ -12,7 +12,7 @@ import { Color } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern, PatternRepeat } from "src/core/Pattern";
 import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
-import { getTypeface } from 'src/canvaskit/htmlcanvas/font'
+import { addToFontCache, getTypeface } from 'src/canvaskit/htmlcanvas/font'
 import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
 import {arc,ellipse,arcTo,rect,roundRect,lineTo,moveTo,quadraticCurveTo,bezierCurveTo, Path2D} from 'src/canvaskit/htmlcanvas/path2d'
@@ -52,7 +52,6 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     // font 
     public _font: CanvasKit.Font
     private _fontString: string = '12px monospace'
-    fontManager=new Map<string,CanvasKit.Typeface>()
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
@@ -76,21 +75,21 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
 
     }
     addFont(fontFamily:string,typeface:CanvasKit.Typeface){
-        if(!this.fontManager.has(fontFamily)){
-            this.fontManager.set(fontFamily,typeface)
-        }
-    }
-    getFont(fontFamily:string){
-        return this.fontManager.get(fontFamily)
+        addToFontCache(typeface,{
+            style:'normal',
+            variant:'normal',
+            weight:'normal',
+            family:fontFamily
+        })
     }
     async loadFontFromUrl(fontUrl:string){
-        const fontData=await fetch(notoSansSCFontUrl).then(res=>res.arrayBuffer())
+        const fontData=await fetch(fontUrl).then(res=>res.arrayBuffer())
         const typeface=CK.Typeface.MakeFreeTypeFaceFromData(fontData)
         return typeface
     }
     async initFonts(){
         const fontUrls=[notoSansSCFontUrl]
-        Promise.allSettled(fontUrls.map(url=>this.loadFontFromUrl(url))).then(result=>{
+        await Promise.allSettled(fontUrls.map(url=>this.loadFontFromUrl(url))).then(result=>{
             result.forEach(ret=>{
                 if(ret.status==='fulfilled'){
                     const typeFace=ret.value
@@ -979,9 +978,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._stateStack.length=0
         this._fillStyle?.dispose?.()
         this._strokeStyle?.dispose?.()
-        this.fontManager.forEach((typeface,fontFamily)=>{
-            typeface.delete()
-        })
+ 
         this._font.delete();
         this.removeAllListeners()
     }
