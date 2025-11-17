@@ -3,6 +3,7 @@
 import type {ShapeConfig } from 'src/types/Shape';
 import {Shape,type ShapeOptions } from './Shape';
 import { CanvasKit, CK } from 'src/canvaskit';
+import { roundRect } from 'src/canvaskit/htmlcanvas/path2d';
 
 
 export interface RectOptions extends ShapeOptions<RectShapeConfig>{
@@ -13,6 +14,7 @@ export interface RectShapeConfig extends ShapeConfig{
      y?:number,
      width?:number,
      height?:number,
+     radius?:number|number[],
 }
 
 export class Rect extends Shape<RectOptions> {
@@ -31,8 +33,12 @@ export class Rect extends Shape<RectOptions> {
                style:{}}]
     }
     buildPath(path: CanvasKit.Path): void {
-         const {x,y,width,height}=this.shape
-         path.addRect(CK.XYWHRect(x,y,width,height))
+         const {x,y,width,height,radius}=this.shape
+         if(radius!==undefined){
+            roundRect(path,x,y,width,height,radius)
+         }else{
+            path.addRect(CK.XYWHRect(x,y,width,height))
+         }
     }
 }
 

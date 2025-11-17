@@ -1,4 +1,4 @@
-import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits } from "src/enum";
+import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
@@ -27,8 +27,10 @@ export interface CanvaskitRendererEvents extends RendererEvents{
 }
 export type TextDrawingStyles={
     direction?: FontDirection; // 字体方向
+    fontStyle?: FontStyle // 字体样式
     fontSize?: number // 字体大小
     fontFamily?: string // 字体
+    fontWeight?: FontWeight // 字体粗细
     fontStretch?: FontStretch // 字体拉伸
     fontVariant?: FontVariant // 字体变体
     fontKerning?: FontKerning // 字体间距

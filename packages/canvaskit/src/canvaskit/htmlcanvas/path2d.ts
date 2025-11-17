@@ -144,15 +144,57 @@ function rect(skpath: CanvasKit.Path, x: number, y: number, width: number, heigh
   // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
   skpath.addRect(rect);
 }
-function roundRect(skpath: CanvasKit.Path, x: number, y: number, width: number, height: number,radius:number|[number,number]) {
+/**
+ * 绘制圆角矩形
+ * @param skpath 路径
+ * @param x 矩形左上角x坐标
+ * @param y 矩形左上角y坐标
+ * @param width 矩形宽度
+ * @param height 矩形高度
+ * @param radius 圆角半径 
+ * [all-corners]
+  [top-left-and-bottom-right, top-right-and-bottom-left]
+  [top-left, top-right-and-bottom-left, bottom-right]
+  [top-left, top-right, bottom-right, bottom-left] 
+ * @returns 
+ * 
+ */
+function roundRect(skpath: CanvasKit.Path, x: number, y: number, width: number, height: number,radius?:number|number[]) {
   var rect = CK.XYWHRect(x, y, width, height);
   if (!allAreFinite(rect)) {
     return;
   }
-  const radiusArr=Array.isArray(radius)?radius:[radius??0,radius??0]
-  const rx=radiusArr[0],ry=radiusArr[1]
+  const corners=new Array(4).fill(0)
+  if(radius!==undefined){
+     if(typeof radius==='number'){
+       corners.fill(radius)
+     }else{
+       const radiuisArray=radius as number[],length=radiuisArray.length
+       if(length===1){
+         corners.fill(radiuisArray[0])
+       }else if(length===2){
+         corners[0]=corners[2]=radiuisArray[0]
+         corners[1]=corners[3]=radiuisArray[1]
+       }else if(length===3){
+         corners[0]=radiuisArray[0]
+         corners[1]=corners[3]=radiuisArray[1]
+         corners[2]=radiuisArray[2]
+       }else{
+         corners[0]=radiuisArray[0]
+         corners[1]=radiuisArray[1]
+         corners[2]=radiuisArray[2]
+         corners[3]=radiuisArray[3]
+       }
+     }
+  }
+  const rrect=CK.RRectXY(rect, 0, 0)
+  rrect[4]=rrect[5]=corners[0]
+  rrect[6]=rrect[7]=corners[1]
+  rrect[8]=rrect[9]=corners[2]
+  rrect[10]=rrect[11]=corners[3]
   // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-rect
-  skpath.addRRect(CK.RRectXY(rect, rx, ry));
+  skpath.addRRect(rrect,false);
+  
 }
 class Path2D {
   _path: CanvasKit.Path;

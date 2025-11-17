@@ -1,4 +1,4 @@
-import { BorderSide, BorderStyle, FillRule, FontKerning, FontStretch, FontVariant, GlobalCompositeOperation, LineCap, LineJoin, TextAlign, TextBaseline, TextRendering } from "src/enum";
+import { BorderSide, BorderStyle, FillRule, FontKerning, FontStretch, FontStyle, FontVariant, FontWeight, GlobalCompositeOperation, LineCap, LineJoin, TextAlign, TextBaseline, TextRendering } from "src/enum";
 import { CanvasDrawStyle } from "src/types/Renderer";
 
  const defaultCanvasDrawStyle: CanvasDrawStyle = {
@@ -21,7 +21,9 @@ import { CanvasDrawStyle } from "src/types/Renderer";
     shadowOffsetX: 0,
     shadowOffsetY: 0,
     fontSize: 12,
+    fontStyle: FontStyle.Normal,
     fontFamily: 'sans-serif',
+    fontWeight: FontWeight.Normal,
     fontStretch: FontStretch.Normal,
     fontVariant: FontVariant.Normal,
     fontKerning: FontKerning.Auto,
@@ -35,8 +37,10 @@ const DrawStylePropertiesMap = {
 } as const
 type DrawStylePropertiesMapType = typeof defaultCanvasDrawStyle
 const DrawStylePropertiesSet = new Set(Object.keys(defaultCanvasDrawStyle))
+const FontPropertiesSet = new Set(['fontSize','fontStyle', 'fontFamily', 'fontStretch', 'fontVariant', 'fontKerning', 'textRendering'])
 const HasDrawStylePropertiesMap = new Set(Object.keys(DrawStylePropertiesMap))
 export {
+    FontPropertiesSet,
     defaultCanvasDrawStyle,
     DrawStylePropertiesSet,
     DrawStylePropertiesMap,

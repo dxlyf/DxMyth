@@ -1,12 +1,25 @@
 import { CKEngine } from "src/core/CKEngine";
 import { IPlugin } from "src/core/PluginService";
 import { CKEnginePluginHooks, CKEnginePluginMethods } from "src/types/CKEngine";
-
+import { isDevelopment } from "src/utils/env";
+import Stats from "stats.js";
 export default {
     name: 'DebugPlugin',
     apply(api) {
-
-        if(!api.ctx.options.debug?.showBounds){
+        if(!isDevelopment){
+            return
+        }
+        if(api.ctx.options.debug?.showPerformance!==false){
+            api.ctx.on('init',(engine)=>{
+                const stats=new Stats()
+                stats.showPanel(0)
+                document.body.appendChild(stats.dom)
+                engine.on('update',info=>{
+                    stats.update()
+                })
+            })
+        }
+        if(api.ctx.options.debug?.showBounds){
       
             api.ctx.on('init',(engine)=>{
                 engine.renderer.on('object:renderAfter',info=>{

@@ -31,7 +31,7 @@ export class CKEngine extends EventEmitter<CKEngineEvents> {
         this.ticker.add(this.update)
     }
     async init(options: CKEngineOptions) {
-        this.options = merge({}, this.options, options);
+        this.options = merge({alwaysRefresh:false}, this.options, options);
         this.pluginService.initPresetsAndPlugins({
             plugins: [...(this.options.plugins ?? [])],
             presets: [...CKEngine.defaultPresets, ...(this.options.presets ?? [])],
@@ -88,8 +88,7 @@ export class CKEngine extends EventEmitter<CKEngineEvents> {
     }
     update(delta: number) {
         this.emit('update', this)
-        this.needRefresh = true
-        if (this.needRefresh) {
+        if (this.options.alwaysRefresh||this.needRefresh) {
             this.render()
             this.needRefresh = false
         }

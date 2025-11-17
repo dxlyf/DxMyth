@@ -203,7 +203,7 @@ export class GraphicPath<Options extends GraphicPathOptions = GraphicPathOptions
                     if(this._pathMatrix){
                         renderer._currentPath.transform(this._pathMatrix.toRowMajorOrderMatrix3x3())
                     }
-                    renderer.drawPathStyle(renderer._currentPath, drawStyle)
+                    renderer.drawPathPaint(renderer._currentPath, drawStyle)
                     break
                 case 'closePath':
                     renderer.closePath()

@@ -10,7 +10,9 @@ export type CKEngineEvents={
     dispose:[engine:CKEngine] // 销毁前
 }
 export type CKEngineOptions={
+    alwaysRefresh?:boolean
     debug?:{
+        showPerformance?:boolean
         showBounds?:boolean
     }
  

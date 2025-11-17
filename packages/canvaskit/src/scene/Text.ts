@@ -8,13 +8,19 @@ import { CK, type CanvasKit } from 'src/canvaskit';
 import { isNullOrUndefined, isValidPaintValue, merge } from 'src/utils';
 import { NodeEffectFlags } from 'src/consts';
 
-export interface ShapeOptions<Shape extends ShapeConfig = ShapeConfig, Style extends ShapeStyleConfig = ShapeStyleConfig> extends DisplayObjectOptions<Style> {
+export interface TextOptions<Shape extends TextShapeConfig = TextShapeConfig, Style extends TextStyleConfig = TextStyleConfig> extends DisplayObjectOptions<Style> {
     shape: Shape
 }
+export interface TextShapeConfig extends ShapeConfig{
+    x?:number,
+    y?:number,
+}
+export interface TextStyleConfig extends ShapeStyleConfig{
+    text?:string,
+}
 
-
-export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayObject<Options> {
-    type = 'Shape'
+export class Text<Options extends TextOptions = TextOptions> extends DisplayObject<Options> {
+    type = 'Text'
     _ckPath: CanvasKit.Path
     constructor(options?: Options) {
         super(options)
@@ -39,17 +45,11 @@ export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayO
         return [...super.getDefaultProps(), {
             style: {
                 fillStyle:'#000',
-               // lineWidth: 1,
-               // fillRule:FillRule.NonZero,
-               // lineJoin: LineJoin.Miter,
-               // lineCap: LineCap.Butt,
-               // miterLimit: 10,
-               // borderSide: BorderSide.Middle,
-               // opacity: 1,
-                // shadowColor:null,
-                // shadowBlur:0,
-                // shadowOffsetX:0,
-                // shadowOffsetY:0,
+                text:''
+            },
+            shape:{
+                x:0,
+                y:0
             }
         }] as Options[]
     }
@@ -81,14 +81,13 @@ export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayO
     }
    
     startDraw(renderer: CanvaskitRenderer) {
-        renderer.beginPath()
     }
     draw(renderer: CanvaskitRenderer): void {
         this.buildInnerPath()
         renderer._currentPath.addPath(this._ckPath)
     }
     endDraw(renderer: CanvaskitRenderer) {
-        renderer.drawPathPaint(renderer._currentPath, this.style)
+       renderer.drawTextPaint(this.style.text,this.shape.x,this.shape.y,this.style)     
     }
     hit(x:number,y:number){
        if(super.hit(x,y)){

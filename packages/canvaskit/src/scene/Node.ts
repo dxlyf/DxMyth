@@ -168,6 +168,15 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
             this.effectFlag |= NodeEffectFlags.Child | NodeEffectFlags.Reflow
         }
     }
+    removeAllChildren(){
+        if (this.children) {
+            for (let i = 0, len = this.children.length; i < len; i++) {
+                this.children[i].parent=null
+            }
+            this.children.length=0
+            this.effectFlag |= NodeEffectFlags.Child | NodeEffectFlags.Reflow
+        }
+    }
     traverse<T extends Node<Options,E>>(fn: (el: T) => void): void {
         fn((this as unknown) as T);
         const children = this.children

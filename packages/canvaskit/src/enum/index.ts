@@ -57,7 +57,11 @@ enum TextRendering{
     OptimizeQuality='optimizeQuality', // 优化质量文本渲染
     GeometricPrecision='geometricPrecision', // 几何精度文本渲染
 }
-
+enum FontStyle{
+    Normal='normal', // 正常字体样式
+    Italic='italic', // 斜体字体样式
+    Oblique='oblique', // 倾斜字体样式
+}
 enum FontStretch{
     UltraCondensed='ultra-condensed', // 超压缩字体拉伸
     ExtraCondensed='extra-condensed', // 额外压缩字体拉伸
@@ -81,6 +85,10 @@ enum FontDirection{
     Inherit='inherit', // 继承方向
     Ltr='ltr', // 从左到右方向
     Rtl='rtl', // 从右到左方向
+}
+enum FontWeight{
+    Normal='normal', // 正常字体粗细
+    Bold='bold', // 粗体字体粗细
 }
 
 
@@ -135,6 +143,8 @@ enum ClipPathUnits{
     ObjectBoundingBox='objectBoundingBox', // 对象边界 clipPathUnits
 }
 export {
+    FontWeight,
+    FontStyle,
     ClipPathUnits,
     GlobalCompositeOperation,
     BlendMode,

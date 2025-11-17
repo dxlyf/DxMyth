@@ -11,15 +11,15 @@ import { Container } from 'src/scene/Container'
 import { Color } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern, PatternRepeat } from "src/core/Pattern";
-import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation, ClipPathUnits } from "src/enum";
+import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
 import { getTypeface } from 'src/canvaskit/htmlcanvas/font'
 import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
 import {arc,ellipse,arcTo,rect,roundRect,lineTo,moveTo,quadraticCurveTo,bezierCurveTo, Path2D} from 'src/canvaskit/htmlcanvas/path2d'
 import { hasOwnProperty, isNullOrUndefined, isValidPaintValue } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
-import { DrawStylePropertiesMap, DrawStylePropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
-
+import { DrawStylePropertiesMap, DrawStylePropertiesSet, FontPropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
+import  notoSansSCFontUrl from 'src/assets/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf?url'
 
 const objTransformMatrix = new Float32Array(9)
 const tmpMatrix = Matrix2D.identity()
@@ -50,27 +50,55 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     public shadowOffsetX: number = 0
     public shadowOffsetY: number = 0
     // font 
-    private _font: CanvasKit.Font
+    public _font: CanvasKit.Font
     private _fontString: string = '12px monospace'
+    fontManager=new Map<string,CanvasKit.Typeface>()
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
     async initialize() {
-        this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB)
+        this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB,{
+           // antialias:1,
+        })
         this.canvas = this.surface.getCanvas()
         this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
         // font
+        await this.initFonts()
         this._font = new CK.Font(CK.Typeface.GetDefault(), 12)
         this._font.setSubpixel(true);
-
         this._currentTransform = CK.Matrix.identity();
         this._globalCompositeOperation = CK.BlendMode.SrcOver
         this._paint.setBlendMode(this._globalCompositeOperation)
         this._paint.setStrokeWidth(this._strokeWidth)
+        this._paint.setAntiAlias(true)
+ 
 
     }
-
+    addFont(fontFamily:string,typeface:CanvasKit.Typeface){
+        if(!this.fontManager.has(fontFamily)){
+            this.fontManager.set(fontFamily,typeface)
+        }
+    }
+    getFont(fontFamily:string){
+        return this.fontManager.get(fontFamily)
+    }
+    async loadFontFromUrl(fontUrl:string){
+        const fontData=await fetch(notoSansSCFontUrl).then(res=>res.arrayBuffer())
+        const typeface=CK.Typeface.MakeFreeTypeFaceFromData(fontData)
+        return typeface
+    }
+    async initFonts(){
+        const fontUrls=[notoSansSCFontUrl]
+        Promise.allSettled(fontUrls.map(url=>this.loadFontFromUrl(url))).then(result=>{
+            result.forEach(ret=>{
+                if(ret.status==='fulfilled'){
+                    const typeFace=ret.value
+                    this.addFont(typeFace.getFamilyName(),typeFace)
+                }
+            })
+        })
+    }
     set globalCompositeOperation(value: GlobalCompositeOperation) {
         switch (value) {
             case GlobalCompositeOperation.SourceOver:
@@ -358,10 +386,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     rect(x: number, y: number, width: number, height: number) {
         this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
     }
-    roundRect(x: number, y: number, width: number, height: number, radius:number|[number,number]) {
-        const radiusArr=Array.isArray(radius)?radius:[radius??0,radius??0]
-        const rx=radiusArr[0],ry=radiusArr[1]
-        this._currentPath.addRRect(CK.RRectXY(CK.XYWHRect(x, y, width, height),rx,ry))
+    roundRect(x: number, y: number, width: number, height: number, radius:number|number[]) {
+        roundRect(this._currentPath, x, y, width, height,radius)
     }
     arc(x: number, y: number,radius:number, startAngle: number, endAngle: number, clockwise: boolean) {
         arc(this._currentPath, x, y, radius, startAngle, endAngle, clockwise)
@@ -462,37 +488,68 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             }
         }
     }
-    applyPathStyle(style: CanvasDrawStyle) {
+    applyFontStyle(style:CanvasDrawStyle){
+       const {fontSize=12,fontStyle=FontStyle.Normal,fontFamily='monospace',fontWeight=FontWeight.Normal,fontStretch,fontVariant=FontVariant.Normal,fontKerning,textRendering}=style
+       const font=[fontStyle,fontVariant,fontWeight,fontSize+'px',fontFamily]
+       this.font=font.join(' ')
+    }
+    applyCanvasStyle(style: CanvasDrawStyle) {
+        let font:string[]=[]
         Object.keys(style).forEach((name) => {
             let propName = name as keyof typeof style
             let value=style[propName]
             if (DrawStylePropertiesSet.has(propName)&&!isNullOrUndefined(value)) {
+                if(FontPropertiesSet.has(propName)){
+                    font.push(propName)
+                    return
+                }
                 if(HasDrawStylePropertiesMap.has(propName)){
                    propName=DrawStylePropertiesMap[name as keyof typeof DrawStylePropertiesMap] as keyof typeof style
                 }
                 (this as any)[propName] = value
             }
         })
+        if(font.length){
+            this.applyFontStyle(style)
+        }
     }
-    drawPathStyle(path:CanvasKit.Path,style:CanvasDrawStyle){
-       this.applyPathStyle(style)
-       if (style.firstFill) {
-            if (isValidPaintValue(style.fillStyle)) {
-                this.fill(path,style.fillRule)
+    drawOrder(style:CanvasDrawStyle,fillCb:()=>void,strokeCb:()=>void){
+        if(style.firstFill){
+            if(isValidPaintValue(style.fillStyle)){
+                fillCb()
             }
-            if (isValidPaintValue(style.strokeStyle)) {
-                this.applyPathBorderSide(path, style)
-                this.stroke(path)
+            if(isValidPaintValue(style.strokeStyle)){
+                strokeCb()
             }
         }else{
-            if (isValidPaintValue(style.strokeStyle)) {
+            if(isValidPaintValue(style.strokeStyle)){
+                strokeCb()
+            }
+            if(isValidPaintValue(style.fillStyle)){
+                fillCb()
+            }
+        }
+    }
+    drawTextPaint(text:string,x:number,y:number,style:CanvasDrawStyle){
+        this.drawOrder(style,
+            ()=>{
+                this.fillText(text,x,y)
+            },
+            ()=>{
+                this.strokeText(text,x,y)
+            }
+        )
+    }
+    drawPathPaint(path:CanvasKit.Path,style:CanvasDrawStyle){
+        this.drawOrder(style,
+            ()=>{
+                this.fill(path,style.fillRule)
+            },
+            ()=>{
                 this.applyPathBorderSide(path, style)
                 this.stroke(path)
             }
-             if (isValidPaintValue(style.fillStyle)) {
-                this.fill(path,style.fillRule)
-            }
-        }
+        )
     }
     _fillPaint() {
         const paint = this._paint
@@ -648,21 +705,42 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.canvas.drawRect(CK.XYWHRect(x, y, width, height), fillPaint);
     };
 
-    fillText(text: string, x: number, y: number, maxWidth: number) {
+    fillText(text: string, x: number, y: number, maxWidth?: number) {
         // TODO do something with maxWidth, probably involving measure
         const fillPaint = this._fillPaint();
-        const blob = CK.TextBlob.MakeFromText(text, this._font);
+       // const blob = CK.TextBlob.MakeFromText(text, this._font);
 
         const shadowPaint = this._shadowPaint(fillPaint);
         if (shadowPaint) {
             this.canvas.save();
             this._applyShadowOffsetMatrix();
-            this.canvas.drawTextBlob(blob, x, y, shadowPaint);
+            this.canvas.drawText(text, x, y, shadowPaint,this._font);
+          //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
             this.canvas.restore();
         }
-        this.canvas.drawTextBlob(blob, x, y, fillPaint);
-        blob.delete();
-        fillPaint.dispose();
+        
+        this.canvas.drawText(text, x, y, fillPaint,this._font);
+       // this.canvas.drawTextBlob(blob, x, y, fillPaint);
+       // blob.delete();
+       // fillPaint.dispose();
+    };
+    strokeText(text: string, x: number, y: number, maxWidth?: number) {
+        // TODO do something with maxWidth, probably involving measure
+        const strokePaint = this._strokePaint();
+       // const blob = CK.TextBlob.MakeFromText(text, this._font);
+
+        const shadowPaint = this._shadowPaint(strokePaint);
+        if (shadowPaint) {
+            this.canvas.save();
+            this._applyShadowOffsetMatrix();
+            this.canvas.drawText(text, x, y, shadowPaint,this._font);
+          //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
+            this.canvas.restore();
+        }
+        this.canvas.drawText(text, x, y, strokePaint,this._font);
+       // this.canvas.drawTextBlob(blob, x, y, fillPaint);
+       // blob.delete();
+       // strokePaint.dispose();
     };
     measureText(text: string) {
         const ids = this._font.getGlyphIDs(text);
@@ -672,7 +750,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             totalWidth += w;
         }
         return {
-            width: totalWidth,
+            width: totalWidth
         };
     }
     drawImage(image: Image, dx: number, dy: number): void;
@@ -819,6 +897,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             shadowBlur: this.shadowBlur,
             shadowOffsetX: this.shadowOffsetX,
             shadowOffsetY: this.shadowOffsetY,
+            //font
+            fontString:this._fontString,
         })
         this.canvas.save()
     }
@@ -844,6 +924,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.shadowOffsetY = newState.shadowOffsetY
         this._fillStyle=newState.fillStyle
         this._strokeStyle=newState.strokeStyle
+        //font
+        this._fontString=newState.fontString
         this.canvas.restore()
         this._currentTransform = this.canvas.getTotalMatrix()
     }
@@ -858,6 +940,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         object.renderBefore(this)
         this.save()
         this.applyClipPath(object)
+        this.applyCanvasStyle(object.style as any)
         object.startDraw(this)
         this.transformObject(object)
         object.draw(this)
@@ -893,10 +976,13 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.disposableManager.destroy()
         this._paint.delete()
         this._currentPath.delete()
-        this._font.delete();
         this._stateStack.length=0
         this._fillStyle?.dispose?.()
         this._strokeStyle?.dispose?.()
+        this.fontManager.forEach((typeface,fontFamily)=>{
+            typeface.delete()
+        })
+        this._font.delete();
         this.removeAllListeners()
     }
 }

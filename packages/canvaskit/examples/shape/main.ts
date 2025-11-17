@@ -1,58 +1,93 @@
-import { CKEngine,Circle,Rect,Group,Ellipse,GraphicPath } from "src/index"
-
-const engine=new CKEngine()
-await engine.init({
-    canvas:document.querySelector('#canvas')!,
-    width:500,
-    height:500
-})
-
-const ellipse=new Ellipse({
-    style:{
-        fillStyle:'red'
-    },
-    shape:{
-        rx:50,
-        ry:70,
-    },
-    position:[100,100]
-})
-engine.add(ellipse)
-const ellipse3=new Ellipse({
-    style:{
-        fillStyle:'#ffff00'
-    },
-    shape:{
-        rx:50,
-        ry:70,
-    },
-    position:[100,150]
-})
-engine.add(ellipse3)
-
-const ellipse2=new Ellipse({
-    style:{
-        fillStyle:'green'
-    },
-    shape:{
-        rx:50,
-        ry:70,
-    },
-    position:[150,100],
-})
-engine.add(ellipse2)
-
-const path=new GraphicPath({
-    position:[300,100]
-})
-path.beginPath()
-path.rect(0,0,100,100)
-path.moveTo(0,220)
-path.arc(0,220,50,0,Math.PI*2)
-path.drawPaint({
-    fillStyle:'green',
-})
-engine.add(path)
+import { CKEngine, Circle, Rect,Text, Group, Ellipse, GraphicPath } from "src/index"
+import { ExampleBase, ExampleManager } from "../lib/Example"
 
 
-engine.start()
+class RectExample extends ExampleBase {
+    static title: string = '矩形'
+    rect: Rect
+    getDefaultState() {
+        return {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            color: '#ff0000',
+            radius:[0,0,0,0],
+            ...super.getDefaultState(),
+            ...this.createTransformState([100, 100]),
+        }
+    }
+    async enter() {
+        this.rect = new Rect({
+            shape: {
+                x: this.state.x,
+                y: this.state.y,
+                width: this.state.width,
+                height: this.state.height,
+                radius:this.state.radius,
+            },
+            style: {
+                fillStyle: this.state.color
+            },
+        })
+        this.onChange()
+        this.owner.add(this.rect)
+    }
+    onChange(property?: string, value?: any): void {
+        this.rect.setShape({
+            x: this.state.x,
+            y: this.state.y,
+            width: this.state.width,
+            height: this.state.height,
+            radius:this.state.radius,
+        })
+        this.rect.setStyle({
+            fillStyle: this.state.color
+        })
+        this.updateTransform(this.rect, this.state)
+    }
+}
+class TextExample extends ExampleBase {
+    static title: string = '文本'
+    shape: Text
+    active=true
+    getDefaultState() {
+        return {
+            x: 100,
+            y: 100,
+            text:'Hello World',
+            color: '#ff0000',
+            ...super.getDefaultState(),
+            ...this.createTransformState([100, 100]),
+        }
+    }
+    async enter() {
+        this.shape = new Text({
+            shape: {
+                x: this.state.x,
+                y: this.state.y
+            },
+            style: {
+                 text:this.state.text,
+                 fillStyle: this.state.color,
+                 fontFamily:'Noto Sans SC',
+                 fontSize:14,
+            },
+        })
+        this.onChange()
+        this.owner.add(this.shape)
+    }
+    onChange(property?: string, value?: any): void {
+        this.shape.setShape({
+            x: this.state.x,
+            y: this.state.y,
+        })
+        this.shape.setStyle({
+            text:this.state.text,
+            fillStyle: this.state.color
+        })
+        this.updateTransform(this.shape, this.state)
+    }
+}
+ExampleManager.examples = [RectExample,TextExample]
+ExampleManager.getSignleInstance().init()
