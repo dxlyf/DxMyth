@@ -1,0 +1,35 @@
+{
+  "extends": "@internal/ts-config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "baseUrl": "./",
+    "rootDir": "./src",
+    "outDir": "./es",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    "composite": true,
+    "target": "ES2016"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../vrender-core"
+    },
+    {
+      "path": "../vrender-kits"
+    },
+    {
+      "path": "../vrender-animate"
+    },
+    {
+      "path": "../vrender-components"
+    }
+  ]
+}

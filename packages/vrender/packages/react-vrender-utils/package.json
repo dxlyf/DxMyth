@@ -1,0 +1,79 @@
+{
+  "name": "@visactor/react-vrender-utils",
+  "version": "1.0.24",
+  "description": "",
+  "sideEffects": false,
+  "main": "cjs/index.js",
+  "module": "es/index.js",
+  "types": "es/index.d.ts",
+  "files": [
+    "cjs",
+    "es",
+    "dist"
+  ],
+  "scripts": {
+    "compile": "tsc --noEmit",
+    "eslint": "eslint --debug --fix src/",
+    "build": "cross-env DEBUG='Bundler*' bundle",
+    "dev": "cross-env DEBUG='Bundler*' bundle --clean -f es -w",
+    "test": "",
+    "start": "vite ./vite"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@visactor/vrender": "workspace:1.0.24",
+    "@visactor/react-vrender": "workspace:1.0.24",
+    "@visactor/vutils": "~1.0.12",
+    "react-reconciler": "^0.29.0",
+    "tslib": "^2.3.1"
+  },
+  "devDependencies": {
+    "@internal/bundler": "workspace:*",
+    "@internal/eslint-config": "workspace:*",
+    "@internal/ts-config": "workspace:*",
+    "@rushstack/eslint-patch": "~1.1.4",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "3.1.0",
+    "eslint": "~8.18.0",
+    "vite": "3.2.6",
+    "typescript": "4.9.5",
+    "cross-env": "^7.0.3"
+  },
+  "keywords": [
+    "VisActor",
+    "graphics",
+    "renderer",
+    "react",
+    "react-vrender",
+    "vrender",
+    "react-vrender-utils",
+    "utils"
+  ],
+  "homepage": "",
+  "bugs": "https://github.com/VisActor/VRender/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VisActor/VRender.git",
+    "directory": "packages/react-vrender-utils"
+  },
+  "author": {
+    "name": "VisActor",
+    "url": "https://VisActor.io/"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "import": "./es/index.js",
+      "require": "./cjs/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

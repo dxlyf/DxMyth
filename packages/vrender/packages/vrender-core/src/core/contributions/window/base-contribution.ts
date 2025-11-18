@@ -1,0 +1,109 @@
+import { injectable } from '../../../common/inversify-lite';
+import { Generator } from '../../../common/generator';
+import type {
+  ICanvas,
+  IContext2d,
+  IDomRectLike,
+  EnvType,
+  IGlobal,
+  IWindowHandlerContribution,
+  IWindow,
+  IWindowParams
+} from '../../../interface';
+import { AABBBounds, Matrix, type IBounds, type IBoundsLike, type IMatrix } from '@visactor/vutils';
+
+type OnchangeCbType = (params?: { x?: number; y?: number; width?: number; height?: number }) => void;
+
+@injectable()
+export abstract class BaseWindowHandlerContribution implements IWindowHandlerContribution {
+  declare type: EnvType;
+
+  declare _uid: number;
+  protected viewBox: IBounds;
+  protected modelMatrix: IMatrix;
+
+  constructor() {
+    this._uid = Generator.GenAutoIncrementId();
+    this.viewBox = new AABBBounds();
+    this.modelMatrix = new Matrix(1, 0, 0, 1, 0, 0);
+  }
+
+  protected declare _onChangeCb?: OnchangeCbType;
+
+  onChange(cb: OnchangeCbType) {
+    this._onChangeCb = cb;
+  }
+
+  configure(window: IWindow, global: IGlobal) {
+    if (global.env === this.type) {
+      window.setWindowHandler(this);
+    }
+  }
+  release(...params: any) {
+    this.releaseWindow();
+  }
+  abstract createWindow(params: IWindowParams): void;
+  abstract releaseWindow(): void;
+  abstract setDpr(dpr: number): void;
+  abstract resizeWindow(width: number, height: number): void;
+  abstract getContext(): IContext2d;
+  abstract getWH(): { width: number; height: number };
+  abstract getTitle(): string;
+  abstract getXY(): { x: number; y: number };
+  abstract getNativeHandler(): ICanvas | any;
+  abstract getDpr(): number;
+  abstract clearViewBox(color?: string): void;
+  abstract addEventListener<K extends keyof DocumentEventMap>(
+    type: K,
+    listener: (this: Document, ev: DocumentEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  abstract addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  abstract removeEventListener<K extends keyof DocumentEventMap>(
+    type: K,
+    listener: (this: Document, ev: DocumentEventMap[K]) => any,
+    options?: boolean | EventListenerOptions
+  ): void;
+  abstract removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions
+  ): void;
+  abstract dispatchEvent(event: any): boolean;
+
+  abstract getStyle(): CSSStyleDeclaration | Record<string, any>;
+  abstract setStyle(style: CSSStyleDeclaration | Record<string, any>): void;
+  abstract getBoundingClientRect(): IDomRectLike;
+
+  isVisible(bbox?: IBoundsLike) {
+    return true;
+  }
+
+  onVisibleChange(cb: (currentVisible: boolean) => void) {
+    return;
+  }
+
+  getTopLeft(baseWindow?: boolean): { top: number; left: number } {
+    return {
+      top: 0,
+      left: 0
+    };
+  }
+
+  setViewBox(vb: IBoundsLike) {
+    this.viewBox.setValue(vb.x1, vb.y1, vb.x2, vb.y2);
+  }
+  getViewBox() {
+    return this.viewBox;
+  }
+  setViewBoxTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
+    this.modelMatrix.setValue(a, b, c, d, e, f);
+  }
+  getViewBoxTransform(): IMatrix {
+    return this.modelMatrix;
+  }
+}
