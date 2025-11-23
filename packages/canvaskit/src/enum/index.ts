@@ -62,6 +62,10 @@ enum FontStyle{
     Italic='italic', // 斜体字体样式
     Oblique='oblique', // 倾斜字体样式
 }
+enum FontSlant{
+    Normal='normal', // 正常字体倾斜
+    Italic='italic', // 斜体字体倾斜
+}
 enum FontStretch{
     UltraCondensed='ultra-condensed', // 超压缩字体拉伸
     ExtraCondensed='extra-condensed', // 额外压缩字体拉伸
@@ -72,6 +76,18 @@ enum FontStretch{
     Expanded='expanded', // 扩展字体拉伸
     ExtraExpanded='extra-expanded', // 额外扩展字体拉伸
     UltraExpanded='ultra-expanded', // 超扩展字体拉伸
+}
+// 字体粗细类型
+enum FontWeightType {
+  THIN = 100,
+  EXTRA_LIGHT = 200,
+  LIGHT = 300,
+  NORMAL = 400,
+  MEDIUM = 500,
+  SEMI_BOLD = 600,
+  BOLD = 700,
+  EXTRA_BOLD = 800,
+  BLACK = 900
 }
 enum FontVariant{
     Normal='normal', // 正常字体变体
@@ -144,6 +160,7 @@ enum ClipPathUnits{
 }
 export {
     FontWeight,
+    FontWeightType,
     FontStyle,
     ClipPathUnits,
     GlobalCompositeOperation,

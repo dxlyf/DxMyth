@@ -5,7 +5,7 @@
  * 支持自定义字体加载、字体家族管理、字体回退机制等。
  */
 
-import {CK, type CanvasKit } from 'src/canvaskit';
+import {CanvasKit, CK } from 'src/canvaskit';
 // 字体样式类型
 export enum FontStyle {
   NORMAL = 'normal',
@@ -26,15 +26,15 @@ export enum FontWeight {
   BLACK = 900
 }
 export enum FontVariant {
-  NORMAL = 'normal',
-  SMALL_CAPS = 'small-caps',
+  NORMAL = 'normal',// 正常字体
+  SMALL_CAPS = 'small-caps',// 小型大写字母字体
 }
 // 字体描述接口
 export interface FontDescription {
   family: string;
-  style: FontStyle;
-  weight: FontWeight;
-  variant: FontVariant;
+  style: FontStyle; // 字体样式
+  weight: FontWeight; // 字体粗细
+  variant: FontVariant;// 字体变体
 }
 
 // 字体资源接口
@@ -42,17 +42,21 @@ export interface FontResource {
   name: string;
   data: ArrayBuffer;
   family: string;
-  style: FontStyle;
-  weight: FontWeight;
+  style: FontStyle;// 字体样式 正常，还是斜体等
+  weight: number; // 字体粗细，数字表示
+  variant: FontVariant; // 字体变体
 }
 
 // 字体缓存项
 export interface FontCacheItem {
-  font: any; // CanvasKit.Font类型
+  typeface: CanvasKit.Typeface; 
   referenceCount: number;
   lastUsed: number;
 }
-
+type FontManagerOptions={
+    defaultFontFamily?: string; // 默认字体
+    maxCacheSize?: number;
+}
 /**
  * 字体管理器类
  * 负责字体资源的加载、缓存、查找和管理
@@ -70,10 +74,7 @@ export class FontManager {
    * @param canvasKit CanvasKit实例
    * @param options 配置选项
    */
-  constructor( options?: {
-    defaultFontFamily?: string;
-    maxCacheSize?: number;
-  }) {
+  constructor( options?: FontManagerOptions) {
     
     if (options) {
       if (options.defaultFontFamily) {
@@ -221,7 +222,7 @@ export class FontManager {
     }
 
     // 如果缓存中没有，创建新字体
-    return this.createAndCacheFont(families, size, style, weight);
+    return this.createAndCacheFont(families, size, style, weight,variant);
   }
 
   /**
@@ -396,44 +397,8 @@ export class FontManager {
    * @param text 要测量的文本
    * @param font 字体实例
    */
-  measureText(text: string, font: CanvasKit.Font): {
-    width: number;
-    height: number;
-    metrics: any;
-  } {
-    const paragraphStyle = new CK.ParagraphStyle({
-      textStyle: {
-        fontFamilies: [font.getFamilyName()],
-        fontSize: font.getSize(),
-      },
-    });
-
-    const builder = CK.ParagraphBuilder.Make(paragraphStyle, CK.FontManager);
-    builder.pushStyle({
-      fontFamily: font.getFamilyName(),
-      fontSize: font.getSize(),
-    });
-    builder.addText(text);
-    
-    const paragraph = builder.build();
-    paragraph.layout(Number.MAX_SAFE_INTEGER);
-    
-    const width = paragraph.getMaxWidth();
-    const height = paragraph.getHeight();
-    
-    // 释放资源
-    builder.delete();
-    paragraph.delete();
-
-    return {
-      width,
-      height,
-      metrics: {
-        ascent: font.getAscent(),
-        descent: font.getDescent(),
-        leading: font.getLeading(),
-      }
-    };
+  measureText(text: string) {
+   
   }
 }
 
