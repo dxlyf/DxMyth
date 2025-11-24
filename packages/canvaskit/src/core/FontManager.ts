@@ -30,376 +30,243 @@ export enum FontVariant {
   SMALL_CAPS = 'small-caps',// 小型大写字母字体
 }
 // 字体描述接口
-export interface FontDescription {
+export interface CacheFontDescription {
   family: string;
-  style: FontStyle; // 字体样式
-  weight: FontWeight; // 字体粗细
-  variant: FontVariant;// 字体变体
+  style?: FontStyle; // 字体样式
+  weight?: number; // 字体粗细
+  variant?: FontVariant;// 字体变体
+}
+export interface FontDescription extends CacheFontDescription{
+  size: number; // 字体大小
+}
+export interface FontResource extends CacheFontDescription{
+  url:string;
 }
 
-// 字体资源接口
-export interface FontResource {
-  name: string;
-  data: ArrayBuffer;
-  family: string;
-  style: FontStyle;// 字体样式 正常，还是斜体等
-  weight: number; // 字体粗细，数字表示
-  variant: FontVariant; // 字体变体
-}
 
 // 字体缓存项
-export interface FontCacheItem {
-  typeface: CanvasKit.Typeface; 
-  referenceCount: number;
-  lastUsed: number;
+export interface FontCacheItem  extends CacheFontDescription{
+  data:ArrayBuffer
+  typeface: CanvasKit.Typeface;
 }
 type FontManagerOptions={
     defaultFontFamily?: string; // 默认字体
+    defaultFontSize?: number; // 默认字体大小
     maxCacheSize?: number;
 }
+/**
+ * font = 
+  [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]? <'font-size'> [ / <'line-height'> ]? <'font-family'># ]  |
+  <system-family-name>  
+ */
+const fontStringRegex = new RegExp(
+  '(italic|oblique|normal|)\\s*' +              // style
+  '(small-caps|normal|)\\s*' +                  // variant
+  '(bold|bolder|lighter|[1-9]00|normal|)\\s*' + // weight
+  '([\\d\\.]+)' +                               // size
+  '(px|pt|pc|in|cm|mm|%|em|ex|ch|rem|q)' +      // unit
+  // line-height is ignored here, as per the spec
+  '(.+)'                                        // family
+  );
+function parseFont(font:string){
+  const match = fontStringRegex.exec(font);
+  if (!match) {
+    return null;
+  }
+  const [_,fontStyle,fontVariant,fontWeight,fontSize,fontUnit,fontFamily]=match
+  let size=parseFloat(fontSize as string)
+  var sizePx = 16;
+  let defaultHeight=16
+  var unit = font[5];
+  switch (unit) {
+    case 'em':
+    case 'rem':
+      sizePx = size * defaultHeight;
+      break;
+    case 'pt':
+      sizePx = size * 4/3;
+      break;
+    case 'px':
+      sizePx = size;
+      break;
+    case 'pc':
+      sizePx = size * defaultHeight;
+      break;
+    case 'in':
+      sizePx = size * 96;
+      break;
+    case 'cm':
+      sizePx = size * 96.0 / 2.54;
+      break;
+    case 'mm':
+      sizePx = size * (96.0 / 25.4);
+      break;
+    case 'q': // quarter millimeters
+      sizePx = size * (96.0 / 25.4 / 4);
+      break;
+    case '%':
+      sizePx = size * (defaultHeight / 75);
+      break;
+  }
+  let fontWeightNum=parseInt(fontWeight)
+  if(!isNaN(fontWeightNum)){
+     switch(fontWeight){
+      case 'bold':
+        fontWeightNum=FontWeight.BOLD
+        break;
+      case 'bolder':
+        fontWeightNum=FontWeight.EXTRA_BOLD
+        break;
+      case 'lighter':
+        fontWeightNum=FontWeight.LIGHT
+        break;
+      default:
+        fontWeightNum=FontWeight.NORMAL
+        break;
+     }
+  }
+  return {
+    fontStyle,
+    fontVariant,
+    fontWeight:fontWeightNum,
+    fontSize:size,
+    fontUnit,
+    fontFamily,
+  } as ParsedFont
+}
+interface ParsedFont {
+  fontStyle: string;
+  fontVariant: string;
+  fontWeight: number;
+  fontSize: number;
+  fontUnit: string;
+  fontFamily: string;
+}
+
 /**
  * 字体管理器类
  * 负责字体资源的加载、缓存、查找和管理
  */
 export class FontManager {
   private fontFamilies: Map<string, Map<string, FontCacheItem>> = new Map();
-  private fontDataMap: Map<string, FontResource> = new Map();
+  public font:CanvasKit.Font
+  private defaultFontSize: number = 16;
   private defaultFontFamily: string = 'sans-serif';
   private maxCacheSize: number = 100; // 最大缓存字体数量
-  private cacheCleanupThreshold: number = 0.8; // 缓存清理阈值
   private fontLoader: Promise<void> | null = null;
-
+  private totalCacheSize: bigint = BigInt(0); // 总缓存字体大小
   /**
    * 构造函数
    * @param canvasKit CanvasKit实例
    * @param options 配置选项
    */
   constructor( options?: FontManagerOptions) {
-    
-    if (options) {
-      if (options.defaultFontFamily) {
-        this.defaultFontFamily = options.defaultFontFamily;
-      }
-      if (options.maxCacheSize) {
-        this.maxCacheSize = options.maxCacheSize;
-      }
-    }
-
-    this.initializeSystemFonts();
+    this.defaultFontFamily = options?.defaultFontFamily || 'sans-serif';
+    this.defaultFontSize = options?.defaultFontSize || 16;
+    this.maxCacheSize = options?.maxCacheSize || 100;
+    this.font=new CK.Font()
   }
-
-  /**
-   * 初始化系统默认字体
-   */
-  private initializeSystemFonts(): void {
-    // 注册一些常见的系统字体映射
-    const systemFonts = [
-      'sans-serif',
-      'serif',
-      'monospace',
-      'cursive',
-      'fantasy'
-    ];
-
-    for (const family of systemFonts) {
-      if (!this.fontFamilies.has(family)) {
-        this.fontFamilies.set(family, new Map());
-      }
+  parseFont(font:string):FontDescription{
+    const fontInfo= parseFont(font)
+    return {
+      family:fontInfo.fontFamily??this.defaultFontFamily,
+      style:(fontInfo.fontStyle??FontStyle.NORMAL) as FontStyle,
+      weight:fontInfo.fontWeight??FontWeight.NORMAL,
+      variant:(fontInfo.fontVariant??FontVariant.NORMAL) as FontVariant,
+      size:fontInfo.fontSize??this.defaultFontSize,
     }
   }
-
-  /**
-   * 加载字体数据
-   * @param name 字体名称
-   * @param data 字体二进制数据
-   * @param description 字体描述
-   */
-  async loadFont(name: string, data: ArrayBuffer, description: Partial<FontDescription> = {}): Promise<void> {
-    try {
-      // 验证字体数据
-      if (!data || data.byteLength === 0) {
-        throw new Error('Font data cannot be empty');
-      }
-
-      // 检查字体是否已加载
-      if (this.fontDataMap.has(name)) {
-        console.warn(`Font '${name}' is already loaded`);
-        return;
-      }
-
-      // 解析字体描述
-      const fontDescription: FontDescription = {
-        family: description.family || name,
-        style: description.style || FontStyle.NORMAL,
-        weight: description.weight || FontWeight.NORMAL,
-        variant: description.variant || FontVariant.NORMAL,
-      };
-
-
-
-      // 存储字体资源
-      const fontResource: FontResource = {
-        name,
-        data,
-        ...fontDescription
-      };
-
-      this.fontDataMap.set(name, fontResource);
-
-      // 初始化字体家族映射
-      if (!this.fontFamilies.has(fontDescription.family)) {
-        this.fontFamilies.set(fontDescription.family, new Map());
-      }
-
-      console.log(`Font '${name}' (${fontDescription.family}) loaded successfully`);
-    } catch (error) {
-      console.error(`Failed to load font '${name}':`, error);
-      throw error;
+  setFontFamily(fontDescription:FontDescription){
+    const typeface=this.getFontFamily(fontDescription)
+    if(typeface){
+      this.font.setTypeface(typeface)
+      this.font.setSize(fontDescription.size)
+      return true
     }
+    return false
   }
-
-  /**
-   * 从URL加载字体
-   * @param name 字体名称
-   * @param url 字体文件URL
-   * @param description 字体描述
-   */
-  async loadFontFromUrl(name: string, url: string, description?: Partial<FontDescription>): Promise<void> {
-    try {
-      if (this.fontLoader) {
-        await this.fontLoader;
-      }
-
-      this.fontLoader = this._loadFontFromUrl(name, url, description);
-      return await this.fontLoader;
-    } finally {
-      this.fontLoader = null;
-    }
+  getKey(fontDescription: CacheFontDescription){
+    const {style=FontStyle.NORMAL,weight=FontWeight.NORMAL,variant=FontVariant.NORMAL}=fontDescription
+    return `$${style}-${weight}-${variant}`;
   }
-
-  /**
-   * 内部实现从URL加载字体
-   */
-  private async _loadFontFromUrl(name: string, url: string, description?: Partial<FontDescription>): Promise<void> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch font from ${url}: ${response.status}`);
-    }
-
-    const data = await response.arrayBuffer();
-    return this.loadFont(name, data, description);
+  removeFontFamily(family: string){
+    this.fontFamilies.delete(family);
   }
-
-  /**
-   * 获取字体实例
-   * @param family 字体家族
-   * @param size 字体大小
-   * @param options 字体选项
-   */
-  getFont(family: string | string[], size: number, options?: {
-    style?: FontStyle;
-    weight?: FontWeight;
-    variant?: FontVariant;
-  }): any {
-    // 标准化字体选项
-    const style = options?.style || FontStyle.NORMAL;
-    const weight = options?.weight || FontWeight.NORMAL;
-    const variant = options?.variant || FontVariant.NORMAL;
-    
-    const fontKey = `${style}-${weight}-${variant}`;  
-
-    // 处理字体家族回退机制
-    const families = Array.isArray(family) ? family : [family, this.defaultFontFamily];
-    
-    for (const fontFamily of families) {
-      const familyMap = this.fontFamilies.get(fontFamily);
-      if (familyMap && familyMap.has(fontKey)) {
-        const cachedFont = familyMap.get(fontKey)!;
-        cachedFont.referenceCount++;
-        cachedFont.lastUsed = Date.now();
-        return cachedFont.font;
-      }
-    }
-
-    // 如果缓存中没有，创建新字体
-    return this.createAndCacheFont(families, size, style, weight,variant);
+  async loadFonts(fontResources: FontResource[]){
+     return await Promise.all(fontResources.map(font=>this.loadFont(font)))
   }
-
-  /**
-   * 创建并缓存字体实例
-   */
-  private createAndCacheFont(families: string[], size: number, style: FontStyle, weight: FontWeight, variant: FontVariant): any {
-    try {
-      // 尝试创建字体
-      const font = new CK.Font(CK.Typeface.GetDefault(), size);
-
-      if (!font) {
-        throw new Error(`Failed to create font: ${families.join(',')} ${size}px`);
-      }
-
-      // 缓存字体
-      const fontFamily = families[0];
-      const fontKey = `${style}-${weight}-${variant}`;
-      
-      if (!this.fontFamilies.has(fontFamily)) {
-        this.fontFamilies.set(fontFamily, new Map());
-      }
-
-      const familyMap = this.fontFamilies.get(fontFamily)!;
-      familyMap.set(fontKey, {
-        font,
-        referenceCount: 1,
-        lastUsed: Date.now()
-      });
-
-      // 检查是否需要清理缓存
-      this.checkAndCleanCache();
-
-      return font;
-    } catch (error) {
-      console.error('Failed to create font:', error);
-      throw error;
-    }
+  async loadFont(fontDescription: FontResource){
+    const arrayBuffer= await fetch(fontDescription.url).then(res=>res.arrayBuffer())
+    return this.addFontFamily(arrayBuffer,fontDescription)
   }
-
-  /**
-   * 检查并清理缓存
-   */
-  private checkAndCleanCache(): void {
-    let totalCached = 0;
-    const allFonts: Array<{family: string; key: string; item: FontCacheItem}> = [];
-
-    // 收集所有缓存的字体信息
-    this.fontFamilies.forEach((familyMap, family) => {
-      familyMap.forEach((item, key) => {
-        totalCached++;
-        allFonts.push({ family, key, item });
-      });
-    });
-
-    // 如果缓存超过阈值，清理最近最少使用的字体
-    if (totalCached > this.maxCacheSize * this.cacheCleanupThreshold) {
-      // 按最后使用时间排序
-      allFonts.sort((a, b) => a.item.lastUsed - b.item.lastUsed);
-
-      // 计算需要清理的数量
-      const fontsToRemove = Math.floor(totalCached - this.maxCacheSize * 0.5);
-
-      // 清理字体
-      for (let i = 0; i < fontsToRemove && i < allFonts.length; i++) {
-        const { family, key, item } = allFonts[i];
-        if (item.referenceCount <= 0) {
-          // 释放字体资源
-          if (item.font && item.font.delete) {
-            item.font.delete();
-          }
-          
-          // 从缓存中移除
-          const familyMap = this.fontFamilies.get(family);
-          if (familyMap) {
-            familyMap.delete(key);
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * 释放字体资源
-   * @param font 要释放的字体实例
-   */
-  releaseFont(font: any): void {
-    // 在所有字体家族中查找该字体
-    for (const [family, familyMap] of this.fontFamilies) {
-      for (const [key, item] of familyMap) {
-        if (item.font === font) {
-          item.referenceCount--;
-          // 当引用计数为0时，在下一次缓存清理时会被释放
-          return;
-        }
-      }
-    }
-  }
-
-  /**
-   * 获取已加载的字体列表
-   */
-  getLoadedFonts(): FontResource[] {
-    return Array.from(this.fontDataMap.values());
-  }
-
-  /**
-   * 检查字体是否已加载
-   * @param name 字体名称
-   */
-  isFontLoaded(name: string): boolean {
-    return this.fontDataMap.has(name);
-  }
-
-  /**
-   * 移除字体
-   * @param name 字体名称
-   */
-  removeFont(name: string): boolean {
-    const fontResource = this.fontDataMap.get(name);
-    if (!fontResource) {
+  addFontFamily(data:ArrayBuffer,fontDescription: CacheFontDescription){
+     const {family,style=FontStyle.NORMAL,weight=FontWeight.NORMAL,variant=FontVariant.NORMAL}=fontDescription;
+     let familyMap = this.fontFamilies.get(family);
+     if (!familyMap) {
+      familyMap = new Map<string, FontCacheItem>();
+      this.fontFamilies.set(family, familyMap);
+     }
+     const key = this.getKey(fontDescription);
+     if (familyMap.has(key)) {
       return false;
+     }
+     const cacheItem={
+      family,
+      style,
+      weight,
+      variant,
+      data,
+      typeface: CK.Typeface.MakeFreeTypeFaceFromData(data) 
     }
-
-    // 从字体家族中移除相关缓存
-    const familyMap = this.fontFamilies.get(fontResource.family);
-    if (familyMap) {
-      const fontKey = `${fontResource.style}-${fontResource.weight}`;
-      const cachedFont = familyMap.get(fontKey);
-      
-      if (cachedFont) {
-        // 释放字体资源
-        if (cachedFont.font && cachedFont.font.delete) {
-          cachedFont.font.delete();
-        }
-        familyMap.delete(fontKey);
+     familyMap.set(key,cacheItem );
+     return true
+  }
+    switchDefaultFont(){
+     this.switchFont(`${this.defaultFontSize}px ${this.defaultFontFamily}`)
+  }
+  switchFont(font:string){
+    const fontDescription=this.parseFont(font)
+    const typeface= this.matchFontFmaily(fontDescription)
+    if(typeface){
+      this.font.setTypeface(typeface)
+      this.font.setSize(fontDescription.size)
+      return true
+    }
+    return false
+  }
+  matchFontFmaily(fontDescription:FontDescription){
+      const {family,style=FontStyle.NORMAL,weight=FontWeight.NORMAL,variant=FontVariant.NORMAL}=fontDescription
+      const familyMap = this.fontFamilies.get(family);
+      if (!familyMap||familyMap.size<=0) {
+        return null;
       }
-    }
-
-    // 从字体数据映射中移除
-    this.fontDataMap.delete(name);
-    return true;
-  }
-
-  /**
-   * 清空所有字体缓存
-   */
-  clearCache(): void {
-    // 释放所有字体资源
-    this.fontFamilies.forEach(familyMap => {
-      familyMap.forEach(item => {
-        if (item.font && item.font.delete) {
-          item.font.delete();
+      const familys=Array.from(familyMap)
+      let curWeight=1000000
+      let curItem:FontCacheItem
+      for(let [key,item] of familys){
+        if(weight===item.weight){
+          return item.typeface
         }
-      });
-      familyMap.clear();
-    });
-
-    // 重新初始化系统字体
-    this.initializeSystemFonts();
+        if(Math.abs(curWeight-weight)>Math.abs(item.weight-weight)){
+          curWeight=item.weight
+          curItem=item
+        }
+      }
+      return curItem?.typeface;
+  }
+  getFontFamily(fontDescription: CacheFontDescription){
+    const familyMap = this.fontFamilies.get(fontDescription.family);
+    if (!familyMap) {
+      return null;
+    }
+    const key = this.getKey(fontDescription);
+    const cacheItem = familyMap.get(key);
+    if (cacheItem) {
+      return cacheItem.typeface;
+    }
+    return null;
   }
 
-  /**
-   * 销毁字体管理器
-   */
-  destroy(): void {
-    this.clearCache();
-    this.fontDataMap.clear();
-  }
-
-  /**
-   * 测量文本尺寸
-   * @param text 要测量的文本
-   * @param font 字体实例
-   */
-  measureText(text: string) {
-   
-  }
 }
 
 export default FontManager;

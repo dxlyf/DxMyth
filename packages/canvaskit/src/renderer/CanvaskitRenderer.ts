@@ -20,6 +20,7 @@ import { hasOwnProperty, isNullOrUndefined, isValidPaintValue } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
 import { DrawStylePropertiesMap, DrawStylePropertiesSet, FontPropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
 import  notoSansSCFontUrl from 'src/assets/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf?url'
+import FontManager from 'src/core/FontManager'
 
 const objTransformMatrix = new Float32Array(9)
 const tmpMatrix = Matrix2D.identity()
@@ -50,8 +51,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     public shadowOffsetX: number = 0
     public shadowOffsetY: number = 0
     // font 
-    public _font: CanvasKit.Font
-    private _fontString: string = '12px monospace'
+    public _fontMgr:FontManager
+    private _fontString: string
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
@@ -63,9 +64,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
         // font
-        await this.initFonts()
-        this._font = new CK.Font(CK.Typeface.GetDefault(), 12)
-        this._font.setSubpixel(true);
+        this._fontMgr = new FontManager({defaultFontFamily:'Noto_Sans_SC'})
+        this._fontString='12px Noto_Sans_SC'
+        this._fontMgr.font.setSubpixel(true);
+        await this._fontMgr.loadFonts([{
+            family:'Noto_Sans_SC',
+            url:'notoSansSCFontUrl'
+        }])
+        this._fontMgr.switchDefaultFont()
         this._currentTransform = CK.Matrix.identity();
         this._globalCompositeOperation = CK.BlendMode.SrcOver
         this._paint.setBlendMode(this._globalCompositeOperation)
@@ -74,29 +80,10 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
  
 
     }
-    addFont(fontFamily:string,typeface:CanvasKit.Typeface){
-        addToFontCache(typeface,{
-            style:'normal',
-            variant:'normal',
-            weight:'normal',
-            family:fontFamily
-        })
-    }
     async loadFontFromUrl(fontUrl:string){
         const fontData=await fetch(fontUrl).then(res=>res.arrayBuffer())
         const typeface=CK.Typeface.MakeFreeTypeFaceFromData(fontData)
         return typeface
-    }
-    async initFonts(){
-        const fontUrls=[notoSansSCFontUrl]
-        await Promise.allSettled(fontUrls.map(url=>this.loadFontFromUrl(url))).then(result=>{
-            result.forEach(ret=>{
-                if(ret.status==='fulfilled'){
-                    const typeFace=ret.value
-                    this.addFont(typeFace.getFamilyName(),typeFace)
-                }
-            })
-        })
     }
     set globalCompositeOperation(value: GlobalCompositeOperation) {
         switch (value) {
@@ -265,17 +252,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     get strokeStyle() {
         return this._strokeStyle
     }
+    get _font(){
+        return this._fontMgr.font
+    }
     get font() {
         return this._fontString;
     }
     set font(newFont) {
-        var tf = getTypeface(newFont);
-        if (tf) {
-            // tf is a "dict" according to closure, that is, the field
-            // names are not minified. Thus, we need to access it via
-            // bracket notation to tell closure not to minify these names.
-            this._font.setSize(tf['sizePx']);
-            this._font.setTypeface(tf['typeface']);
+        if (this._fontMgr.switchFont(newFont)) {
             this._fontString = newFont;
         }
     }
