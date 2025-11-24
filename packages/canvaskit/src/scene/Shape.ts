@@ -88,6 +88,7 @@ export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayO
         renderer._currentPath.addPath(this._ckPath)
     }
     endDraw(renderer: CanvaskitRenderer) {
+        renderer.applyCanvasStyle(this.style)
         renderer.drawPathPaint(renderer._currentPath, this.style)
     }
     hit(x:number,y:number){

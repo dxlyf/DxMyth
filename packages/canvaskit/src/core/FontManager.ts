@@ -6,6 +6,7 @@
  */
 
 import {CanvasKit, CK } from 'src/canvaskit';
+import { BoundingRect } from 'src/math';
 // 字体样式类型
 export enum FontStyle {
   NORMAL = 'normal',
@@ -54,6 +55,12 @@ type FontManagerOptions={
     defaultFontSize?: number; // 默认字体大小
     maxCacheSize?: number;
 }
+export type TextMetrics={
+  width:number;
+  height:number;
+
+}
+
 /**
  * font = 
   [ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]? <'font-size'> [ / <'line-height'> ]? <'font-family'># ]  |
@@ -109,7 +116,7 @@ function parseFont(font:string){
       break;
   }
   let fontWeightNum=parseInt(fontWeight)
-  if(!isNaN(fontWeightNum)){
+  if(isNaN(fontWeightNum)){
      switch(fontWeight){
       case 'bold':
         fontWeightNum=FontWeight.BOLD
@@ -126,12 +133,12 @@ function parseFont(font:string){
      }
   }
   return {
-    fontStyle,
-    fontVariant,
+    fontStyle:fontStyle||FontStyle.NORMAL,
+    fontVariant:fontVariant||FontVariant.NORMAL,
     fontWeight:fontWeightNum,
     fontSize:size,
     fontUnit,
-    fontFamily,
+    fontFamily:fontFamily.trim(),
   } as ParsedFont
 }
 interface ParsedFont {
@@ -266,7 +273,78 @@ export class FontManager {
     }
     return null;
   }
+  /**
+   * TextMetrics.width 只读
+    double 类型，使用 CSS 像素计算的内联字符串的宽度。基于当前上下文字体考虑。
 
+    TextMetrics.actualBoundingBoxLeft 只读
+    double 类型，平行于基线，从CanvasRenderingContext2D.textAlign 属性确定的对齐点到文本矩形边界左侧的距离，使用 CSS 像素计算；正值表示文本矩形边界左侧在该对齐点的左侧。
+
+    TextMetrics.actualBoundingBoxRight 只读
+    double 类型，平行于基线，从CanvasRenderingContext2D.textAlign 属性确定的对齐点到文本矩形边界右侧的距离，使用 CSS 像素计算。
+
+    TextMetrics.fontBoundingBoxAscent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到渲染文本的所有字体的矩形最高边界顶部的距离，使用 CSS 像素计算。
+
+    TextMetrics.fontBoundingBoxDescent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到渲染文本的所有字体的矩形边界最底部的距离，使用 CSS 像素计算。
+
+    TextMetrics.actualBoundingBoxAscent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到渲染文本的矩形边界顶部的距离，使用 CSS 像素计算。
+
+    TextMetrics.actualBoundingBoxDescent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到渲染文本的矩形边界底部的距离，使用 CSS 像素计算。
+
+    TextMetrics.emHeightAscent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到线框中 em 方块顶部的距离，使用 CSS 像素计算。
+
+    TextMetrics.emHeightDescent 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到线框中 em 方块底部的距离，使用 CSS 像素计算。
+
+    TextMetrics.hangingBaseline 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到线框的 hanging 基线的距离，使用 CSS 像素计算。
+
+    TextMetrics.alphabeticBaseline 只读
+    double 类型，从CanvasRenderingContext2D.textBaseline 属性标明的水平线到线框的 alphabetic 基线的距离，使用 CSS 像素计算。
+
+    TextMetrics.ideographicBaseline 只读
+    double 类型，从 CanvasRenderingContext2D.textBaseline 属性标明的水平线到线框的 ideographic 基线的距离，使用 CSS 像素计算。
+      * @param text 
+   * @returns 
+   */
+  measureText(text:string,paint?:CanvasKit.Paint):TextMetrics{
+    const metrics = this.font.getMetrics()
+    const glyhpIDs=this.font.getGlyphIDs(text)
+    const widths=this.font.getGlyphWidths(glyhpIDs,paint)
+    
+    let width=0
+    widths.forEach((item)=>{
+      width+=item
+    })
+    return {
+      width,
+      height:metrics.ascent+metrics.descent,
+      actualBoundingBoxAscent:metrics.ascent,
+      actualBoundingBoxDescent:metrics.descent,
+    } as TextMetrics
+  }
+  getTextBounds(text:string,paint?:CanvasKit.Paint):TextMetrics{
+    const glyhpIDs=this.font.getGlyphIDs(text)
+    //left, top, right, bottom
+    const bounds=this.font.getGlyphBounds(glyhpIDs,paint)
+    const bound=BoundingRect.fromLTRB(bounds[0],bounds[1],bounds[2],bounds[3])
+
+    return bound
+  }
+  dispose(){
+    this.fontFamilies.forEach(item=>{
+      item.forEach((cacheItem)=>{
+        cacheItem.typeface.delete()
+      })
+    })
+    this.fontFamilies.clear()
+    this.font.delete()
+  }
 }
 
 export default FontManager;

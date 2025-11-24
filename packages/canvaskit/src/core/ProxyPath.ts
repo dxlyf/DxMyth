@@ -17,43 +17,44 @@ type CommandParameter = {
 type CommandType = keyof CommandParameter
 type CommandData = [CommandType, ...CommandParameter[CommandType]]
 
-function applyCKPath(path: CanvasKit.Path, type:string,params:any[]) {
+function applyCKPath(path: CanvasKit.Path, type: string, params: any[]) {
 
-        switch (type) {
-            case 'moveTo':
-                path.moveTo(...params as CommandParameter['moveTo'])
-                break
-            case 'lineTo':
-                path.lineTo(...params as CommandParameter['lineTo'])
-                break
-            case 'quadraticCurveTo':
-                path.quadTo(...params as CommandParameter['quadraticCurveTo'])
-                break
-            case 'bezierCurveTo':
-                path.cubicTo(...params as CommandParameter['bezierCurveTo'])
-                break
-            case 'conicTo':
-                path.conicTo(...params as CommandParameter['conicTo'])
-                break
-            case 'arcTo':
-                path.arcToTangent(...params as CommandParameter['arcTo'])
-                break
-            case 'rect':
-                path.addRRect(CK.XYWHRect(...params as CommandParameter['rect']))
-                break
-            case 'roundRect':
-                roundRect(path, ...params as CommandParameter['roundRect'])
-                break
-            case 'arc':
-                arc(path, ...params as CommandParameter['arc'])
-                break
-            case 'ellipse':
-                ellipse(path, ...params as CommandParameter['ellipse'])
-                break
-            case 'closePath':
-                path.close()
-                break
-        }
+    switch (type) {
+        case 'moveTo':
+            path.moveTo(...params as CommandParameter['moveTo'])
+            return true
+        case 'lineTo':
+            path.lineTo(...params as CommandParameter['lineTo'])
+            break
+        case 'quadraticCurveTo':
+            path.quadTo(...params as CommandParameter['quadraticCurveTo'])
+            return true
+        case 'bezierCurveTo':
+            path.cubicTo(...params as CommandParameter['bezierCurveTo'])
+            return true
+        case 'conicTo':
+            path.conicTo(...params as CommandParameter['conicTo'])
+            break
+        case 'arcTo':
+            path.arcToTangent(...params as CommandParameter['arcTo'])
+            return true
+        case 'rect':
+            path.addRRect(CK.XYWHRect(...params as CommandParameter['rect']))
+            return true
+        case 'roundRect':
+            roundRect(path, ...params as CommandParameter['roundRect'])
+            break
+        case 'arc':
+            arc(path, ...params as CommandParameter['arc'])
+            return true
+        case 'ellipse':
+            ellipse(path, ...params as CommandParameter['ellipse'])
+            return true
+        case 'closePath':
+            path.close()
+            return true
+    }
+    return false
 }
 class ProxyPath {
     segmentType: number

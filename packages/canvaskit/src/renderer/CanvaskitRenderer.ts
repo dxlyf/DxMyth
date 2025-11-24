@@ -64,12 +64,12 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
         // font
-        this._fontMgr = new FontManager({defaultFontFamily:'Noto_Sans_SC'})
-        this._fontString='12px Noto_Sans_SC'
+        this._fontMgr = new FontManager({defaultFontFamily:'Noto Sans SC'})
+        this._fontString='12px Noto Sans SC'
         this._fontMgr.font.setSubpixel(true);
         await this._fontMgr.loadFonts([{
-            family:'Noto_Sans_SC',
-            url:'notoSansSCFontUrl'
+            family:'Noto Sans SC',
+            url:notoSansSCFontUrl
         }])
         this._fontMgr.switchDefaultFont()
         this._currentTransform = CK.Matrix.identity();
@@ -259,7 +259,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         return this._fontString;
     }
     set font(newFont) {
-        if (this._fontMgr.switchFont(newFont)) {
+        if (newFont !== this._fontString && this._fontMgr.switchFont(newFont)) {
             this._fontString = newFont;
         }
     }
@@ -726,15 +726,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
        // strokePaint.dispose();
     };
     measureText(text: string) {
-        const ids = this._font.getGlyphIDs(text);
-        const widths = this._font.getGlyphWidths(ids);
-        let totalWidth = 0;
-        for (const w of widths) {
-            totalWidth += w;
-        }
-        return {
-            width: totalWidth
-        };
+        return this._fontMgr.measureText(text)
     }
     drawImage(image: Image, dx: number, dy: number): void;
     drawImage(image: Image, dx: number, dy: number, dw: number, dh: number): void;
@@ -923,7 +915,6 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         object.renderBefore(this)
         this.save()
         this.applyClipPath(object)
-        this.applyCanvasStyle(object.style as any)
         object.startDraw(this)
         this.transformObject(object)
         object.draw(this)
@@ -963,7 +954,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._fillStyle?.dispose?.()
         this._strokeStyle?.dispose?.()
  
-        this._font.delete();
+        this._fontMgr.dispose();
         this.removeAllListeners()
     }
 }

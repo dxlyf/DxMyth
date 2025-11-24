@@ -1,6 +1,7 @@
 
 
-import type { DisplayObjectOptions } from 'src/types/DisplayObject'
+import type { DisplayObjectOptions, DisplayObjectStyle } from 'src/types/DisplayObject'
+import type { ClipPathStyle,MaskStyle } from 'src/types/Renderer'
 import { DisplayObject } from "src/scene/DisplayObject";
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { CK, type CanvasKit } from 'src/canvaskit';
@@ -11,7 +12,10 @@ import { Matrix2D, Vector2 } from 'src/math';
 import { CanvasDrawStyle } from 'src/types/Renderer';
 import { applyCKPath } from 'src/core/ProxyPath';
 
-export interface GraphicPathOptions extends DisplayObjectOptions {
+export interface GraphicPathStyle extends DisplayObjectStyle,ClipPathStyle,MaskStyle{
+ 
+}
+export interface GraphicPathOptions extends DisplayObjectOptions<GraphicPathStyle> {
 }
 
 type GraphicPathCammandParameters = {
@@ -57,14 +61,33 @@ export class GraphicPath<Options extends GraphicPathOptions = GraphicPathOptions
         }] as Options[]
     }
     innerCalcBounds(): void {
+        this.buildInnerPath()
         let bounds = this.ckPath.computeTightBounds()
         this._bounds.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
     }
-    addPathCommand(command: GraphicPathCommandData) {
-        this.pathCmdData.push(command)
-        applyCKPath(this.ckPath, command.type, command.params as any)
-        
+    buildInnerPath() {
+        let needUpdatePath = !!(this.effectFlag & NodeEffectFlags.Shape)
+        if (!this._ckPath) {
+            this._ckPath = new CK.Path()
+            needUpdatePath = true
+        }
+        if (needUpdatePath) {
+            this.effectFlag &= ~NodeEffectFlags.Shape
+            this._ckPath.rewind()
+            this.buildPath(this._ckPath)
+        }
     }
+    buildPath(path: CanvasKit.Path) {
+        for (let i = 0; i < this.pathCmdData.length; i++) {
+            const command = this.pathCmdData[i]
+            applyCKPath(path, command.type, command.params as any)
+        }
+    }
+    addPathCommand(command: GraphicPathCommandData) {
+        this.pathCmdData.push(command) 
+        this.effectFlag |=NodeEffectFlags.Shape
+    }
+    
     clearPath(){
         this.pathCmdData.length = 0
         this.effectFlag |=NodeEffectFlags.Shape
@@ -176,6 +199,7 @@ export class GraphicPath<Options extends GraphicPathOptions = GraphicPathOptions
     }
     
     draw(renderer: CanvaskitRenderer): void {
+        this.buildInnerPath()
         const pathCmdData = this.pathCmdData
         if(pathCmdData.length === 0){
             return
@@ -196,13 +220,14 @@ export class GraphicPath<Options extends GraphicPathOptions = GraphicPathOptions
                 case 'roundRect':
                 case 'arc':
                 case 'ellipse':
-                    (renderer as any)[type](...(params as number[]))
+                   (renderer as any)[type](...(params as number[]))
                     break
                 case 'drawPaint':
                     let drawStyle = params as CanvasDrawStyle
                     if(this._pathMatrix){
                         renderer._currentPath.transform(this._pathMatrix.toRowMajorOrderMatrix3x3())
                     }
+                    renderer.applyCanvasStyle(drawStyle)
                     renderer.drawPathPaint(renderer._currentPath, drawStyle)
                     break
                 case 'closePath':

@@ -47,10 +47,45 @@ class RectExample extends ExampleBase {
         this.updateTransform(this.rect, this.state)
     }
 }
+
+
+class RingExample extends ExampleBase {
+    static title: string = '环形'
+        active=true
+    shape: GraphicPath       
+    getDefaultState() {
+        return {
+            cx: 0,
+            cy: 0,
+            innerR: 20,
+            outerR: 50,
+            color:'#ff0000',
+            ...super.getDefaultState(),
+            ...this.createTransformState([100, 100]),
+        }
+    }
+    async enter() {
+        this.shape = new GraphicPath()
+ 
+        this.onChange()
+        this.owner.add(this.shape)
+    }
+    onChange(property?: string, value?: any): void {
+        this.shape.clearPath()
+        this.shape.beginPath()
+        this.shape.arc(this.state.cx,this.state.cy,this.state.innerR,0,Math.PI * 2,false)
+        this.shape.arc(this.state.cx,this.state.cy,this.state.outerR,0,Math.PI * 2,true)
+
+        this.shape.drawPaint({
+            fillStyle: this.state.color,
+        })
+        
+        this.updateTransform(this.shape, this.state)
+    }
+}
 class TextExample extends ExampleBase {
     static title: string = '文本'
     shape: Text
-    active=true
     getDefaultState() {
         return {
             x: 100,
@@ -89,5 +124,5 @@ class TextExample extends ExampleBase {
         this.updateTransform(this.shape, this.state)
     }
 }
-ExampleManager.examples = [RectExample,TextExample]
+ExampleManager.examples = [RectExample,TextExample,RingExample]
 ExampleManager.getSignleInstance().init()
