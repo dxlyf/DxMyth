@@ -1280,3 +1280,136 @@ export function findClosestTNewton(p:Vector2, controlPoints:Vector2[]) {
     });
     return bestT;
 }
+
+
+/**
+ * css animation function:cubic-bezier(0,0,1,1)
+ * 
+ * Y轴(动画进度)
+  ↑
+1 |                    P3(1,1)
+  |                   /
+  |                  /
+  |                 /
+  |                •
+  |               / 
+  |     P1(x1,y1)
+  |     •
+  |    /
+  |   /
+  |  /
+P0 •------------------→ X轴(时间)
+ (0,0)              1
+ */
+export class CubicBezierSolver {
+  constructor(
+    private x1: number,
+    private y1: number, 
+    private x2: number,
+    private y2: number
+  ) {}
+  
+  // 三次贝塞尔曲线公式
+  private bezier(t: number, a: number, b: number, c: number, d: number): number {
+    const t1 = 1 - t;
+    return t1*t1*t1 * a + 
+           3 * t1*t1 * t * b + 
+           3 * t1 * t*t * c + 
+           t*t*t * d;
+  }
+  
+  // 贝塞尔曲线导数（斜率）
+  private bezierDerivative(t: number, a: number, b: number, c: number, d: number): number {
+    const t1 = 1 - t;
+    return 3 * t1*t1 * (b - a) + 
+           6 * t1 * t * (c - b) + 
+           3 * t*t * (d - c);
+  }
+  
+  // X 坐标函数
+  private x(t: number): number {
+    return this.bezier(t, 0, this.x1, this.x2, 1);
+  }
+  
+  // X 坐标导数
+  private xDerivative(t: number): number {
+    return this.bezierDerivative(t, 0, this.x1, this.x2, 1);
+  }
+  
+  // Y 坐标函数
+  private y(t: number): number {
+    return this.bezier(t, 0, this.y1, this.y2, 1);
+  }
+  
+  // 主函数：输入时间t，返回动画进度
+  solve(inputT: number): number {
+    if (inputT <= 0) return 0;
+    if (inputT >= 1) return 1;
+    
+    // 找到参数u，使得 x(u) = inputT
+    const u = this.findParameterForX(inputT);
+    
+    // 用找到的u计算y坐标
+    return this.y(u);
+  }
+  
+  // 核心算法：牛顿迭代法求解 x(u) = targetX
+  private findParameterForX(targetX: number): number {
+    // 初始猜测 - 使用线性近似
+    let u = targetX;
+    
+    // 牛顿迭代（通常4-8次就足够精确）
+    for (let i = 0; i < 8; i++) {
+      // 计算当前误差：x(u) - targetX
+      const currentX = this.x(u);
+      const error = currentX - targetX;
+      
+      // 如果误差足够小，停止迭代
+      if (Math.abs(error) < 1e-5) {
+        break;
+      }
+      
+      // 计算导数（斜率）
+      const slope = this.xDerivative(u);
+      
+      // 避免除零和数值不稳定
+      if (Math.abs(slope) < 1e-5) {
+        // 如果斜率太小，使用二分法作为备选
+        u = this.binarySearchForX(targetX, 0, 1);
+        break;
+      }
+      
+      // 牛顿迭代更新：u = u - f(u)/f'(u)
+      u = u - error / slope;
+      
+      // 确保参数在有效范围内
+      u = Math.max(0, Math.min(1, u));
+    }
+    
+    return u;
+  }
+  
+  // 备选算法：二分法（当牛顿迭代不稳定时使用）
+  private binarySearchForX(targetX: number, low: number, high: number): number {
+    let u = (low + high) / 2;
+    
+    for (let i = 0; i < 16; i++) {
+      const currentX = this.x(u);
+      const error = currentX - targetX;
+      
+      if (Math.abs(error) < 1e-5) {
+        break;
+      }
+      
+      if (error > 0) {
+        high = u;  // x(u) 太大，往左找
+      } else {
+        low = u;   // x(u) 太小，往右找
+      }
+      
+      u = (low + high) / 2;
+    }
+    
+    return u;
+  }
+}
