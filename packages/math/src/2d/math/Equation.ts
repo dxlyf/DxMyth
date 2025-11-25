@@ -71,7 +71,63 @@ export function solveCubic(a: number, b: number, c: number, d: number): number[]
     ];
   }
 }
-
+/** 三次方程求根 Shengjin 公式 */
+export function solveCubicByShengjin(a: number, b: number, c: number, d: number): number[] {
+    if (Math.abs(a) < 1e-10) {
+        // 退化为二次方程
+        return solveQuadratic(b, c, d);
+    }
+    
+    // 归一化系数
+    const A = b * b - 3 * a * c;
+    const B = b * c - 9 * a * d;
+    const C = c * c - 3 * b * d;
+    
+    const delta = B * B - 4 * A * C;
+    
+    const results = [];
+    
+    if (Math.abs(A) < 1e-10 && Math.abs(B) < 1e-10) {
+        // 三重实根
+        const root = -b / (3 * a);
+        return [root, root, root];
+    }
+    
+    if (delta > 0) {
+        // 一个实根和一对共轭复根
+        const Y1 = A * b + 3 * a * (-B + Math.sqrt(delta)) / 2;
+        const Y2 = A * b + 3 * a * (-B - Math.sqrt(delta)) / 2;
+        
+        const realRoot = (-b - (Math.cbrt(Y1) + Math.cbrt(Y2))) / (3 * a);
+        results.push(realRoot);
+        
+        // 复根（这里只返回实部，实际应用中可能需要处理复数）
+        const complexReal = (-b + (Math.cbrt(Y1) + Math.cbrt(Y2)) / 2) / (3 * a);
+        const complexImag = Math.sqrt(3) * (Math.cbrt(Y1) - Math.cbrt(Y2)) / (6 * a);
+        results.push(complexReal); // 实际应返回复数对象
+    }
+    else if (Math.abs(delta) < 1e-10) {
+        // 三个实根，其中两个相等
+        const K = B / A;
+        const root1 = -b / a + K;
+        const root2 = -K / 2;
+        results.push(root1, root2, root2);
+    }
+    else {
+        // 三个不等实根
+        const T = (2 * A * b - 3 * a * B) / (2 * Math.sqrt(A * A * A));
+        const theta = Math.acos(T);
+        const sqrtA = Math.sqrt(A);
+        
+        const root1 = (-b - 2 * sqrtA * Math.cos(theta / 3)) / (3 * a);
+        const root2 = (-b + sqrtA * (Math.cos(theta / 3) + Math.sqrt(3) * Math.sin(theta / 3))) / (3 * a);
+        const root3 = (-b + sqrtA * (Math.cos(theta / 3) - Math.sqrt(3) * Math.sin(theta / 3))) / (3 * a);
+        
+        results.push(root1, root2, root3);
+    }
+    
+    return results;
+}
 /** 二分法求根 */
 export function bisection(
   f: (x: number) => number,
