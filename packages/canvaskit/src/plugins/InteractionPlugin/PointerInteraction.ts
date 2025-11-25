@@ -13,12 +13,16 @@ export type PointerInteractionEvents = {
     drag: PointerInteractionEvent
     dragEnd: PointerInteractionEvent
     click: PointerInteractionEvent
+    pointerenter: PointerInteractionEvent
+    pointerleave: PointerInteractionEvent
 }
 export interface PointerInteractionEvent {
 
 }
 export class PointerInteractionEvent<E extends Event=PointerEvent> {
     type:string
+    pointerId:number
+    isDown:boolean=false
     nativeType:string
     nativeEvent: E
     downPoint = Vector2.default()
@@ -39,8 +43,8 @@ export class PointerInteractionEvent<E extends Event=PointerEvent> {
 
     }
     reset(){
-        // this.target=null
-        // this.currentTarget=null
+      //  this.target=null
+      //  this.currentTarget=null
         this.cancelBubble=true 
         this.defaultPrevented=false
         this.cancelBubble=false
@@ -156,6 +160,7 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
     handlwDown() {
         this.resetHandleState()
         this.isDown = true
+        this.event.isDown=true
         this.event.downPoint.copy(this.event.point)
         this.emit('pointerdown', this.event)
     }
@@ -179,6 +184,7 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
         if (!this.isDown) {
             return
         }
+        this.event.isDown=false
         this.event.upPoint.copy(this.event.point)
         this.emit('pointerup', this.event)
         if (this.isDraging) {
@@ -210,6 +216,8 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
         
         switch (type) {
             case 'pointerdown':
+                event.pointerId=e.pointerId
+                this.domElement.setPointerCapture(e.pointerId)
                 this.handlwDown()
                 break
             case 'pointermove':
@@ -219,9 +227,12 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
                     this.handleMove()
                 }
                 break
-            case 'pointercancel':
+            case 'pointerenter':
             case 'pointerleave':
+                break
+            case 'pointercancel':
             case 'pointerup':
+                this.domElement.releasePointerCapture(e.pointerId)
                 this.handleUp()
                 break
             case 'click':

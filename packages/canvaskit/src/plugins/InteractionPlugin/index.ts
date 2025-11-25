@@ -3,6 +3,7 @@ import type { IPlugin } from 'src/core/PluginService'
 import type { CKEnginePluginHooks, CKEnginePluginMethods } from 'src/types/CKEngine';
 import {PointerInteraction,type PointerInteractionEvent} from './PointerInteraction'
 import {Node} from 'src/scene/Node'
+import { DisplayObject } from 'src/scene/DisplayObject';
 function getEmitterListenerEvents(emitter:any,evt:string) {
     var handlers = emitter._events[evt],ee:any[];
     if (!handlers) return [];
@@ -13,13 +14,16 @@ function getEmitterListenerEvents(emitter:any,evt:string) {
     }
     return ee;
 }
+let lastTarget:DisplayObject
 function dispatchNodeEvent(engine:CKEngine,e:PointerInteractionEvent){
         const type=e.type,x=e.x,y=e.y;
-        let target=e.target
-        if(type==='pointermove'){
-            target=e.target=engine.hitObject(x,y)
+        let target=null
+        if(type==='pointerdown'){
+            target=engine.hitObject(x,y)
         }
+        
         if(target){
+            e.target=target
             const targetPaths=e.composedPath() as Node[]
             while(targetPaths.length){
                 const el=targetPaths.shift()

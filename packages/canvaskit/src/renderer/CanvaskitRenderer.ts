@@ -437,7 +437,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             maskPaint.setAntiAlias(true);
             // this.canvas.saveLayer(null,maskPaint)
             if(maskPath){
-               //maskPaint.setMaskFilter(CK.MaskFilter.MakeBlur(CK.BlurStyle.))
+               
             }
             maskPaint.dispose()
         }
