@@ -32,6 +32,48 @@ export class QuadBezier {
         // bounds.max.setXY(bbox.x.max, bbox.y.max)
         return bounds
     }
+    // 返回贝塞尔曲线的中心点
+    getCenter() {
+        return this.p1.clone().multiplyScalar(2).subtract(this.p0).add(this.p2).multiplyScalar(0.25)
+    }
+    // 返回贝塞尔曲线的长度
+    getLength(maxIterations: number = 10) {
+       const points=this.getPoints(maxIterations)
+       let length=0
+       let start=Vector2.default()
+       for(let i=0;i<points.length-1;i++){
+        length+=points[i].distance(start)
+        start.copy(points[i])
+       }
+       return length
+    }
+    x(t:number){
+        return quadraticBezierAt(this.p0.x,this.p1.x,this.p2.x,t)
+    }
+    y(t:number){
+        return quadraticBezierAt(this.p0.y,this.p1.y,this.p2.y,t)
+    }
+    invertY(y:number){
+        return this.solveT(y,this.p0.y,this.p1.y,this.p2.y)
+    }
+    invertX(x:number){
+        return this.solveT(x,this.p0.x,this.p1.x,this.p2.x)
+    }
+    solveT(xOry:number,p0:number,p1:number,p2:number){
+   // 关于t一元二次多项式展开形式：(p0-2p1+p2)t^2+2(p1-p0)t+p0
+        // 求解二次方程
+        const a = p0 - 2 * p1 + p2
+        const b = 2 * (p1 - p0)
+        const c = p0-xOry
+        const solutions = solveQuadratic(a, b, c)
+        // 过滤出合法解
+        const validSolutions = solutions.filter(t => t >= 0 && t <= 1)
+        if (validSolutions.length === 0) {
+            return null
+        }
+        return validSolutions[0]
+    }
+    // 对贝塞尔曲线进行切分，返回切分后的两个子曲线
     split(t: number) {
         return chopQuadBezierAt(this.p0, this.p1, this.p2, t)
     }
@@ -54,15 +96,21 @@ export class QuadBezier {
     getPoint(t: number) {
         return quadraticBezierPointAt(this.p0, this.p1, this.p2, t)
     }
-    getPoints(tolerance: number = 0.01) {
-        return flattenQuadBezier(this.p0, this.p1, this.p2, tolerance)
+      // 对贝塞尔曲线进行扁平化处理，获取顶点
+    getPoints(maxIterations: number = 10) {
+       return getBezierPoints([this.p0, this.p1, this.p2], maxIterations)
     }
+    // 获取贝塞尔曲线的极值点
     getExtermas(extrenas: Vector2[]) {
         const count = computeQuadExtremas([this.p0, this.p1, this.p2], extrenas)
         return count
     }
+    // 对贝塞尔曲线进行扁平化处理
     fatten(tessellationTolerance = 1) {
         return flattenQuadBezier(this.p0, this.p1, this.p2, tessellationTolerance)
+    }
+    getTangent(t: number) {
+        return quadraticBezierTangentAt(this.p0, this.p1, this.p2, t)
     }
 }
 export class CubicBezier {
@@ -99,7 +147,44 @@ export class CubicBezier {
         // bounds.max.setXY(bbox.x.max, bbox.y.max)
         return bounds
     }
-
+    x(t:number){
+        return cubicBezierAt(this.p0.x,this.p1.x,this.p2.x,this.p3.x,t)
+    }
+    y(t:number){
+        return cubicBezierAt(this.p0.y,this.p1.y,this.p2.y,this.p3.y,t)
+    }
+    invertY(y:number){
+        return this.solveT(y,this.p0.y,this.p1.y,this.p2.y,this.p3.y)
+    }
+    invertX(x:number){
+        return this.solveT(x,this.p0.x,this.p1.x,this.p2.x,this.p3.x)
+    }
+    solveT(xOry:number,p0:number,p1:number,p2:number,p3:number){
+        // 关于t一元三次多项式展开形式：(p0-3p1+3p2-p3)t^3+3(p1-2p0+p2)t^2+3(p0-p1)t+p0
+        // 求解三次方程
+        const a = p0 - 3 * p1 + 3 * p2 - p3
+        const b = 3 * (p1 - 2 * p0 + p2)
+        const c = 3 * (p0 - p1)
+        const d = p0 - xOry
+        const solutions = solveCubic(a, b, c, d)
+        // 过滤出合法解
+        const validSolutions = solutions.filter(t => t >= 0 && t <= 1)
+        if (validSolutions.length === 0) {
+            return null
+        }
+        return validSolutions[0]
+    }
+    // 返回贝塞尔曲线的长度
+    getLength(maxIterations: number = 10) {
+       const points=this.getPoints(maxIterations)
+       let length=0
+       let start=Vector2.default()
+       for(let i=0;i<points.length-1;i++){
+        length+=points[i].distance(start)
+        start.copy(points[i])
+       }
+       return length
+    }
     // 关于t一元三次多项式展开形式：(p0-3p1+3p2-p3)t^3+3(p1-2p0+p2)t^2+3(p0-p1)t+p0
     getPolynomial() {
         return {
@@ -127,8 +212,47 @@ export class CubicBezier {
 
     }
 }
+/**
+ * @description 计算二次贝塞尔曲线在t点的切线向量
+ * 公式：a(1-t)^2+2t(1-t)b+t^2c
+    (-2+2t)a+(2-4t)b+2tc=2t(a-2b+c)+2(b-a)
+    2(b-a+(a-2b+c)t)
+ * @param p0 起点
+ * @param p1 控制点
+ * @param p2 终点
+ * @param t 插值参数
+ * @returns 
+ */
+export function quadraticBezierTangentAt(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2 {
+     if ((t == 0 && p0.equals(p1)) || (t == 1 && p1.equals(p2))) {
+        return p2.clone().subtract(p0);
+    }
 
-
+    //2(b-a+(a-2b+c)t)
+    let B = p1.clone().sub(p0);
+    let A = p2.clone().sub(p1).sub(B);
+    let T = A.clone().multiplyScalar(t).add(B);
+    return T.add(T)
+}
+export function cubicBezierTangentAt(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2 {
+    //当t为0或1时，导数方程返回一个零切线向量
+    //相邻控制点等于终点。在这种情况下，使用
+    //计算切线的下一个控制点或端点。
+    const tangent = Vector2.default()
+    if ((t == 0 && p0.equals(p1)) || (t == 1 && p2.equals(p3))) {
+        if (t == 0) {
+            tangent.subtractVectors(p2, p0)
+        } else {
+            tangent.subtractVectors(p3, p1)
+        }
+        if (!tangent.x && !tangent.y) {
+            tangent.subtractVectors(p3, p0)
+        }
+    } else {
+        tangent.copy(cubicBezierDerivative(p0, p1, p2, p3, t));
+    }
+    return tangent;
+}
 
 // 伯恩斯坦多项式
 export function bernstein(n: number, i: number, t: number): number {
@@ -412,6 +536,18 @@ export function bezierDerivative(points: Vector2[], t: number, k: number) {
     result.y *= coeff
     return result;
 }
+export function quadraticBezierDerivative(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2 {
+    const _1t = 1 - t
+    const x = 2 * _1t * (p1.x - p0.x) + 2 * t * (p2.x - p1.x)
+    const y = 2 * _1t * (p1.y - p0.y) + 2 * t * (p2.y - p1.y)
+    return Vector2.create(x, y)
+}
+export function cubicBezierDerivative(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2 {
+    const _1t = 1 - t
+    const x = 3 * _1t * _1t * (p1.x - p0.x) + 6 * _1t * t * (p2.x - p1.x) + 3 * t * t * (p3.x - p2.x)
+    const y = 3 * _1t * _1t * (p1.y - p0.y) + 6 * _1t * t * (p2.y - p1.y) + 3 * t * t * (p3.y - p2.y)
+    return Vector2.create(x, y)
+}
 
 /**
  * 计算贝塞尔曲线的N阶导数控制点
@@ -446,6 +582,16 @@ export function chopBezierBetween(points: Vector2[], t0: number, t1: number): Ve
     }
     const right = chopBezierAt(points, t0).right
     return chopBezierAt(right, t1).left
+}
+// 将N阶贝塞尔曲线转换为N段，顶点数组
+export function getBezierPoints(controlPoints:Vector2[],maxIterations: number = 10) {
+    const points: Vector2[] = []
+    for (let i = 0; i <= maxIterations; i++) {
+        const t=i/maxIterations
+        const point=getBezierPointWithBernstein(controlPoints,t)
+        points.push(point)
+    }
+    return points
 }
 /**
  * N阶贝塞尔曲线细分（使用德卡斯特里奥算法）

@@ -36,7 +36,7 @@ export function allAreFinite(args: number[]) {
     }
     return true;
 }
-export function equalsEpsilon(a: number, b: number, epsilon: number = 0.00001): boolean {
+export function equalsEpsilon(a: number, b: number, epsilon: number =1e-6): boolean {
     return Math.abs(a - b) <= epsilon;
 }
 
@@ -190,11 +190,79 @@ export const rationalBezier = (out: PointLike, controls: PointLike[], weight: nu
 export const centralDifference = (fn: any, h: number, ...args: any[]) => {
     return (fn(...args.map(d => d + h)) - fn(...args.map(d => d - h))) / (2 * h)
 }
-// 求导
-// 计算 d/dx f(x)
+
+/***
+ * 切线方程:y - f(x) = f'(x)(X - x)
+ * @description 计算函数的导数
+ * 想象一个函数曲线 y = f(x)：
+    fx 是当前点 x 处的函数值（y坐标）
+    fpx 是当前点 x 处的导数值（切线斜率）
+    fx / fpx 表示从当前点沿着切线回到 x轴的水平距离
+    x - fx / fpx 就是切线与 x轴交点的 x坐标
+    泰勒展开视角
+        在 x 点附近，函数可以近似为：f(x+Δx) = f(x)+f'(x)*Δx
+        我们希望找到使 f(x + Δx) = 0 的 Δx：
+            0 = f(x) + f'(x)Δx
+            Δx = -f(x) / f'(x)
+
+ * f(x+d)=f(x)+f'(d)*d
+ * 中心差分= ∫'(x)=dy/dx
+ * dy=dx*∫'(x)
+ */
 export function derivative(f: (x: number) => number, x: number, h: number = 1e-5) {
     return (f(x + h) - f(x - h)) / (2 * h);
 }
+// 微积分求面积
+export const integral = (fn: any, a: number, b: number, h: number = 1e-5) => {
+    let sum = 0;
+    for (let x = a; x < b; x += h) {
+        sum += fn(x) * h;
+    }
+    return sum;
+}
+/**
+ * 使用中心差分法数值计算导数
+ * 直观展示dx作为x方向的微小位移
+ */
+function numericalDerivative(f: (x: number) => number, x: number, dx: number = 1e-8): number {
+    // dx: x方向的微小位移量
+    // dy: 函数值的变化量
+    const dy = f(x + dx) - f(x - dx);  // 中心差分更精确
+    return dy / (2 * dx);  // 导数 = dy/dx
+}
+
+/**
+ * 前向差分法 - 更直观但精度稍差
+ * @param f 函数 返回x处的y值
+ * @param x 点
+ * @param dx 微小位移量
+ * @returns 导数
+ */
+function forwardDifference(f: (x: number) => number, x: number, dx: number = 1e-8): number {
+    // dy = f(x+dx) - f(x)  ← y方向的变化
+    // dx = 微小位移量       ← x方向的位移
+    const dy = f(x + dx) - f(x);
+    return dy / dx;
+}
+// 中心差分
+// 中心差分= ∫'(x)=dy/dx
+// dy=dx*∫'(x)
+/** 
+ * @description 中心差分
+*/
+export const centralDifferential = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args.map(d => d + h)) - fn(...args.map(d => d - h))) / (2 * h)
+}
+
+// 前向差分
+export const forwardDifferential = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args.map(d => d + h)) - fn(...args)) / h
+}
+// 后向差分
+export const backwardDifferential = (fn: any, h: number, ...args: any[]) => {
+    return (fn(...args) - fn(...args.map(d => d - h))) / h
+}
+
 // 多变量偏导 d/dx, d/dy, d/dt
 // 示例
 // const g = (x, y) => x ** 2 + y ** 3;
@@ -237,14 +305,7 @@ export function computeEdgeContribution(x0: number, y0: number, x1: number, y1: 
     // 根据边的方向确定符号
     return dx > 0 ? area : -area;
 }
-// 前向差分
-export const forwardDifferential = (fn: any, h: number, ...args: any[]) => {
-    return (fn(...args.map(d => d + h)) - fn(...args)) / h
-}
-// 后向差分
-export const backwardDifferential = (fn: any, h: number, ...args: any[]) => {
-    return (fn(...args) - fn(...args.map(d => d - h))) / h
-}
+
 export const degreesToRadian = (degrees: number) => {
     return degrees * DEGREES_RADIAN
 }
@@ -1269,15 +1330,34 @@ export class BezierExtremaFinder {
         return result;
     }
 }
+/**
+ * 求解二次方程
+ * @description 该函数使用二次方程的公式求解二次方程 ax² + bx + c = 0。
+ * 公式：
+ * x = (-b ± √(b² - 4ac)) / (2a)
+ * 判别式：D = b² - 4ac
+ * 根据判别式的符号，可分为以下情况：
+ * 1. D > 0：有两个不相等的实数根。
+ * 2. D = 0：有一个重根，两个相等的实数根。
+ * 3. D < 0：有两个共轭复根。
+ * 
+ * @param a 二次项系数
+ * @param b 一次项系数
+ * @param c 常数项
+ * @returns 实数根数组（可能有0-2个根）
+ */
 export function solveQuadratic(a: number, b: number, c: number): number[] {
     const discriminant = b * b - 4 * a * c;
+    // a===0时，退化为一次方程
     if(a===0){
         if(b===0){
             return []
         }
         return [-c/b]
     }
-    if (discriminant < 0) return []; // 无实数解
+    if (discriminant < 0){
+        return []
+    }
     let roots: number[] = [];
     if (discriminant === 0) {
         // 一个根
@@ -1291,7 +1371,25 @@ export function solveQuadratic(a: number, b: number, c: number): number[] {
     }
     return roots
 }
-//卡尔丹公式（Cardano's formula）
+/**
+ * 求解三次方程（使用Cardano公式）
+ * @description 该函数使用Cardano公式求解三次方程 ax³ + bx² + cx + d = 0。
+ * 计算公式：
+ * x³ + px + q = 0
+ * 其中 p = (3ac - b²) / (3a²)
+ * q = (2b³ - 9abc + 27a²d) / (27a³)
+ * 判别式：D = q² + (p/3)³
+ * 根据判别式的符号，可分为以下情况：
+ * 1. D > 0：有一个实根，两个复根。
+ * 2. D = 0：有一个重根，两个复根。
+ * 3. D < 0：有三个实根。
+ * 
+ * @param {number} a - 三次项系数
+ * @param {number} b - 二次项系数
+ * @param {number} c - 一次项系数
+ * @param {number} d - 常数项
+ * @returns {number[]} 实数根数组（可能有1-3个根）
+*/
 export function solveCubic(a: number, b: number, c: number, d: number): number[] {
     if (a === 0) throw new Error("Not a cubic equation");
 
