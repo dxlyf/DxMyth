@@ -920,7 +920,8 @@ export {
     circleRectIntersections,   // 圆-矩形交点计算
     polygonPolygonIntersections, // 多边形-多边形交点计算
     circlePolygonIntersections,  // 圆-多边形交点计算
-    lineQuadraticBezierIntersections // 线段-二次贝塞尔曲线交点计算
+    lineQuadraticBezierIntersections, // 线段-二次贝塞尔曲线交点计算
+    lineCubicBezierIntersections // 线段-三次贝塞尔曲线交点计算
 };
 
 

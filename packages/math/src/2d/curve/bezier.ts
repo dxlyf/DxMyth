@@ -655,6 +655,82 @@ export function windLine(p: Vector2,p0:Vector2,p1:Vector2): number {
     return wind
 }
 
+// 二次多项式展开 // At^2+Bt+C
+export function quadraticBezierPolynomial(p0: Vector2, p1: Vector2, p2: Vector2) {
+    const A = Vector2.default()
+    const B = Vector2.default()
+    const C = Vector2.default()
+    // t^2(p0-2p1+p2)
+    A.copy(p0).subtract(p1.clone().multiplyScalar(2)).add(p2)
+    // 2t(p1-p0)
+    B.copy(p1).subtract(p0).multiplyScalar(2)
+    // p0
+    C.copy(p0)
+    return [A,B,C] as const
+}
+// 三次多项式展开 // At^3+Bt^2+Ct+D
+// 三次多项式展开 // At^3+Bt^2+Ct+D
+export function cubicBezierPolynomial(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2) {
+    const A = Vector2.default()
+    const B = Vector2.default()
+    const C = Vector2.default()
+    const D = Vector2.default()
+    // t^3(p0-3p1+3p2-p3)
+    A.copy(p0).subtract(p1.clone().multiplyScalar(3)).add(p2.clone().multiplyScalar(3)).subtract(p3)
+    // t^2(3p1-6p0+3p2)
+    B.copy(p1).subtract(p0.clone().multiplyScalar(2)).add(p2).multiplyScalar(3)
+    // t(3p0-3p1)
+    C.copy(p0).subtract(p1).multiplyScalar(3)
+    // p0
+    D.copy(p0)
+    return [A,B,C,D] as const
+}
+
+
+
+// 直线一般方程 Ax+By+C=0
+export function linePolynomial(start:Vector2,end:Vector2){
+    const A = end.y - start.y
+    const B = start.x - end.x
+    const C = end.x * start.y - start.x * end.y 
+    return [A,B,C] as const
+}
+
+export function lineQuadraticBezierIntersection(start:Vector2,end:Vector2,p0:Vector2,p1:Vector2,p2:Vector2): Vector2[] {
+    const [E,F,G]=quadraticBezierPolynomial(p0,p1,p2)
+    const [A,B,C]=linePolynomial(start,end)
+    // 将二次代入直线方程
+    const A0=A*E.x+B*E.y
+    const B0=A*F.x+B*F.y
+    const C0=A*G.x+B*G.y+C
+    const roots=solveQuadratic(A0,B0,C0)
+    const points: Vector2[] = []
+    for (const t of roots) {
+        if(t>=0&&t<=1){
+            const intersection = quadraticBezierPointAt(p0, p1, p2, t)
+            points.push(intersection)
+        }
+    }
+    return points
+}
+export function lineCubicBezierIntersection(start:Vector2,end:Vector2,p0:Vector2,p1:Vector2,p2:Vector2,p3:Vector2): Vector2[] {
+    const [E,F,G,H]=cubicBezierPolynomial(p0,p1,p2,p3)
+    const [A,B,C]=linePolynomial(start,end)
+    // 将三次代入直线方程
+    const A0=A*E.x+B*E.y
+    const B0=A*F.x+B*F.y
+    const C0=A*G.x+B*G.y
+    const D0=A*H.x+B*H.y+C
+    const roots=solveCubic(A0,B0,C0,D0)
+    const points: Vector2[] = []
+    for (const t of roots) {
+        if(t>=0&&t<=1){
+            const intersection = cubicBezierPointAt(p0, p1, p2, p3, t)
+            points.push(intersection)
+        }
+    }
+    return points
+}
 /***
  * 发出一条射线与二次贝塞尔曲线交点
  * 假始射线是一条水平线，从左向右发射，与二次贝塞尔曲线交点
