@@ -62,7 +62,34 @@ export function min(n1: number, n2: number): number {
 export function max(n1: number, n2: number): number {
     return Math.max(n1, n2);
 }
-
+// dot([1,0],p)
+export enum AngleType {
+    Nearly180, // 近似-1 ，角度为180度
+    Sharp, // -1<dot<0，角度为90<x<180度
+    Shallow, // 0<dot<1，角度为0<x<90度
+    NearlyLine, // 返似1，角度为0度,几乎是直线
+}
+export function isNearlyZero(value: number, epsilon: number = 1e-6) {
+    return Math.abs(value) <= epsilon
+}
+// 计算点剩cos值的角度类型
+export function dotToAngleType(dot: number): AngleType {
+    if (dot >= 0.0) {
+        // shallow or line
+        if (isNearlyZero(1.0 - dot)) {
+            return AngleType.NearlyLine
+        } else {
+            return AngleType.Shallow
+        }
+    } else {
+        // sharp or 180
+        if (isNearlyZero(1.0 + dot)) {
+            return AngleType.Nearly180
+        } else {
+            return AngleType.Sharp
+        }
+    }
+}
 export function usignfactorial(n: number): number {
     if (n < 0) return -1;
     let result = 1;
@@ -81,6 +108,20 @@ export function fast_nCr(n: number, r: number): number {
     }
     return result;
 }
+/**
+   * 计算二项式系数 C(n, k)
+   */
+export function binomialCoefficient(n: number, k: number): number {
+    if (k < 0 || k > n) return 0;
+    if (k === 0 || k === n) return 1;
+    
+    let result = 1;
+    for (let i = 1; i <= k; i++) {
+      result *= (n - (k - i)) / i;
+    }
+    return Math.round(result);
+}
+
 // 排列 P(n,r) = n! / (n-r)!
 export function fast_nPr(n: number, r: number): number {
     if (r > n) return 0;
@@ -212,6 +253,50 @@ export const centralDifference = (fn: any, h: number, ...args: any[]) => {
 export function derivative(f: (x: number) => number, x: number, h: number = 1e-5) {
     return (f(x + h) - f(x - h)) / (2 * h);
 }
+
+ /**
+   * 使用中心差分法计算函数在x处的N阶导数（数值方法）
+   * @param f 原始函数
+   * @param n 导数阶数 (n >= 0)
+   * @param x 求导点
+   * @param h 步长 (默认1e-5)
+   * @returns N阶导数的数值近似
+   */
+  export function numericalNthDerivative(
+    f: (x: number) => number,
+    n: number,
+    x: number,
+    h: number = 1e-5
+  ): number {
+    if (n < 0) throw new Error("导数阶数必须为非负整数");
+    if (n === 0) return f(x);
+    
+    // 使用中心差分公式的高阶版本
+    const centralDifference = (g: (x: number) => number, x: number, h: number, order: number): number => {
+      if (order === 1) {
+        return (g(x + h) - g(x - h)) / (2 * h);
+      } else if (order === 2) {
+        return (g(x + h) - 2 * g(x) + g(x - h)) / (h * h);
+      }
+      
+      // 对于高阶导数，使用递归或显式公式
+      let sum = 0;
+      for (let k = 0; k <= order; k++) {
+        const coefficient = Math.pow(-1, k) * nCr(order, k);
+        sum += coefficient * g(x + (order/2 - k) * h);
+      }
+      return sum / Math.pow(h, order);
+    };
+    
+    // 递归计算
+    let currentFunction = f;
+    for (let i = 0; i < n; i++) {
+      const prevFunction = currentFunction;
+      currentFunction = (x: number) => centralDifference(prevFunction, x, h, 1);
+    }
+    
+    return currentFunction(x);
+  }
 // 微积分求面积
 export const integral = (fn: any, a: number, b: number, h: number = 1e-5) => {
     let sum = 0;
