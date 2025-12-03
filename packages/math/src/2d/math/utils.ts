@@ -1,3 +1,4 @@
+import { guid } from "../core/util";
 import { Vector2 } from "./vec2";
 
 export const PI = Math.PI;
@@ -51,7 +52,26 @@ export function decimalToBit(v: number, bit = 32) {
 export function as_signed(value: number, bits: number = 32) { var s = 32 - bits; return (value << s) >> s; }
 // 将32位整数转换为无符号整数
 export function as_unsigned(value: number, bits: number = 32) { var s = 32 - bits; return (value << s) >>> s; }
-
+// 计算32位整数的最低位
+export function calcLowBit(value:number){
+    //  return value & ~(value - 1);
+    return value & -value;
+}
+// 计算32位整数的最高位
+export function calcHighBit(value:number){
+    let bit=calc32Shift(value);
+    return (value>>>bit)<<bit
+}
+export function includeBit(value:number,bit:number){
+    return (value&bit)===bit;
+}
+export function removeBit(value:number,bit:number){
+    return value&~bit;
+}
+export function calcBitIndex(value:number){
+    return Math.trunc(Math.log2(value));
+}
+// 计算32位整数的有效位
 export function calc32Shift(value: number) {
     return 31 - Math.clz32(value)
 }
