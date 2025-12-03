@@ -608,7 +608,7 @@ function requestHostTimeout(
 function cancelHostTimeout() {
   // $FlowFixMe[not-a-function] nullable value
   localClearTimeout(taskTimeoutID);
-  taskTimeoutID = ((-1: any): TimeoutID);
+  taskTimeoutID = -1
 }
 
 export {
