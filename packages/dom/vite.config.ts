@@ -37,10 +37,16 @@ export default defineConfig(({ mode }) => {
     resolve:{
         alias:{
             'src':'/src',
-            "@core": "/src/lucia/core/*",
-            "@directives": "/src/lucia/core/directives/*",
-            "@utils": "/src/lucia/core/utils/*",
-            "@models": "/src/lucia/models/*"
+            "inferno":"/src/infernos/inferno",
+            "inferno-shared":"/src/infernos/inferno-shared",
+            "inferno-vnode-flags":"/src/infernos/inferno-vnode-flags",
+            "inferno-create-element":["./src/infernos/inferno-create-element"],
+            "inferno-utils":["./src/inferno-utils"],
+            "inferno-animation":["./src/infernos/inferno-animation"],
+            "inferno-clone-vnode":["./src/infernos/inferno-clone-vnode"],
+            "inferno-hydrate":["./src/infernos/inferno-hydrate"],
+            "inferno-compat":["./src/infernos/inferno-compat"],
+            "inferno-extras":["./src/infernos/inferno-extras"]
         }
     }
   }
