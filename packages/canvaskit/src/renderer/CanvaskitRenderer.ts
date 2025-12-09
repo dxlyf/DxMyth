@@ -15,11 +15,11 @@ import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, Fill
 import { addToFontCache, getTypeface } from 'src/canvaskit/htmlcanvas/font'
 import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
-import {arc,ellipse,arcTo,rect,roundRect,lineTo,moveTo,quadraticCurveTo,bezierCurveTo, Path2D} from 'src/canvaskit/htmlcanvas/path2d'
+import { arc, ellipse, arcTo, rect, roundRect, lineTo, moveTo, quadraticCurveTo, bezierCurveTo, Path2D } from 'src/canvaskit/htmlcanvas/path2d'
 import { hasOwnProperty, isNullOrUndefined, isValidPaintValue } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
 import { DrawStylePropertiesMap, DrawStylePropertiesSet, FontPropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
-import  notoSansSCFontUrl from 'src/assets/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf?url'
+import notoSansSCFontUrl from 'src/assets/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf?url'
 import FontManager from 'src/core/FontManager'
 
 const objTransformMatrix = new Float32Array(9)
@@ -44,45 +44,45 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     // private _strokeCap:CanvasKit.StrokeCap
     private _lineDash: number[] = []
     private _lineDashOffset = 0
-    private _fillStyle: FillStrokeObject=Color.BLACK
-    private _strokeStyle: FillStrokeObject=Color.BLACK
-    public shadowColor: Color =null
+    private _fillStyle: FillStrokeObject = Color.BLACK
+    private _strokeStyle: FillStrokeObject = Color.BLACK
+    public shadowColor: Color = null
     public shadowBlur: number = 0
     public shadowOffsetX: number = 0
     public shadowOffsetY: number = 0
     // font 
-    public _fontMgr:FontManager
+    public _fontMgr: FontManager
     private _fontString: string
     constructor(options: CanvaskitRendererOptions) {
         super(options)
     }
     async initialize() {
-        this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB,{
-           // antialias:1,
+        this.surface = CK.MakeWebGLCanvasSurface(this.domElment, CK.ColorSpace.SRGB, {
+            // antialias:1,
         })
         this.canvas = this.surface.getCanvas()
         this._currentPath = new CK.Path()
         this._paint = new CK.Paint()
         // font
-        this._fontMgr = new FontManager({defaultFontFamily:'Noto Sans SC'})
-        this._fontString='12px Noto Sans SC'
+        this._fontMgr = new FontManager()
+        this._fontString = '12px Noto Sans SC'
         this._fontMgr.font.setSubpixel(true);
         await this._fontMgr.loadFonts([{
-            family:'Noto Sans SC',
-            url:notoSansSCFontUrl
+            family: 'Noto Sans SC',
+            url: notoSansSCFontUrl
         }])
-        this._fontMgr.switchDefaultFont()
+        this._fontMgr.setFontFamily('Noto Sans SC')
         this._currentTransform = CK.Matrix.identity();
         this._globalCompositeOperation = CK.BlendMode.SrcOver
         this._paint.setBlendMode(this._globalCompositeOperation)
         this._paint.setStrokeWidth(this._strokeWidth)
         this._paint.setAntiAlias(true)
- 
+
 
     }
-    async loadFontFromUrl(fontUrl:string){
-        const fontData=await fetch(fontUrl).then(res=>res.arrayBuffer())
-        const typeface=CK.Typeface.MakeFreeTypeFaceFromData(fontData)
+    async loadFontFromUrl(fontUrl: string) {
+        const fontData = await fetch(fontUrl).then(res => res.arrayBuffer())
+        const typeface = CK.Typeface.MakeFreeTypeFaceFromData(fontData)
         return typeface
     }
     set globalCompositeOperation(value: GlobalCompositeOperation) {
@@ -120,6 +120,9 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             case GlobalCompositeOperation.ColorBurn:
                 this._globalCompositeOperation = CK.BlendMode.ColorBurn
                 break;
+            case GlobalCompositeOperation.Multiply:
+                this._globalCompositeOperation = CK.BlendMode.Multiply
+                break;
         }
         this._paint.setBlendMode(this._globalCompositeOperation)
     }
@@ -147,13 +150,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
                 return GlobalCompositeOperation.Color
             case CK.BlendMode.ColorBurn:
                 return GlobalCompositeOperation.ColorBurn
+
         }
     }
     set lineWidth(value: number) {
-       if(this._strokeWidth!==value){
+        if (this._strokeWidth !== value) {
             this._strokeWidth = value
             this._paint.setStrokeWidth(value)
-       }
+        }
     }
     get lineWidth() {
         return this._paint.getStrokeWidth()
@@ -232,7 +236,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
         if (Color.isColor(value)) {
             this._fillStyle = Color.parse(value).normalize()
-        } else if(value&&((value as Gradient).isGradient||(value as Pattern).isPattern)){
+        } else if (value && ((value as Gradient).isGradient || (value as Pattern).isPattern)) {
             this._fillStyle = value as FillStrokeObject
         }
     }
@@ -240,36 +244,36 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         return this._fillStyle
     }
     set strokeStyle(value: FillStrokeValue) {
-          if (!isValidPaintValue(value)) {
+        if (!isValidPaintValue(value)) {
             return
         }
-         if (Color.isColor(value)) {
+        if (Color.isColor(value)) {
             this._strokeStyle = Color.parse(value).normalize()
-        } else if(value&&((value as Gradient).isGradient||(value as Pattern).isPattern)){
+        } else if (value && ((value as Gradient).isGradient || (value as Pattern).isPattern)) {
             this._strokeStyle = value as FillStrokeObject
         }
     }
     get strokeStyle() {
         return this._strokeStyle
     }
-    get _font(){
+    get _font() {
         return this._fontMgr.font
     }
     get font() {
         return this._fontString;
     }
     set font(newFont) {
-        if (newFont !== this._fontString && this._fontMgr.switchFont(newFont)) {
+        if (newFont !== this._fontString && this._fontMgr.setFontFamily(newFont)) {
             this._fontString = newFont;
         }
     }
-    createCanvaskitPath(){
-        const path= new CK.Path()
+    createCanvaskitPath() {
+        const path = new CK.Path()
         this.disposableManager.addPersistent(path)
         return path
     }
-    createCanvaskitPaint(){
-        const paint= new CK.Paint()
+    createCanvaskitPaint() {
+        const paint = new CK.Paint()
         this.disposableManager.addPersistent(paint)
         return paint
     }
@@ -310,20 +314,20 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._currentTransform = this.canvas.getTotalMatrix();
     }
     scale(sx: number, sy: number) {
-        const inverted = CK.Matrix.scaled(1/sx, 1/sy);
+        const inverted = CK.Matrix.scaled(1 / sx, 1 / sy);
         this._currentPath.transform(inverted);
         this.canvas.scale(sx, sy);
         this._currentTransform = this.canvas.getTotalMatrix();
     }
     rotate(angle: number) {
-         // 回溯性地将此变换的逆变换应用到之前的
-         // 路径上，这样在绘制时应用变换时就会相互抵消。
+        // 回溯性地将此变换的逆变换应用到之前的
+        // 路径上，这样在绘制时应用变换时就会相互抵消。
         const inverted = CK.Matrix.rotated(-angle);
         this._currentPath.transform(inverted);
         this.canvas.rotate(angle, 0, 0);
         this._currentTransform = this.canvas.getTotalMatrix();
     }
-    getCurrentTransform(){
+    getCurrentTransform() {
         return this._currentTransform
     }
     setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
@@ -353,8 +357,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     }
     moveTo(x: number, y: number) {
         this._currentPath.moveTo(x, y)
-       // moveTo(this._currentPath, x, y)
-       this._currentPath.moveTo(x,y)
+        // moveTo(this._currentPath, x, y)
+        this._currentPath.moveTo(x, y)
     }
     lineTo(x: number, y: number) {
         //lineTo(this._currentPath, x, y)
@@ -369,10 +373,10 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     rect(x: number, y: number, width: number, height: number) {
         this._currentPath.addRect(CK.XYWHRect(x, y, width, height))
     }
-    roundRect(x: number, y: number, width: number, height: number, radius:number|number[]) {
-        roundRect(this._currentPath, x, y, width, height,radius)
+    roundRect(x: number, y: number, width: number, height: number, radius: number | number[]) {
+        roundRect(this._currentPath, x, y, width, height, radius)
     }
-    arc(x: number, y: number,radius:number, startAngle: number, endAngle: number, clockwise: boolean) {
+    arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, clockwise: boolean) {
         arc(this._currentPath, x, y, radius, startAngle, endAngle, clockwise)
     }
     arcTo(x1: number, y1: number, x2: number, y2: number, radius: number) {
@@ -384,14 +388,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     closePath() {
         this._currentPath.close();
     }
-    clip(_path?: CanvasKit.Path|Path2D | FillRule, fillRule?: FillRule) {
-        let path:CanvasKit.Path
+    clip(_path?: CanvasKit.Path | Path2D | FillRule, fillRule?: FillRule) {
+        let path: CanvasKit.Path
         if (typeof _path === 'string') {
             fillRule = _path as FillRule
             path = this._currentPath
-        }else if(_path&&(_path as Path2D)._getPath){
+        } else if (_path && (_path as Path2D)._getPath) {
             path = (_path as Path2D)._getPath()
-        }else{
+        } else {
             path = _path as CanvasKit.Path
         }
         if (!path) {
@@ -409,8 +413,8 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.canvas.clipPath(clip, CK.ClipOp.Intersect, true)
         clip.dispose()
     }
-     applyPathBorderSide(path: CanvasKit.Path,style:CanvasDrawStyle) {
-        const  canvas = this.canvas
+    applyPathBorderSide(path: CanvasKit.Path, style: CanvasDrawStyle) {
+        const canvas = this.canvas
         let { borderSide, lineWidth } = style
         if (borderSide === BorderSide.Outside) {
             let innerPath = path.copy()
@@ -427,108 +431,109 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             this.lineWidth = lineWidth * 2
         }
     }
-    applyMask(obj:DisplayObject) {
-        const style=obj.style as CanvasDrawStyle
-        const mask=style.mask
-        if(mask){
-            const {path:maskPath,object:maskObject,maskFilter}=mask
-            const maskPaint=this._paint.copy()
+    applyMask(obj: DisplayObject) {
+        const style = obj.style as CanvasDrawStyle
+        const mask = style.mask
+        if (mask) {
+            const { path: maskPath, object: maskObject, maskFilter } = mask
+            const maskPaint = this._paint.copy()
             maskPaint.setBlendMode(CK.BlendMode.Src);       // 覆盖 alpha
             maskPaint.setAntiAlias(true);
             // this.canvas.saveLayer(null,maskPaint)
-            if(maskPath){
-               
+            if (maskPath) {
+
             }
             maskPaint.dispose()
         }
     }
-    applyClipPath(obj:DisplayObject) {
-        const style=obj.style as CanvasDrawStyle
-        const clip=style.clip
-        if(clip&&clip){
-          //  this.save()
-            const {path:clipPath,object:clipObject}=clip
-            if(clipObject){
-                const clipPathUnits=clip.clipPathUnits??ClipPathUnits.UserSpaceOnUse
-                const objClipPath=clipObject.ckPath
-                const clipMatrix=Matrix2D.getPool()
-                const clipInverseMatrix=Matrix2D.getPool()
-               // const cts=this.getCurrentTransform()
-                if(clipPathUnits===ClipPathUnits.ObjectBoundingBox){
+    applyClipPath(obj: DisplayObject) {
+        const style = obj.style as CanvasDrawStyle
+        const clip = style.clip
+        if (clip && clip) {
+            //  this.save()
+            const { path: clipPath, object: clipObject } = clip
+            if (clipObject) {
+                const clipPathUnits = clip.clipPathUnits ?? ClipPathUnits.UserSpaceOnUse
+                const objClipPath = clipObject.ckPath
+                const clipMatrix = Matrix2D.getPool()
+                const clipInverseMatrix = Matrix2D.getPool()
+                // const cts=this.getCurrentTransform()
+                if (clipPathUnits === ClipPathUnits.ObjectBoundingBox) {
                     clipMatrix.copy(obj.worldMatrix)
                     clipInverseMatrix.copy(obj.worldInverseMatrix)
-                }else{
+                } else {
                     clipMatrix.copy(clipObject.worldMatrix)
                     clipInverseMatrix.copy(clipObject.worldInverseMatrix)
                 }
-                this.transform(clipMatrix[0],clipMatrix[1],clipMatrix[2],clipMatrix[3],clipMatrix[4],clipMatrix[5])
-                this.clip(objClipPath,(clipObject.style as any).fillRule)
-                this.transform(clipInverseMatrix[0],clipInverseMatrix[1],clipInverseMatrix[2],clipInverseMatrix[3],clipInverseMatrix[4],clipInverseMatrix[5])
+                this.transform(clipMatrix[0], clipMatrix[1], clipMatrix[2], clipMatrix[3], clipMatrix[4], clipMatrix[5])
+                this.clip(objClipPath, (clipObject.style as any).fillRule)
+                this.transform(clipInverseMatrix[0], clipInverseMatrix[1], clipInverseMatrix[2], clipInverseMatrix[3], clipInverseMatrix[4], clipInverseMatrix[5])
                 clipMatrix.releasePool()
                 clipInverseMatrix.releasePool()
-            }else if(clipPath){
-                this.clip(clipPath,clip.fillRule)
+            } else if (clipPath) {
+                this.clip(clipPath, clip.fillRule)
             }
         }
     }
-    applyFontStyle(style:CanvasDrawStyle){
-       const {fontSize=12,fontStyle=FontStyle.Normal,fontFamily='monospace',fontWeight=FontWeight.Normal,fontStretch,fontVariant=FontVariant.Normal,fontKerning,textRendering}=style
-       const font=[fontStyle,fontVariant,fontWeight,fontSize+'px',fontFamily]
-       this.font=font.join(' ')
+    applyFontStyle(style: CanvasDrawStyle) {
+        const { fontSize = 12, fontStyle = FontStyle.Normal, fontFamily = 'monospace', fontWeight = FontWeight.Normal, fontStretch, fontVariant = FontVariant.Normal, fontKerning, textRendering } = style
+        const font = [fontStyle, fontVariant, fontWeight, fontSize + 'px', fontFamily]
+        this.font = font.join(' ')
     }
     applyCanvasStyle(style: CanvasDrawStyle) {
-        let font:string[]=[]
+        let font: string[] = []
+
         Object.keys(style).forEach((name) => {
             let propName = name as keyof typeof style
-            let value=style[propName]
-            if (DrawStylePropertiesSet.has(propName)&&!isNullOrUndefined(value)) {
-                if(FontPropertiesSet.has(propName)){
+            let value = style[propName]
+            if (DrawStylePropertiesSet.has(propName) && !isNullOrUndefined(value)) {
+                if (FontPropertiesSet.has(propName)) {
                     font.push(propName)
                     return
                 }
-                if(HasDrawStylePropertiesMap.has(propName)){
-                   propName=DrawStylePropertiesMap[name as keyof typeof DrawStylePropertiesMap] as keyof typeof style
+                if (HasDrawStylePropertiesMap.has(propName)) {
+                    propName = DrawStylePropertiesMap[name as keyof typeof DrawStylePropertiesMap] as keyof typeof style
                 }
                 (this as any)[propName] = value
             }
         })
-        if(font.length){
+        if (font.length) {
             this.applyFontStyle(style)
         }
     }
-    drawOrder(style:CanvasDrawStyle,fillCb:()=>void,strokeCb:()=>void){
-        if(style.firstFill){
-            if(isValidPaintValue(style.fillStyle)){
+    drawOrder(style: CanvasDrawStyle, fillCb: () => void, strokeCb: () => void) {
+        if (style.firstFill) {
+            if (isValidPaintValue(style.fillStyle)) {
                 fillCb()
             }
-            if(isValidPaintValue(style.strokeStyle)){
+            if (isValidPaintValue(style.strokeStyle)) {
                 strokeCb()
             }
-        }else{
-            if(isValidPaintValue(style.strokeStyle)){
+        } else {
+            if (isValidPaintValue(style.strokeStyle)) {
                 strokeCb()
             }
-            if(isValidPaintValue(style.fillStyle)){
+            if (isValidPaintValue(style.fillStyle)) {
                 fillCb()
             }
         }
     }
-    drawTextPaint(text:string,x:number,y:number,style:CanvasDrawStyle){
+    drawTextPaint(text: string, x: number, y: number, style: CanvasDrawStyle) {
         this.drawOrder(style,
-            ()=>{
-                this.fillText(text,x,y)
+            () => {
+                this.fillText(text, x, y)
             },
-            ()=>{
-                this.strokeText(text,x,y)
+            () => {
+                this.strokeText(text, x, y)
             }
         )
     }
-    drawPathPaint(path:CanvasKit.Path,style:CanvasDrawStyle){
+    drawPathPaint(path: CanvasKit.Path, style: CanvasDrawStyle) {
         this.drawOrder(style,
-            ()=>{
-                this.fill(path,style.fillRule)
+            () => {
+                this.fill(path, style.fillRule)
             },
-            ()=>{
+            () => {
                 this.applyPathBorderSide(path, style)
                 this.stroke(path)
             }
@@ -548,7 +553,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
         this.disposableManager.add({
             dispose: () => {
-               // paint.setShader(null)
+                // paint.setShader(null)
             }
         })
         return paint
@@ -572,14 +577,14 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.disposableManager.add({
             dispose: () => {
                 dashedEffect && dashedEffect.delete();
-              //  paint.setPathEffect(null)
-              //  paint.setShader(null)
+                //  paint.setPathEffect(null)
+                //  paint.setShader(null)
             }
         })
         return paint;
     }
     _shadowPaint(basePaint: CanvasKit.Paint) {
-        if(!isValidPaintValue(this.shadowColor)){
+        if (!isValidPaintValue(this.shadowColor)) {
             return null
         }
         // multiply first to see if the alpha channel goes to 0 after multiplication.
@@ -617,12 +622,12 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.canvas.concat(CK.Matrix.translated(this.shadowOffsetX, this.shadowOffsetY));
         this.canvas.concat(this._currentTransform);
     };
-    fill(_path?: CanvasKit.Path|Path2D | FillRule, fillRule?: FillRule) {
-        let path:CanvasKit.Path
+    fill(_path?: CanvasKit.Path | Path2D | FillRule, fillRule?: FillRule) {
+        let path: CanvasKit.Path
         if (typeof _path === 'string') {
             fillRule = _path as FillRule
             path = this._currentPath
-        }else if(_path&&(_path as Path2D)._getPath){
+        } else if (_path && (_path as Path2D)._getPath) {
             path = (_path as Path2D)._getPath()
         }
         if (!path) {
@@ -647,9 +652,9 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
         this.canvas.drawPath(this._currentPath, paint)
     }
-    stroke(_path?: CanvasKit.Path|Path2D) {
-        let path:CanvasKit.Path
-         if(_path&&(_path as Path2D)._getPath){
+    stroke(_path?: CanvasKit.Path | Path2D) {
+        let path: CanvasKit.Path
+        if (_path && (_path as Path2D)._getPath) {
             path = (_path as Path2D)._getPath()
         }
         if (!path) {
@@ -691,42 +696,45 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     fillText(text: string, x: number, y: number, maxWidth?: number) {
         // TODO do something with maxWidth, probably involving measure
         const fillPaint = this._fillPaint();
-       // const blob = CK.TextBlob.MakeFromText(text, this._font);
+        // const blob = CK.TextBlob.MakeFromText(text, this._font);
 
         const shadowPaint = this._shadowPaint(fillPaint);
         if (shadowPaint) {
             this.canvas.save();
             this._applyShadowOffsetMatrix();
-            this.canvas.drawText(text, x, y, shadowPaint,this._font);
-          //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
+            this.canvas.drawText(text, x, y, shadowPaint, this._font);
+            //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
             this.canvas.restore();
         }
-        
-        this.canvas.drawText(text, x, y, fillPaint,this._font);
-       // this.canvas.drawTextBlob(blob, x, y, fillPaint);
-       // blob.delete();
-       // fillPaint.dispose();
+
+        this.canvas.drawText(text, x, y, fillPaint, this._font);
+        // this.canvas.drawTextBlob(blob, x, y, fillPaint);
+        // blob.delete();
+        // fillPaint.dispose();
     };
     strokeText(text: string, x: number, y: number, maxWidth?: number) {
         // TODO do something with maxWidth, probably involving measure
         const strokePaint = this._strokePaint();
-       // const blob = CK.TextBlob.MakeFromText(text, this._font);
+        // const blob = CK.TextBlob.MakeFromText(text, this._font);
 
         const shadowPaint = this._shadowPaint(strokePaint);
         if (shadowPaint) {
             this.canvas.save();
             this._applyShadowOffsetMatrix();
-            this.canvas.drawText(text, x, y, shadowPaint,this._font);
-          //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
+            this.canvas.drawText(text, x, y, shadowPaint, this._font);
+            //  this.canvas.drawTextBlob(blob, x, y, shadowPaint);
             this.canvas.restore();
         }
-        this.canvas.drawText(text, x, y, strokePaint,this._font);
-       // this.canvas.drawTextBlob(blob, x, y, fillPaint);
-       // blob.delete();
-       // strokePaint.dispose();
+        this.canvas.drawText(text, x, y, strokePaint, this._font);
+        // this.canvas.drawTextBlob(blob, x, y, fillPaint);
+        // blob.delete();
+        // strokePaint.dispose();
     };
+    drawParagraph(paragraph: CanvasKit.Paragraph, x: number, y: number) {
+        this.canvas.drawParagraph(paragraph, x, y);
+    }
     measureText(text: string) {
-        return this._fontMgr.measureText(text)
+        return this._fontMgr.measureText(text, this._paint)
     }
     drawImage(image: Image, dx: number, dy: number): void;
     drawImage(image: Image, dx: number, dy: number, dw: number, dh: number): void;
@@ -853,11 +861,11 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         return path.contains(x, y);
     };
     save() {
-        let fs,ss;
-        if(this._fillStyle){
+        let fs, ss;
+        if (this._fillStyle) {
             fs = this._fillStyle.clone()
         }
-        if(this._strokeStyle){
+        if (this._strokeStyle) {
             ss = this._strokeStyle.clone()
         }
         this._stateStack.push({
@@ -865,15 +873,15 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             ctm: this._currentTransform.slice(),
             globalAlpha: this.globalAlpha,
             blend: this._globalCompositeOperation,
-            fillStyle:fs,
-            strokeStyle:ss,
-            strokeWidth:this._strokeWidth,
+            fillStyle: fs,
+            strokeStyle: ss,
+            strokeWidth: this._strokeWidth,
             shadowColor: this.shadowColor,
             shadowBlur: this.shadowBlur,
             shadowOffsetX: this.shadowOffsetX,
             shadowOffsetY: this.shadowOffsetY,
             //font
-            fontString:this._fontString,
+            fontString: this._fontString,
         })
         this.canvas.save()
     }
@@ -892,15 +900,15 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._paint = newState.paint;
         this.globalAlpha = newState.globalAlpha
         this._globalCompositeOperation = newState.blend
-        this._strokeWidth=newState.strokeWidth
+        this._strokeWidth = newState.strokeWidth
         this.shadowColor = newState.shadowColor
         this.shadowBlur = newState.shadowBlur
         this.shadowOffsetX = newState.shadowOffsetX
         this.shadowOffsetY = newState.shadowOffsetY
-        this._fillStyle=newState.fillStyle
-        this._strokeStyle=newState.strokeStyle
+        this._fillStyle = newState.fillStyle
+        this._strokeStyle = newState.strokeStyle
         //font
-        this._fontString=newState.fontString
+        this._fontString = newState.fontString
         this.canvas.restore()
         this._currentTransform = this.canvas.getTotalMatrix()
     }
@@ -911,7 +919,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         }
     }
     renderObject(object: DisplayObject) {
-        this.emit('object:renderBefore',{object:object,renderer:this})
+        this.emit('object:renderBefore', { object: object, renderer: this })
         object.renderBefore(this)
         this.save()
         this.applyClipPath(object)
@@ -920,28 +928,37 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         object.draw(this)
         object.endDraw(this)
         this.restore()
-        object.effectFlag=NodeEffectFlags.None
+        object.effectFlag = NodeEffectFlags.None
         object.renderAfter(this)
-        this.emit('object:renderAfter',{object:object,renderer:this})
+        this.emit('object:renderAfter', { object: object, renderer: this })
     }
 
     render({ renderObjects, delta }: { renderObjects: DisplayObject[], delta: number }): void {
         const canvas = this.canvas
-        if(this.options.backgroundColor){
-            canvas.clear(Color.parse(this.options.backgroundColor).normalize())
-        }else{
-            this.clearRect(0,0,this.pixelWidth,this.pixelHeight)
-        }
+        // if (this.options.backgroundColor) {
+        //     // canvas.clear(Color.parse(this.options.backgroundColor).normalize())
+        //     this.fillStyle = this.options.backgroundColor
+        //     this.fillRect(0, 0, this.pixelWidth, this.pixelHeight)
+        //     this.globalCompositeOperation = GlobalCompositeOperation.SourceOver
+        // } else {
+        //     this.clearRect(0, 0, this.pixelWidth, this.pixelHeight)
+        // }
+        this.clearRect(0, 0, this.pixelWidth, this.pixelHeight)
         canvas.save()
         canvas.scale(this.dpr, this.dpr)
 
         renderObjects.forEach((object) => {
             if (object.shouldRender()) {
                 this.disposableManager.run(() => {
-                   object.render(this)
+                    object.render(this)
                 })
             }
         })
+        if (this.options.backgroundColor) {
+            this.fillStyle = this.options.backgroundColor
+            this.globalCompositeOperation = GlobalCompositeOperation.DestinationOver
+            this.fillRect(0, 0, this.pixelWidth, this.pixelHeight)
+        }
         canvas.restore()
         this.surface.flush()
 
@@ -950,10 +967,10 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this.disposableManager.destroy()
         this._paint.delete()
         this._currentPath.delete()
-        this._stateStack.length=0
+        this._stateStack.length = 0
         this._fillStyle?.dispose?.()
         this._strokeStyle?.dispose?.()
- 
+
         this._fontMgr.dispose();
         this.removeAllListeners()
     }

@@ -30,6 +30,9 @@ class RectExample extends ExampleBase {
                 fillStyle: this.state.color
             },
         })
+        this.rect.on('drag',e=>{
+            console.log('drag')
+        })
         this.onChange()
         this.owner.add(this.rect)
     }

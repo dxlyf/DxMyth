@@ -1,5 +1,7 @@
 import { BufferGeometry } from '../core/BufferGeometry.js';
 import { Shape } from '../extras/core/Shape.js';
+
+
 /**
  * Creates an one-sided polygonal geometry from one or more path shapes.
  * @example

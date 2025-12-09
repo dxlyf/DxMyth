@@ -1,5 +1,7 @@
 import { JSONMeta, Object3DJSON, Object3DJSONObject } from '../core/Object3D.js';
 import { Camera } from './Camera.js';
+
+
 export interface OrthographicCameraJSONObject extends Object3DJSONObject {
     zoom: number;
     left: number;

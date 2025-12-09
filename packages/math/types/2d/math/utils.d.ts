@@ -10,6 +10,16 @@ type PointLike = {
     y: number;
 };
 export declare function findIndexRight<T = any>(arr: T[], predicate: (value: T, index: number, obj: T[]) => boolean, thisArg?: any): number;
+export declare function createMask(...args: boolean[]): number;
+export declare function arrayFromMask(nMask: number): boolean[];
+export declare function decimalToBit(v: number, bit?: number): string;
+export declare function as_signed(value: number, bits?: number): number;
+export declare function as_unsigned(value: number, bits?: number): number;
+export declare function calcLowBit(value: number): number;
+export declare function calcHighBit(value: number): number;
+export declare function includeBit(value: number, bit: number): boolean;
+export declare function removeBit(value: number, bit: number): number;
+export declare function calcBitIndex(value: number): number;
 export declare function calc32Shift(value: number): number;
 export declare function calcArcGoldenRatio(delta: number): number;
 export declare function calcArcSteps(sweepAngle: number): number;
@@ -22,8 +32,20 @@ export declare function pow(base: number, exponent: number): number;
 export declare function abs(n: number): number;
 export declare function min(n1: number, n2: number): number;
 export declare function max(n1: number, n2: number): number;
+export declare enum AngleType {
+    Nearly180 = 0,// 近似-1 ，角度为180度
+    Sharp = 1,// -1<dot<0，角度为90<x<180度
+    Shallow = 2,// 0<dot<1，角度为0<x<90度
+    NearlyLine = 3
+}
+export declare function isNearlyZero(value: number, epsilon?: number): boolean;
+export declare function dotToAngleType(dot: number): AngleType;
 export declare function usignfactorial(n: number): number;
 export declare function fast_nCr(n: number, r: number): number;
+/**
+   * 计算二项式系数 C(n, k)
+   */
+export declare function binomialCoefficient(n: number, k: number): number;
 export declare function fast_nPr(n: number, r: number): number;
 export declare function lerp(start: number, end: number, t: number): number;
 export declare function inverseLerp(start: number, end: number, value: number): number;
@@ -38,7 +60,41 @@ export declare const deCasteljauBezier: (out: PointLike, controls: PointLike[], 
 export declare const bezier: (out: PointLike, controls: PointLike[], t: number) => PointLike;
 export declare const rationalBezier: (out: PointLike, controls: PointLike[], weight: number[], t: number) => PointLike;
 export declare const centralDifference: (fn: any, h: number, ...args: any[]) => number;
+/***
+ * 切线方程:y - f(x) = f'(x)(X - x)
+ * @description 计算函数的导数
+ * 想象一个函数曲线 y = f(x)：
+    fx 是当前点 x 处的函数值（y坐标）
+    fpx 是当前点 x 处的导数值（切线斜率）
+    fx / fpx 表示从当前点沿着切线回到 x轴的水平距离
+    x - fx / fpx 就是切线与 x轴交点的 x坐标
+    泰勒展开视角
+        在 x 点附近，函数可以近似为：f(x+Δx) = f(x)+f'(x)*Δx
+        我们希望找到使 f(x + Δx) = 0 的 Δx：
+            0 = f(x) + f'(x)Δx
+            Δx = -f(x) / f'(x)
+
+ * f(x+d)=f(x)+f'(d)*d
+ * 中心差分= ∫'(x)=dy/dx
+ * dy=dx*∫'(x)
+ */
 export declare function derivative(f: (x: number) => number, x: number, h?: number): number;
+/**
+  * 使用中心差分法计算函数在x处的N阶导数（数值方法）
+  * @param f 原始函数
+  * @param n 导数阶数 (n >= 0)
+  * @param x 求导点
+  * @param h 步长 (默认1e-5)
+  * @returns N阶导数的数值近似
+  */
+export declare function numericalNthDerivative(f: (x: number) => number, n: number, x: number, h?: number): number;
+export declare const integral: (fn: any, a: number, b: number, h?: number) => number;
+/**
+ * @description 中心差分
+*/
+export declare const centralDifferential: (fn: any, h: number, ...args: any[]) => number;
+export declare const forwardDifferential: (fn: any, h: number, ...args: any[]) => number;
+export declare const backwardDifferential: (fn: any, h: number, ...args: any[]) => number;
 export declare function partialDerivative(f: (...args: number[]) => number, varIndex: number, point: number[], h?: number): number;
 /**
  * 计算梯形面积
@@ -49,8 +105,6 @@ export declare function partialDerivative(f: (...args: number[]) => number, varI
  * @returns {number} - 返回有符号面积
  */
 export declare function computeEdgeContribution(x0: number, y0: number, x1: number, y1: number): number;
-export declare const forwardDifferential: (fn: any, h: number, ...args: any[]) => number;
-export declare const backwardDifferential: (fn: any, h: number, ...args: any[]) => number;
 export declare const degreesToRadian: (degrees: number) => number;
 export declare const radianToDegrees: (radian: number) => number;
 /**
@@ -250,7 +304,42 @@ export declare class BezierExtremaFinder {
      */
     private static binomialCoefficient;
 }
+/**
+ * 求解二次方程
+ * @description 该函数使用二次方程的公式求解二次方程 ax² + bx + c = 0。
+ * 公式：
+ * x = (-b ± √(b² - 4ac)) / (2a)
+ * 判别式：D = b² - 4ac
+ * 根据判别式的符号，可分为以下情况：
+ * 1. D > 0：有两个不相等的实数根。
+ * 2. D = 0：有一个重根，两个相等的实数根。
+ * 3. D < 0：有两个共轭复根。
+ *
+ * @param a 二次项系数
+ * @param b 一次项系数
+ * @param c 常数项
+ * @returns 实数根数组（可能有0-2个根）
+ */
 export declare function solveQuadratic(a: number, b: number, c: number): number[];
+/**
+ * 求解三次方程（使用Cardano公式）
+ * @description 该函数使用Cardano公式求解三次方程 ax³ + bx² + cx + d = 0。
+ * 计算公式：
+ * x³ + px + q = 0
+ * 其中 p = (3ac - b²) / (3a²)
+ * q = (2b³ - 9abc + 27a²d) / (27a³)
+ * 判别式：D = q² + (p/3)³
+ * 根据判别式的符号，可分为以下情况：
+ * 1. D > 0：有一个实根，两个复根。
+ * 2. D = 0：有一个重根，两个复根。
+ * 3. D < 0：有三个实根。
+ *
+ * @param {number} a - 三次项系数
+ * @param {number} b - 二次项系数
+ * @param {number} c - 一次项系数
+ * @param {number} d - 常数项
+ * @returns {number[]} 实数根数组（可能有1-3个根）
+*/
 export declare function solveCubic(a: number, b: number, c: number, d: number): number[];
 /**
  * 使用Cardano公式求解三次方程 ax³ + bx² + cx + d = 0

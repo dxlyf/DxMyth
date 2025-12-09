@@ -17,6 +17,8 @@ import { BufferGeometry, BufferGeometryJSON } from './BufferGeometry.js';
 import { EventDispatcher } from './EventDispatcher.js';
 import { Layers } from './Layers.js';
 import { Intersection, Raycaster } from './Raycaster.js';
+
+
 export interface Object3DJSONObject {
     uuid: string;
     type: string;

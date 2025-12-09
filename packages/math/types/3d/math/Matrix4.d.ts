@@ -3,6 +3,8 @@ import { Euler } from './Euler.js';
 import { Matrix3 } from './Matrix3.js';
 import { Quaternion } from './Quaternion.js';
 import { Vector3 } from './Vector3.js';
+
+
 export type Matrix4Tuple = [
     n11: number,
     n12: number,

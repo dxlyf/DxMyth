@@ -1,0 +1,47 @@
+{
+  "name": "@dxyl/physics",
+  "version": "1.0.0",
+  "description": "physics",
+  "publishConfig": {
+     "access": "public"
+  },
+  "keywords": [
+    "graphic",
+    "physics"
+  ],
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "type": "module",
+  "types": "./types/index.d.ts",
+  "exports":{
+    ".":{
+      "import":"./dist/index.es.js",
+      "types":"./types/index.d.ts"
+    },
+      "./common/*":"./common/*",
+      "./lib/*":"./lib/*"
+  },
+  "files": [
+    "package.json",
+    "readme.md",
+    "common",
+    "dist",
+    "types",
+    "lib"
+  ],
+  "homepage": "https://github.com/dxlyf/DxMyth",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dxlyf/DxMyth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlyf/DxMyth/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite --port=8428",
+    "build": "vite build"
+  },
+  "dependencies": {
+  }
+}

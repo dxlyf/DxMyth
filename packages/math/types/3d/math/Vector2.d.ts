@@ -1,5 +1,7 @@
 import { BufferAttribute } from '../core/BufferAttribute.js';
 import { Matrix3 } from './Matrix3.js';
+
+
 export type Vector2Tuple = [x: number, y: number];
 
 export interface Vector2Like {

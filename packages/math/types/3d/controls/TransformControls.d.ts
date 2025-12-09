@@ -1,4 +1,4 @@
-import { Controls, Vector3, Quaternion, Object3D, Raycaster } from '../../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3, Quaternion, Object3D, Raycaster } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * This class can be used to transform objects in 3D space by adapting a similar interaction model
  * of DCC tools like Blender. Unlike other controls, it is not intended to transform the scene's camera.
@@ -135,7 +135,7 @@ export class TransformControls extends Controls<any> {
      */
     setColors(xAxis: number | Color | string, yAxis: number | Color | string, zAxis: number | Color | string, active: number | Color | string): void;
 }
-export class TransformControlsGizmo extends Object3D<import('../../../../../../../../../src/3d/index.core.ts').Object3DEventMap> {
+export class TransformControlsGizmo extends Object3D<import('../../../../../../../../src/3d/index.core.ts').Object3DEventMap> {
     constructor();
     isTransformControlsGizmo: boolean;
     type: string;
@@ -159,7 +159,7 @@ export class TransformControlsPlane {
     type: string;
     updateMatrixWorld(force: any): void;
 }
-declare class TransformControlsRoot extends Object3D<import('../../../../../../../../../src/3d/index.core.ts').Object3DEventMap> {
+declare class TransformControlsRoot extends Object3D<import('../../../../../../../../src/3d/index.core.ts').Object3DEventMap> {
     constructor(controls: any);
     isTransformControlsRoot: boolean;
     controls: any;

@@ -81,15 +81,16 @@ export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayO
     }
    
     startDraw(renderer: CanvaskitRenderer) {
-        renderer.beginPath()
     }
     draw(renderer: CanvaskitRenderer): void {
+        renderer.beginPath()
         this.buildInnerPath()
         renderer._currentPath.addPath(this._ckPath)
-    }
-    endDraw(renderer: CanvaskitRenderer) {
         renderer.applyCanvasStyle(this.style)
         renderer.drawPathPaint(renderer._currentPath, this.style)
+    }
+    endDraw(renderer: CanvaskitRenderer) {
+
     }
     hit(x:number,y:number){
        if(super.hit(x,y)){

@@ -13,6 +13,7 @@ packages:
   - 'packages/tapable'  
   - 'packages/zrender'  
   - 'packages/fabric'  
+  - 'packages/physics'  
 
   # components/ 子目录中的所有包
   #- 'components/**'

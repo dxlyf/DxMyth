@@ -1,4 +1,4 @@
-import { Box3, Layers, Triangle, Sphere } from '../../../../../../../../../src/3d/index.core.ts';
+import { Box3, Layers, Triangle, Sphere } from '../../../../../../../../src/3d/index.core.ts';
 import { Capsule } from './Capsule.js';
 /**
  * An octree is a hierarchical tree data structure used to partition a three-dimensional

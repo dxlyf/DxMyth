@@ -1,6 +1,8 @@
 import { Vector2 } from '../../math/Vector2.js';
 import { Vector3 } from '../../math/Vector3.js';
 import { Curve, CurveJSON } from './Curve.js';
+
+
 export interface CurvePathJSON extends CurveJSON {
     autoClose: boolean;
     curves: CurveJSON[];

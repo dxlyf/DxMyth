@@ -1,4 +1,6 @@
 import { Interpolant } from '../Interpolant.js';
+
+
 export class LinearInterpolant extends Interpolant {
     constructor(parameterPositions: any, samplesValues: any, sampleSize: number, resultBuffer?: any);
 

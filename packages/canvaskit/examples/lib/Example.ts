@@ -13,6 +13,7 @@ export  class ExampleBase{
     uid:number
     active:boolean=false
     state:Record<string,any>={}
+    stateOptions:Record<string,any>={}
     constructor(){
         this.uid=ExampleBase.uid++
         this.state=this.getDefaultState()
@@ -43,6 +44,8 @@ export  class ExampleBase{
                     gui.add(value,2).name('x')
                     gui.add(value,3).name('w')
                }
+            }else if(this.stateOptions[key]){
+                this.gui.add(state,key,this.stateOptions[key])
             }else{
                 this.gui.add(state,key)
             }

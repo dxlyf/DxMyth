@@ -2,6 +2,8 @@ import { Color } from '../../math/Color.js';
 import { Vector2 } from '../../math/Vector2.js';
 import { Path } from './Path.js';
 import { Shape } from './Shape.js';
+
+
 /**
  * This class is used to convert a series of shapes to an array of {@link THREE.Path | Path's},
  * for example an SVG shape to a path.

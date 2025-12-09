@@ -1,6 +1,8 @@
 import { Usage } from '../constants.js';
 import { EventDispatcher } from './EventDispatcher.js';
 import { Uniform } from './Uniform.js';
+
+
 /**
  * @see Example: {@link https://threejs.org/examples/#webgl2_ubo | WebGL2 / UBO}
  * @see {@link https://github.com/mrdoob/three.js/blob/master/src/core/UniformsGroup.js | Source}

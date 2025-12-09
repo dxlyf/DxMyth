@@ -1,6 +1,8 @@
 import { CompressedPixelFormat, MagnificationTextureFilter, Mapping, MinificationTextureFilter, TextureDataType, Wrapping } from '../constants.js';
 import { TypedArray } from '../core/BufferAttribute.js';
 import { Texture } from './Texture.js';
+
+
 export interface CompressedTextureMipmap {
     data: TypedArray;
     width: number;

@@ -79,15 +79,16 @@ export class Text<Options extends TextOptions = TextOptions> extends DisplayObje
     hasStroke() {
         return isValidPaintValue(this.style.strokeStyle)
     }
-   
+    
     startDraw(renderer: CanvaskitRenderer) {
     }
     draw(renderer: CanvaskitRenderer): void {
         this.buildInnerPath()
-        renderer._currentPath.addPath(this._ckPath)
+        renderer.applyCanvasStyle(this.style)
+        renderer.drawTextPaint(this.style.text,this.shape.x,this.shape.y,this.style)   
     }
     endDraw(renderer: CanvaskitRenderer) {
-       renderer.drawTextPaint(this.style.text,this.shape.x,this.shape.y,this.style)     
+       
     }
     hit(x:number,y:number){
        if(super.hit(x,y)){

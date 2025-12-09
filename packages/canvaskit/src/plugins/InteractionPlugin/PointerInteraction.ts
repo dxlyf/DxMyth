@@ -171,13 +171,13 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
         event.offsetPoint.set(event.point.x - event.downPoint.x, event.point.y - event.downPoint.y)
         event.lastPoint.copy(event.point)
 
-        this.emit('pointermove', this.event)
-
         if (this.isDown && !this.isDraging) {
             this.isDraging = true
             this.emit('dragStart', this.event)
         } else if (this.isDown && this.isDraging) {
             this.emit('drag', this.event)
+        }else{
+            this.emit('pointermove', this.event)
         }
     }
     handleUp() {
@@ -186,10 +186,10 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
         }
         this.event.isDown=false
         this.event.upPoint.copy(this.event.point)
-        this.emit('pointerup', this.event)
         if (this.isDraging) {
             this.emit('dragEnd', this.event)
         }
+        this.emit('pointerup', this.event)
         this.resetHandleState()
     }
     animationMoveId=0
@@ -217,7 +217,7 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
         switch (type) {
             case 'pointerdown':
                 event.pointerId=e.pointerId
-                this.domElement.setPointerCapture(e.pointerId)
+                this.domElement.setPointerCapture(e.pointerId) 
                 this.handlwDown()
                 break
             case 'pointermove':
@@ -233,6 +233,7 @@ export class PointerInteraction extends EventEmitter<PointerInteractionEvents> {
             case 'pointercancel':
             case 'pointerup':
                 this.domElement.releasePointerCapture(e.pointerId)
+                event.pointerId=null
                 this.handleUp()
                 break
             case 'click':

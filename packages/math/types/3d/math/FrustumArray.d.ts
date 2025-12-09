@@ -5,6 +5,8 @@ import { Sprite } from '../objects/Sprite.js';
 import { Box3 } from './Box3.js';
 import { Sphere } from './Sphere.js';
 import { Vector3 } from './Vector3.js';
+
+
 declare class FrustumArray {
     coordinateSystem: CoordinateSystem;
 

@@ -1,4 +1,4 @@
-import { Vector3 } from '../../../../../../../../../src/3d/index.core.ts';
+import { Vector3 } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * Can be used to compute the convex hull in 3D space for a given set of points. It
  * is primarily intended for {@link ConvexGeometry}.

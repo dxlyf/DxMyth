@@ -3,6 +3,8 @@ import { Curve } from '../extras/core/Curve.js';
 import { Shape } from '../extras/core/Shape.js';
 import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
+
+
 export interface ExtrudeGeometryOptions {
     /**
      * Number of points on the curves.
