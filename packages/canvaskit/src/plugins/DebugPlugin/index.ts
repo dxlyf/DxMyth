@@ -19,7 +19,7 @@ export default {
                 })
             })
         }
-        if(!api.ctx.options.debug?.showBounds){
+        if(api.ctx.options.debug?.showBounds){
       
             api.ctx.on('init',(engine)=>{
                 engine.renderer.on('object:renderAfter',info=>{

@@ -9,3 +9,7 @@ export const BrowserEnvPresets:IPreset={
         }
     }
 }
+export {
+    InteractionPlugin,
+    DebugPlugin,
+}

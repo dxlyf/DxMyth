@@ -3,7 +3,6 @@ import {DisposableManager,type IDisposable } from 'src/core/Disposable'
 import {getCanvasKit} from './canvaskit'
 import {PoolService,getPoolService,type IPoolService} from 'src/core/PoolService'
 export * from './util'
-export * from './enum'
 // 扩展
 declare module 'canvaskit-wasm'{
     interface Paint extends IDisposable{
