@@ -2,22 +2,26 @@
 
 import type { DisplayObjectOptions } from 'src/types/DisplayObject'
 import { DisplayObject } from "src/scene/DisplayObject";
-import type { ShapeStyleConfig, ShapeConfig } from 'src/types/Shape';
 import { CanvaskitRenderer } from 'src/renderer/CanvaskitRenderer';
 import { CK, type CanvasKit } from 'src/canvaskit';
 import { isNullOrUndefined, isValidPaintValue, merge } from 'src/utils';
 import { NodeEffectFlags } from 'src/consts';
+import { Color } from 'src/math/Color';
+import { TextAlign } from 'src/enum';
+import { TextStyleConfig } from 'src/types/Text';
+import { BoundingRect } from 'src/math';
 
 export interface TextOptions<Shape extends TextShapeConfig = TextShapeConfig, Style extends TextStyleConfig = TextStyleConfig> extends DisplayObjectOptions<Style> {
     shape: Shape
+    onDraw?: (obj: Text, renderer: CanvaskitRenderer) => void
 }
-export interface TextShapeConfig extends ShapeConfig{
-    x?:number,
-    y?:number,
+export interface TextShapeConfig {
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
 }
-export interface TextStyleConfig extends ShapeStyleConfig{
-    text?:string,
-}
+
 
 export class Text<Options extends TextOptions = TextOptions> extends DisplayObject<Options> {
     type = 'Text'
@@ -28,73 +32,69 @@ export class Text<Options extends TextOptions = TextOptions> extends DisplayObje
     get shape(): Options['shape'] {
         return this.props.shape
     }
-    get ckPath(){
-        if(!this._ckPath){
-            this.buildInnerPath()
-        }
-        return this._ckPath
-    }
     setShape(shape: Options['shape']) {
         merge(this.props.shape, shape)
         this.dirtyShape()
     }
-    dirtyShape(){
+    dirtyShape() {
         this.effectFlag |= NodeEffectFlags.Repaint | NodeEffectFlags.Shape
     }
     getDefaultProps() {
         return [...super.getDefaultProps(), {
             style: {
-                fillStyle:'#000',
-                text:''
+                fillStyle: '#000',
+                text: '',
+                fontSize: 14,
+                fontFamily: 'sans-serif'
             },
-            shape:{
-                x:0,
-                y:0
+            shape: {
+                x: 0,
+                y: 0
             }
         }] as Options[]
     }
+    shouldUpdateBounds(): number {
+        return this.effectFlag & (NodeEffectFlags.Style | NodeEffectFlags.Shape)
+    }
     innerCalcBounds(): void {
-        this.buildInnerPath()
-        let bounds = this._ckPath.computeTightBounds()
-        this._bounds.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
-    }
-    buildInnerPath() {
-        let needUpdatePath = !!(this.effectFlag & NodeEffectFlags.Shape)
-        if (!this._ckPath) {
-            this._ckPath = new CK.Path()
-            needUpdatePath = true
-        }
-        if (needUpdatePath) {
+        if (this.owner) {
+            this.effectFlag &= ~NodeEffectFlags.Style
             this.effectFlag &= ~NodeEffectFlags.Shape
-            this._ckPath.rewind()
-            this.buildPath(this._ckPath)
+            const fontMgr=this.owner.renderer._fontMgr
+            const width = fontMgr.getTextWidth(this.style.text, this.style.fontSize)
+            const metrics=fontMgr.calc(()=>{
+                return fontMgr.font.getMetrics()
+            }) as CanvasKit.FontMetrics
+            let rect=BoundingRect.fromXYWH(this.shape.x,metrics.ascent, width, metrics.descent)
+            rect.translate(this.shape.x, this.shape.y)
+            this._bounds.fromLTRB(rect.x, rect.y, rect.width, rect.height)
         }
+
     }
-    buildPath(path: CanvasKit.Path) {
-        this.shape.buildPath?.(path)
-    }
+
+
     hasFill() {
         return isValidPaintValue(this.style.fillStyle)
     }
     hasStroke() {
         return isValidPaintValue(this.style.strokeStyle)
     }
-    
+
     startDraw(renderer: CanvaskitRenderer) {
     }
     draw(renderer: CanvaskitRenderer): void {
-        this.buildInnerPath()
         renderer.applyCanvasStyle(this.style)
-        renderer.drawTextPaint(this.style.text,this.shape.x,this.shape.y,this.style)   
+        if (this.props.onDraw) {
+            this.props.onDraw(this, renderer)
+        } else {
+            renderer.drawTextPaint(this.style.text, this.shape.x, this.shape.y, this.style)
+        }
     }
     endDraw(renderer: CanvaskitRenderer) {
-       
+
     }
-    hit(x:number,y:number){
-       if(super.hit(x,y)){
-         return true
-       }
-       return this.ckPath.contains(x,y)
+    hitPath(x: number, y: number) {
+        return false
     }
     dispose(): void {
         if (this._ckPath) {

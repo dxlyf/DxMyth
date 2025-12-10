@@ -7,20 +7,20 @@ Noto Sans SC is a variable font with this axis:
   wght
 
 This means all the styles are contained in a single file:
-  NotoSansSC-VariableFont_wght.ttf
+  Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf
 
 If your app fully supports variable fonts, you can now pick intermediate styles
 that aren’t available as static fonts. Not all apps support variable fonts, and
 in those cases you can use the static font files for Noto Sans SC:
-  static/NotoSansSC-Thin.ttf
-  static/NotoSansSC-ExtraLight.ttf
-  static/NotoSansSC-Light.ttf
-  static/NotoSansSC-Regular.ttf
-  static/NotoSansSC-Medium.ttf
-  static/NotoSansSC-SemiBold.ttf
-  static/NotoSansSC-Bold.ttf
-  static/NotoSansSC-ExtraBold.ttf
-  static/NotoSansSC-Black.ttf
+  Noto_Sans_SC/static/NotoSansSC-Thin.ttf
+  Noto_Sans_SC/static/NotoSansSC-ExtraLight.ttf
+  Noto_Sans_SC/static/NotoSansSC-Light.ttf
+  Noto_Sans_SC/static/NotoSansSC-Regular.ttf
+  Noto_Sans_SC/static/NotoSansSC-Medium.ttf
+  Noto_Sans_SC/static/NotoSansSC-SemiBold.ttf
+  Noto_Sans_SC/static/NotoSansSC-Bold.ttf
+  Noto_Sans_SC/static/NotoSansSC-ExtraBold.ttf
+  Noto_Sans_SC/static/NotoSansSC-Black.ttf
 
 Get started
 -----------

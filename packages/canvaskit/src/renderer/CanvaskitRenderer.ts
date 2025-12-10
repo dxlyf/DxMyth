@@ -16,10 +16,10 @@ import { addToFontCache, getTypeface } from 'src/canvaskit/htmlcanvas/font'
 import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
 import { arc, ellipse, arcTo, rect, roundRect, lineTo, moveTo, quadraticCurveTo, bezierCurveTo, Path2D } from 'src/canvaskit/htmlcanvas/path2d'
-import { hasOwnProperty, isNullOrUndefined, isValidPaintValue } from 'src/utils'
+import { hasOwnProperty, isNullOrUndefined, isValidPaintValue, merge } from 'src/utils'
 import { NodeEffectFlags } from 'src/consts'
 import { DrawStylePropertiesMap, DrawStylePropertiesSet, FontPropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
-import notoSansSCFontUrl from 'src/assets/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf?url'
+
 import FontManager from 'src/core/FontManager'
 
 const objTransformMatrix = new Float32Array(9)
@@ -65,13 +65,12 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         this._paint = new CK.Paint()
         // font
         this._fontMgr = new FontManager()
-        this._fontString = '12px Noto Sans SC'
         this._fontMgr.font.setSubpixel(true);
         await this._fontMgr.loadFonts([{
-            family: 'Noto Sans SC',
-            url: notoSansSCFontUrl
+            family: 'sans-serif',
+            url: '/font/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf',
         }])
-        this._fontMgr.setFontFamily('Noto Sans SC')
+        this.font = '12px sans-serif'
         this._currentTransform = CK.Matrix.identity();
         this._globalCompositeOperation = CK.BlendMode.SrcOver
         this._paint.setBlendMode(this._globalCompositeOperation)
@@ -263,7 +262,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         return this._fontString;
     }
     set font(newFont) {
-        if (newFont !== this._fontString && this._fontMgr.setFontFamily(newFont)) {
+        if (newFont !== this._fontString && this._fontMgr.setCanvasFont(newFont)) {
             this._fontString = newFont;
         }
     }
@@ -501,7 +500,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             this.applyFontStyle(style)
         }
     }
-    drawOrder(style: CanvasDrawStyle, fillCb: () => void, strokeCb: () => void) {
+    private drawOrder(style: CanvasDrawStyle, fillCb: () => void, strokeCb: () => void) {
         if (style.firstFill) {
             if (isValidPaintValue(style.fillStyle)) {
                 fillCb()
@@ -731,8 +730,17 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         // strokePaint.dispose();
     };
     drawParagraph(paragraph: CanvasKit.Paragraph, x: number, y: number) {
+        /**
+         * 轴名称和 CSS 值
+        权重	wght
+        宽度	wdth
+        倾斜	slnt
+        光学尺寸	opsz
+        斜体	ital
+        */
         this.canvas.drawParagraph(paragraph, x, y);
     }
+  
     measureText(text: string) {
         return this._fontMgr.measureText(text, this._paint)
     }

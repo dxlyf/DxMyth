@@ -1,4 +1,4 @@
-import { BorderSide, BorderStyle, FillRule, FontKerning, FontStretch, FontStyle, FontVariant, FontWeight, GlobalCompositeOperation, LineCap, LineJoin, TextAlign, TextBaseline, TextRendering } from "src/enum";
+import { BorderSide, BorderStyle, FillRule, FontKerning, FontStretch, FontStyle, FontVariant, FontWeight, GlobalCompositeOperation, LineCap, LineJoin, TextAlign, TextBaseline, TextDirection, TextRendering } from "src/enum";
 import { CanvasDrawStyle } from "src/types/Renderer";
 
  const defaultCanvasDrawStyle: CanvasDrawStyle = {
@@ -30,6 +30,7 @@ import { CanvasDrawStyle } from "src/types/Renderer";
     textRendering: TextRendering.Auto,
     textAlign: TextAlign.Start,
     textBaseline: TextBaseline.Alphabetic,
+    textDirection: TextDirection.LTR,
 } as const
 
 const DrawStylePropertiesMap = {

@@ -51,6 +51,10 @@ enum TextBaseline{
     Ideographic='ideographic', // 文本基线：表意基线
     Bottom='bottom', // 文本基线：底部基线
 }
+enum TextDirection{
+    LTR='ltr', // 从左到右文本方向
+    RTL='rtl', // 从右到左文本方向
+}
 enum TextRendering{
     Auto='auto', // 自动文本渲染
     OptimizeSpeed='optimizeSpeed', // 优化速度文本渲染
@@ -106,7 +110,6 @@ enum FontWeight{
     Normal='normal', // 正常字体粗细
     Bold='bold', // 粗体字体粗细
 }
-
 
 enum GlobalCompositeOperation{
     SourceOver='source-over', // 源图像在目标图像上方绘制
@@ -172,6 +175,7 @@ export {
     TextRendering,
     TextAlign,
     TextBaseline,
+    TextDirection,
     LineJoin,
     LineCap,
     FillRule,

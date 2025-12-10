@@ -34,12 +34,18 @@ abstract class DisplayObject<Options extends DisplayObjectOptions = DisplayObjec
      shouldRender() {
           return super.shouldRender() && this.props.style.opacity > 0
      }
+     hitPath(x: number, y: number): boolean {
+          return false
+     }
      hit(x: number, y: number): boolean {
           // 如果开启了只命中包围合就行
           if (this.props.hitRect) {
                return this.bounds.containsXY(x, y)
           }
-          return false
+          if(!this.bounds.containsXY(x, y)){
+               return false
+          }
+          return this.hitPath(x, y)
      }
      abstract innerCalcBounds(): void
      renderBefore(renderer: CanvaskitRenderer) { }

@@ -1,4 +1,4 @@
-import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
+import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits, FontStyle, FontWeight, TextDirection } from "src/enum";
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
@@ -26,7 +26,7 @@ export interface CanvaskitRendererEvents extends RendererEvents{
     mousedown:[e:any]
 }
 export type TextDrawingStyles={
-    direction?: FontDirection; // 字体方向
+    fontDirection?: FontDirection; // 字体方向
     fontStyle?: FontStyle // 字体样式
     fontSize?: number // 字体大小
     fontFamily?: string // 字体
@@ -37,6 +37,7 @@ export type TextDrawingStyles={
     textRendering?: TextRendering; // 文本渲染方式
     textAlign?: TextAlign; // 文本对齐方式
     textBaseline?: TextBaseline; // 文本基线
+    textDirection?: TextDirection; // 文本方向
     letterSpacing?: string // 字母间距
     wordSpacing?: string // 单词间距
 }
@@ -60,6 +61,8 @@ export type FillStrokeValue=Gradient|Pattern|ColorValue|'none'|null
 export type FillStrokeStyles={
    fillStyle?:FillStrokeValue
    strokeStyle?:FillStrokeValue
+   firstFill?:boolean
+   fillRule?:FillRule
 }
 export type FillStrokeObject=Gradient|Pattern|Color
 
@@ -93,10 +96,12 @@ export type MaskStyle={
         maskFilter?:CanvasKit.MaskFilter
     }
 }
+export type CanvasBaseDrawStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&{
 
-export type CanvasDrawStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&TextDrawingStyles&{
-    firstFill?:boolean
-    fillRule?:FillRule
+}
+
+export type CanvasDrawStyle= CanvasBaseDrawStyle&TextDrawingStyles&{
+
 }
 
 export interface ICanvasContextService extends CanvasCompositing, CanvasDrawImage, CanvasDrawPath, CanvasFillStrokeStyles, CanvasFilters, CanvasImageData, CanvasImageSmoothing, CanvasPath, CanvasPathDrawingStyles, CanvasRect, CanvasShadowStyles, CanvasState, CanvasText, CanvasTextDrawingStyles, CanvasTransform   {

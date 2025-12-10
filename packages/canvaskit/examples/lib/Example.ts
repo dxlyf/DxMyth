@@ -1,4 +1,4 @@
-import { CKEngine,Circle,Rect,Group,Ellipse,GraphicPath, ClipPathUnits } from "src/index"
+import { CKEngine,Circle,Rect,Group,Ellipse,GraphicPath } from "src/index"
 import {GUI} from './lil-gui/lil-gui.esm'
 import './lil-gui/lil-gui.css'
 import { CKEngineOptions } from "src/types/CKEngine"
@@ -46,6 +46,8 @@ export  class ExampleBase{
                }
             }else if(this.stateOptions[key]){
                 this.gui.add(state,key,this.stateOptions[key])
+            }else if(typeof value==='string'&&value.startsWith('#')){
+                this.gui.addColor(state,key)
             }else{
                 this.gui.add(state,key)
             }
@@ -108,11 +110,13 @@ export class ExampleManager{
             width:500,
             height:500,
             backgroundColor:'#efefef',
+            alwaysRefresh:true,
             ...options
         })
         this.engine=engine
         this.exampleGroup=new Group()
         this.engine.add(this.exampleGroup)
+    
     }
     async init(options:Partial<CKEngineOptions>={}){
         this.gui=new GUI()

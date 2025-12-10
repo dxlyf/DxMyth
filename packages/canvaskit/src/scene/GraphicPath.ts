@@ -238,10 +238,7 @@ export class GraphicPath<Options extends GraphicPathOptions = GraphicPathOptions
         }
 
     }
-    hit(x: number, y: number) {
-        if (super.hit(x, y)) {
-            return true
-        }
+    hitPath(x: number, y: number) {
         return this.ckPath.contains(x, y)
     }
     dispose(): void {

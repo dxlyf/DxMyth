@@ -92,10 +92,7 @@ export class Shape<Options extends ShapeOptions = ShapeOptions> extends DisplayO
     endDraw(renderer: CanvaskitRenderer) {
 
     }
-    hit(x:number,y:number){
-       if(super.hit(x,y)){
-         return true
-       }
+    hitPath(x:number,y:number){
        return this.ckPath.contains(x,y)
     }
     dispose(): void {
