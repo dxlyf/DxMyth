@@ -25,7 +25,7 @@ export interface ParagraphShapeConfig {
 
 
 export class Paragraph<Options extends ParagraphOptions = ParagraphOptions> extends DisplayObject<Options> {
-    type = 'Text'
+    type = 'Paragraph'
     constructor(options?: Options) {
         super(options)
     }
@@ -60,7 +60,7 @@ export class Paragraph<Options extends ParagraphOptions = ParagraphOptions> exte
         if (this.owner) {
             this.effectFlag &= ~NodeEffectFlags.Shape
             this.effectFlag &= ~NodeEffectFlags.Style
-            
+
             const p = this.createParagraph()
             let height = p.getHeight()
             p.delete()

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DxMyth Renderer Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid #ccc;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <script type="module">
+        // 导入渲染器示例
+        import { RendererExample } from './lib/renderer/example.ts';
+        
+        // 获取canvas元素
+        const canvas = document.getElementById('canvas');
+        if (!canvas) {
+            throw new Error('Canvas element not found');
+        }
+        
+        // 创建渲染器示例
+        const example = new RendererExample(canvas);
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', () => {
+            example.resize(canvas.clientWidth, canvas.clientHeight);
+        });
+        
+        // 清理资源
+        window.addEventListener('beforeunload', () => {
+            example.dispose();
+        });
+    </script>
+</body>
+</html>

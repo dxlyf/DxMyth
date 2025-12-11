@@ -42,7 +42,7 @@ export type TextDrawingStyles={
     wordSpacing?: string // 单词间距
 }
 export type ShadowStyles={
-    shadowColor?: Color;// 阴影颜色
+    shadowColor?: ColorValue;// 阴影颜色
     shadowBlur?: number;// 阴影模糊半径
     shadowOffsetX?: number; // 阴影水平偏移
     shadowOffsetY?: number;// 阴影垂直偏移
@@ -59,35 +59,37 @@ export type LineStyles={
 }
 export type FillStrokeValue=Gradient|Pattern|ColorValue|'none'|null
 export type FillStrokeStyles={
-   fillStyle?:FillStrokeValue
-   strokeStyle?:FillStrokeValue
-   firstFill?:boolean
-   fillRule?:FillRule
+   fillStyle?:FillStrokeValue // 填充样式
+   strokeStyle?:FillStrokeValue // 描边样式
+   firstFill?:boolean // 是否先填充
+   fillRule?:FillRule // 填充规则
 }
 export type FillStrokeObject=Gradient|Pattern|Color
 
 export type CanvasCompositing={
-    globalAlpha?: number;
-    globalCompositeOperation?: GlobalCompositeOperation;
+    globalAlpha?: number; // 全局透明度
+    globalCompositeOperation?: GlobalCompositeOperation; // 全局合成操作
 }
 //PaintBrush
 export type PaintBrushStyle = LineStyles&ShadowStyles&TextDrawingStyles&{
-    type?: PaintStyle;
-    mode?: PaintMode
-    opacity?: number;
-    color?: Color;
-    gradient?: Gradient
-    pattern?: Pattern;
-    fillRule?: FillRule;
+    type?: PaintStyle; // 画笔类型
+    mode?: PaintMode // 画笔模式
+    opacity?: number; // 不透明度
+    color?: Color; // 颜色
+    gradient?: Gradient // 渐变
+    pattern?: Pattern; // 模式
+    fillRule?: FillRule; // 填充规则
 }
+// 裁剪路径样式
 export type ClipPathStyle={
     clip?:{
-        object?:Shape|GraphicPath
-        path?:CanvasKit.Path
-        fillRule?:FillRule
-        clipPathUnits?:ClipPathUnits
+        object?:Shape|GraphicPath // 裁剪对象
+        path?:CanvasKit.Path // 裁剪路径
+        fillRule?:FillRule // 填充规则
+        clipPathUnits?:ClipPathUnits // 裁剪路径单位
     }
 }
+// 遮罩样式
 export type MaskStyle={
     mask?:{
         image?:CanvasKit.Image
@@ -96,11 +98,11 @@ export type MaskStyle={
         maskFilter?:CanvasKit.MaskFilter
     }
 }
-export type CanvasBaseDrawStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&{
+export type CanvasDrawBaseStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&{
 
 }
 
-export type CanvasDrawStyle= CanvasBaseDrawStyle&TextDrawingStyles&{
+export type CanvasDrawStyle= CanvasDrawBaseStyle&TextDrawingStyles&{
 
 }
 

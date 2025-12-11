@@ -18,7 +18,9 @@ export interface NodeEvents{
         dragStart:  [PointerInteractionEvent]
         drag:  [PointerInteractionEvent]
         dragEnd:  [PointerInteractionEvent]
-        click:  [PointerInteractionEvent]    
+        click:  [PointerInteractionEvent]
+        pointerenter:  [PointerInteractionEvent]
+        pointerleave:  [PointerInteractionEvent]
 }
 
 

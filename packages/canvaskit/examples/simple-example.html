@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DxMyth Simple Renderer Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #000;
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">DxMyth Renderer System Example</h1>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <div class="controls">
+        <button id="startBtn">Start Animation</button>
+        <button id="stopBtn">Stop Animation</button>
+        <button id="disposeBtn">Dispose Resources</button>
+    </div>
+    
+    <script type="module">
+        // 导入所需的模块
+        import { createRenderer } from './lib/renderer/index.ts';
+        
+        async function main() {
+            // 获取canvas元素
+            const canvas = document.getElementById('canvas');
+            if (!canvas) {
+                throw new Error('Canvas element not found');
+            }
+            
+            // 创建渲染器
+            const renderer = createRenderer(canvas, {
+                width: canvas.width,
+                height: canvas.height,
+                antialias: true,
+                enableDebug: true
+            });
+            
+            // 初始化渲染器
+            await renderer.initialize();
+            
+            console.log('Renderer created with API:', renderer.getAPI());
+            console.log('Renderer initialized:', renderer.isInitialized);
+        
+        // 创建顶点数据 (一个彩色三角形)
+        const vertices = new Float32Array([
+            // 位置 (x, y, z) | 颜色 (r, g, b, a)
+            0.0, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0,  // 顶点1: 顶部, 红色
+            -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, // 顶点2: 左下, 绿色
+            0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 1.0   // 顶点3: 右下, 蓝色
+        ]);
+        
+        // 创建索引数据
+        const indices = new Uint16Array([0, 1, 2]);
+        
+        // 创建几何体
+        const geometry = renderer.createGeometry({
+            vertexBuffers: [
+                {
+                    data: vertices,
+                    attributes: [
+                        { name: 'a_position', size: 3, type: 'float', offset: 0, stride: 28 },
+                        { name: 'a_color', size: 4, type: 'float', offset: 12, stride: 28 }
+                    ]
+                }
+            ],
+            indexBuffer: indices,
+            topology: 'triangle-list'
+        });
+        
+        // 创建材质
+        const material = renderer.createMaterial('basic', {
+            uniforms: {
+                u_modelViewProjection: [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1
+                ]
+            }
+        });
+        
+        // 创建着色器
+        const vertexShader = {
+            webgl1: `
+                attribute vec3 a_position;
+                attribute vec4 a_color;
+                
+                uniform mat4 u_modelViewProjection;
+                
+                varying vec4 v_color;
+                
+                void main() {
+                    v_color = a_color;
+                    gl_Position = u_modelViewProjection * vec4(a_position, 1.0);
+                }
+            `,
+            webgl2: `
+                #version 300 es
+                
+                in vec3 a_position;
+                in vec4 a_color;
+                
+                uniform mat4 u_modelViewProjection;
+                
+                out vec4 v_color;
+                
+                void main() {
+                    v_color = a_color;
+                    gl_Position = u_modelViewProjection * vec4(a_position, 1.0);
+                }
+            `
+        };
+        
+        const fragmentShader = {
+            webgl1: `
+                precision mediump float;
+                
+                varying vec4 v_color;
+                
+                void main() {
+                    gl_FragColor = v_color;
+                }
+            `,
+            webgl2: `
+                #version 300 es
+                precision mediump float;
+                
+                in vec4 v_color;
+                out vec4 fragColor;
+                
+                void main() {
+                    fragColor = v_color;
+                }
+            `
+        };
+        
+        // 创建管线
+        const pipeline = renderer.createPipeline({
+            topology: 'triangle-list',
+            shaders: {
+                vertex: vertexShader,
+                fragment: fragmentShader
+            },
+            vertexAttributes: [
+                { name: 'a_position', size: 3, type: 'float', offset: 0, stride: 28 },
+                { name: 'a_color', size: 4, type: 'float', offset: 12, stride: 28 }
+            ]
+        });
+        
+        let animationId = 0;
+        let rotation = 0;
+        
+        // 渲染循环
+        function render() {
+            // 更新旋转
+            rotation += 0.01;
+            const cos = Math.cos(rotation);
+            const sin = Math.sin(rotation);
+            
+            // 创建旋转矩阵
+            const rotationMatrix = [
+                cos, -sin, 0, 0,
+                sin, cos, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ];
+            
+            // 更新材质的uniform
+            material.setUniform('u_modelViewProjection', rotationMatrix);
+            
+            // 开始渲染通道
+            renderer.beginRenderPass({
+                clear: true,
+                colorAttachments: [{
+                    clearValue: [0.1, 0.1, 0.15, 1.0] // 深蓝色背景
+                }]
+            });
+            
+            // 绘制三角形
+            renderer.draw(pipeline, geometry, material);
+            
+            // 结束渲染通道
+            renderer.endRenderPass();
+            
+            // 继续动画
+            animationId = requestAnimationFrame(render);
+        }
+        
+        // 启动动画
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (!animationId) {
+                render();
+                console.log('Animation started');
+            }
+        });
+        
+        // 停止动画
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = 0;
+                console.log('Animation stopped');
+            }
+        });
+        
+        // 释放资源
+        document.getElementById('disposeBtn').addEventListener('click', () => {
+            cancelAnimationFrame(animationId);
+            animationId = 0;
+            geometry.dispose();
+            material.dispose();
+            pipeline.dispose();
+            renderer.dispose();
+            console.log('All resources disposed');
+        });
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', () => {
+            const newWidth = Math.min(window.innerWidth - 40, 800);
+            const newHeight = Math.min(window.innerHeight - 120, 600);
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            renderer.resize(newWidth, newHeight);
+        });
+        
+        // 初始渲染
+        render();
+        console.log('Simple triangle example initialized');
+        }
+        
+        // 执行主函数
+        main().catch((error) => {
+            console.error('Error in main function:', error);
+        });
+    </script>
+</body>
+</html>

@@ -51,10 +51,10 @@ export class BoundingRect {
         return this.max.y - this.min.y;
     }
     get cx() {
-        return this.left*0.5 + this.right*0.5
+        return this.left+(this.width*0.5)
     }
     get cy() {
-        return this.top*0.5 + this.bottom*0.5
+        return this.top+(this.height*0.5)
     }
     get center() {
         return Vector2.create(this.cx, this.cy)

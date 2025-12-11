@@ -25,9 +25,6 @@ function dispatchNodeEvent(engine: CKEngine, e: PointerInteractionEvent) {
         hitTarget = engine.hitObject(x, y)
     }
     e.target = hitTarget
-    if (type === 'pointerup') {
-        hitTarget = null
-    }
     const targetPaths = e.composedPath() as Node[]
     while (targetPaths.length) {
         const el = targetPaths.shift()

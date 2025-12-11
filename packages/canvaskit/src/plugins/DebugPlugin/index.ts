@@ -31,7 +31,7 @@ export default {
                         rnederer.save()
                         rnederer.beginPath()
                         rnederer.strokeStyle='#00ff00'
-                        rnederer.lineWidth=2
+                        rnederer.lineWidth=1
                         rnederer.rect(bounds.left,bounds.top,bounds.width,bounds.height)
                         rnederer.stroke()
                         rnederer.restore()

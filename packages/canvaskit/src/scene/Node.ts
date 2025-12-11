@@ -126,7 +126,7 @@ export abstract class Node<Options extends NodeOptions = NodeOptions, E extends 
     }
     // 是否应该更新包围合
     shouldUpdateBounds() {
-        return this.effectFlag & NodeEffectFlags.Shape
+        return this.effectFlag & (NodeEffectFlags.Shape | NodeEffectFlags.Style)
     }
     // 获取应用了全局矩阵的包围合
     getGlobalBounds(forceUpdate = true): BoundingRect {

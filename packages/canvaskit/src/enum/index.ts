@@ -158,8 +158,8 @@ enum BlendMode{
     Luminosity='luminosity', // 颜色混合模式
 }
 enum ClipPathUnits{
-    UserSpaceOnUse='userSpaceOnUse', // 用户空间 clipPathUnits
-    ObjectBoundingBox='objectBoundingBox', // 对象边界 clipPathUnits
+    UserSpaceOnUse='userSpaceOnUse', // 用户空间 clipPathUnits  绝对坐标
+    ObjectBoundingBox='objectBoundingBox', // 对象空间 clipPathUnits 坐标 0-1 之间
 }
 export {
     FontWeight,

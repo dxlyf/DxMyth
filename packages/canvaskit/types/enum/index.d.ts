@@ -148,7 +148,7 @@ declare enum BlendMode {
     Luminosity = "luminosity"
 }
 declare enum ClipPathUnits {
-    UserSpaceOnUse = "userSpaceOnUse",// 用户空间 clipPathUnits
+    UserSpaceOnUse = "userSpaceOnUse",// 用户空间 clipPathUnits  绝对坐标
     ObjectBoundingBox = "objectBoundingBox"
 }
 export { FontWeight, FontWeightType, FontStyle, ClipPathUnits, GlobalCompositeOperation, BlendMode, FontDirection, FontKerning, FontStretch, FontVariant, TextRendering, TextAlign, TextBaseline, TextDirection, LineJoin, LineCap, FillRule, BorderStyle, BorderSide, PaintMode, PaintStyle, };

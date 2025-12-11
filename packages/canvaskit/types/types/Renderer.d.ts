@@ -46,7 +46,7 @@ export type TextDrawingStyles = {
     wordSpacing?: string;
 };
 export type ShadowStyles = {
-    shadowColor?: Color;
+    shadowColor?: ColorValue;
     shadowBlur?: number;
     shadowOffsetX?: number;
     shadowOffsetY?: number;
@@ -98,7 +98,7 @@ export type MaskStyle = {
         maskFilter?: CanvasKit.MaskFilter;
     };
 };
-export type CanvasBaseDrawStyle = CanvasCompositing & MaskStyle & FillStrokeStyles & ClipPathStyle & LineStyles & ShadowStyles & {};
-export type CanvasDrawStyle = CanvasBaseDrawStyle & TextDrawingStyles & {};
+export type CanvasDrawBaseStyle = CanvasCompositing & MaskStyle & FillStrokeStyles & ClipPathStyle & LineStyles & ShadowStyles & {};
+export type CanvasDrawStyle = CanvasDrawBaseStyle & TextDrawingStyles & {};
 export interface ICanvasContextService extends CanvasCompositing, CanvasDrawImage, CanvasDrawPath, CanvasFillStrokeStyles, CanvasFilters, CanvasImageData, CanvasImageSmoothing, CanvasPath, CanvasPathDrawingStyles, CanvasRect, CanvasShadowStyles, CanvasState, CanvasText, CanvasTextDrawingStyles, CanvasTransform {
 }

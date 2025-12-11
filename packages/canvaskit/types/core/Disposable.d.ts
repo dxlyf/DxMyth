@@ -16,6 +16,7 @@ export declare class DisposableManager {
     }, options?: DPRegisterOptions<T>): void;
     private disposables;
     private persistentDisposables;
+    constructor();
     add(disposable: IDispose): void;
     addPersistent(disposable: IDispose): void;
     destroy(): void;

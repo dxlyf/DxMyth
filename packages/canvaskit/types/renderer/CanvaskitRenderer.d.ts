@@ -6,9 +6,9 @@ import { ConicGradient, LinearGradient, RadialGradient } from '../../../../../..
 import { Color } from '../../../../../../../src/math/Color';
 import { Pattern, PatternRepeat } from '../../../../../../../src/core/Pattern';
 import { LineJoin, LineCap, FillRule, GlobalCompositeOperation } from '../../../../../../../src/enum';
-import { Image } from '../../../../../../../src/core/Image';
 import { Path2D } from '../../../../../../../src/canvaskit/htmlcanvas/path2d';
 import { default as FontManager } from '../../../../../../../src/core/FontManager';
+import { Image } from '../../../../../../../src/core/Image';
 export declare class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, CanvaskitRendererEvents> {
     static CK: CanvasKit.CanvasKit;
     surface: CanvasKit.Surface;
@@ -27,7 +27,7 @@ export declare class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOpt
     private _lineDashOffset;
     private _fillStyle;
     private _strokeStyle;
-    shadowColor: Color;
+    _shadowColor: Color;
     shadowBlur: number;
     shadowOffsetX: number;
     shadowOffsetY: number;
@@ -58,6 +58,8 @@ export declare class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOpt
     get _font(): CanvasKit.Font;
     get font(): string;
     set font(newFont: string);
+    get shadowColor(): Color;
+    set shadowColor(value: string | null | 'none');
     createCanvaskitPath(): CanvasKit.Path;
     createCanvaskitPaint(): CanvasKit.Paint;
     clearRect(x: number, y: number, width: number, height: number): void;
@@ -107,9 +109,9 @@ export declare class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOpt
     measureText(text: string): {
         width: number;
     };
-    drawImage(image: Image, dx: number, dy: number): void;
-    drawImage(image: Image, dx: number, dy: number, dw: number, dh: number): void;
-    drawImage(image: Image, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image, dx: number, dy: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
     putImageData(imageData: ImageData, x: number, y: number, dirtyX: number, dirtyY: number, dirtyWidth: number, dirtyHeight: number): void;
     getImageData(x: number, y: number, w: number, h: number): ImageData;
     _mapToLocalCoordinates(pts: number[]): number[];

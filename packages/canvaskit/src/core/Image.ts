@@ -1,7 +1,9 @@
 import { CK, type CanvasKit } from 'src/canvaskit'
+import { DisposableManager } from './Disposable'
 function loadImageFromUrl(url: string) {
     return new Promise<HTMLImageElement>((resolve, reject) => {
         const image = document.createElement('img')
+        image.crossOrigin = 'anonymous'
         image.onload = () => {
             resolve(image)
         }
@@ -41,6 +43,9 @@ class Image {
     image: CanvasImageSource | null = null
     skImage: CanvasKit.Image | null = null
     complete: boolean = false;
+    constructor(){
+        DisposableManager.add(this)
+    }
     cb: () => void
     shouldRenderer(): boolean {
         return this.image !== null && this.complete
@@ -48,10 +53,10 @@ class Image {
     onChange(cb: () => void) {
         this.cb = cb
     }
-    get width(){
+    width(){
         return this.skImage!.width()
     }
-    get height() {
+    height() {
         return this.skImage!.height()
     }
     setImage(image: CanvasImageSource) {

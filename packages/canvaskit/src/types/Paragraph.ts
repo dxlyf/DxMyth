@@ -1,6 +1,6 @@
 import { DisplayObjectStyle } from "./DisplayObject";
 import type { CanvasKit } from 'src/canvaskit'
-import { CanvasBaseDrawStyle, TextDrawingStyles } from "./Renderer";
+import { CanvasDrawBaseStyle, TextDrawingStyles } from "./Renderer";
 import { ColorValue } from "src/math/Color";
 
 
@@ -49,7 +49,7 @@ export type ParagraphText = {
     text?: string
     textStyle?: CanvasKit.TextStyle
 }
-export interface ParagraphStyleConfig extends DisplayObjectStyle, CanvasBaseDrawStyle, ParagraphStyle {
+export interface ParagraphStyleConfig extends DisplayObjectStyle, CanvasDrawBaseStyle, ParagraphStyle {
     
     content?: ParagraphText[]
 }

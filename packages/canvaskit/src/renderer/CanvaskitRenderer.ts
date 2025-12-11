@@ -13,7 +13,6 @@ import { Gradient } from "src/core/Gradient";
 import { Pattern, PatternRepeat } from "src/core/Pattern";
 import { PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, GlobalCompositeOperation, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
 import { addToFontCache, getTypeface } from 'src/canvaskit/htmlcanvas/font'
-import { Image } from 'src/core/Image'
 import { allAreFinite } from 'src/canvaskit/htmlcanvas/util'
 import { arc, ellipse, arcTo, rect, roundRect, lineTo, moveTo, quadraticCurveTo, bezierCurveTo, Path2D } from 'src/canvaskit/htmlcanvas/path2d'
 import { hasOwnProperty, isNullOrUndefined, isValidPaintValue, merge } from 'src/utils'
@@ -21,6 +20,7 @@ import { NodeEffectFlags } from 'src/consts'
 import { DrawStylePropertiesMap, DrawStylePropertiesSet, FontPropertiesSet, HasDrawStylePropertiesMap } from 'src/consts/CanvasDrawStyle'
 
 import FontManager from 'src/core/FontManager'
+import { Image } from 'src/core/Image'
 
 const objTransformMatrix = new Float32Array(9)
 const tmpMatrix = Matrix2D.identity()
@@ -46,7 +46,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
     private _lineDashOffset = 0
     private _fillStyle: FillStrokeObject = Color.BLACK
     private _strokeStyle: FillStrokeObject = Color.BLACK
-    public shadowColor: Color = null
+    public _shadowColor: Color = null
     public shadowBlur: number = 0
     public shadowOffsetX: number = 0
     public shadowOffsetY: number = 0
@@ -266,6 +266,16 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             this._fontString = newFont;
         }
     }
+    get shadowColor(): Color {
+        return this._shadowColor
+    }
+    set shadowColor(value: string | null | 'none') {
+        if (value === 'none') {
+            this._shadowColor = null
+        } else if (Color.isColor(value)) {
+            this._shadowColor = Color.parse(value).normalize()
+        }
+    }
     createCanvaskitPath() {
         const path = new CK.Path()
         this.disposableManager.addPersistent(path)
@@ -452,21 +462,33 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             //  this.save()
             const { path: clipPath, object: clipObject } = clip
             if (clipObject) {
+                //裁剪坐标系统
                 const clipPathUnits = clip.clipPathUnits ?? ClipPathUnits.UserSpaceOnUse
                 const objClipPath = clipObject.ckPath
                 const clipMatrix = Matrix2D.getPool()
                 const clipInverseMatrix = Matrix2D.getPool()
                 // const cts=this.getCurrentTransform()
+                // 如果是对象空间
                 if (clipPathUnits === ClipPathUnits.ObjectBoundingBox) {
+                    let bounds = obj.getBounds()
+                    let tmp = objClipPath.copy()
+                    objClipPath.transform(Matrix2D.fromScaling([bounds.width, bounds.height]).toRowMajorOrderMatrix3x3())
                     clipMatrix.copy(obj.worldMatrix)
                     clipInverseMatrix.copy(obj.worldInverseMatrix)
+                 
+                    this.transform(clipMatrix[0], clipMatrix[1], clipMatrix[2], clipMatrix[3], clipMatrix[4], clipMatrix[5])
+                    this.clip(tmp, (clipObject.style as any).fillRule)
+                    // 不应用save，restore,重置变换矩阵
+                    this.transform(clipInverseMatrix[0], clipInverseMatrix[1], clipInverseMatrix[2], clipInverseMatrix[3], clipInverseMatrix[4], clipInverseMatrix[5])
+                    tmp.dispose()
                 } else {
                     clipMatrix.copy(clipObject.worldMatrix)
                     clipInverseMatrix.copy(clipObject.worldInverseMatrix)
+                    this.transform(clipMatrix[0], clipMatrix[1], clipMatrix[2], clipMatrix[3], clipMatrix[4], clipMatrix[5])
+                    this.clip(objClipPath, (clipObject.style as any).fillRule)
+                    this.transform(clipInverseMatrix[0], clipInverseMatrix[1], clipInverseMatrix[2], clipInverseMatrix[3], clipInverseMatrix[4], clipInverseMatrix[5])
+
                 }
-                this.transform(clipMatrix[0], clipMatrix[1], clipMatrix[2], clipMatrix[3], clipMatrix[4], clipMatrix[5])
-                this.clip(objClipPath, (clipObject.style as any).fillRule)
-                this.transform(clipInverseMatrix[0], clipInverseMatrix[1], clipInverseMatrix[2], clipInverseMatrix[3], clipInverseMatrix[4], clipInverseMatrix[5])
                 clipMatrix.releasePool()
                 clipInverseMatrix.releasePool()
             } else if (clipPath) {
@@ -533,8 +555,10 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
                 this.fill(path, style.fillRule)
             },
             () => {
+                this.save()
                 this.applyPathBorderSide(path, style)
                 this.stroke(path)
+                this.restore()
             }
         )
     }
@@ -740,21 +764,22 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         */
         this.canvas.drawParagraph(paragraph, x, y);
     }
-  
+
     measureText(text: string) {
         return this._fontMgr.measureText(text, this._paint)
     }
-    drawImage(image: Image, dx: number, dy: number): void;
-    drawImage(image: Image, dx: number, dy: number, dw: number, dh: number): void;
-    drawImage(image: Image, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
-    drawImage(img: Image) {
+    drawImage(canvasImageSource: CanvasImageSource | Image, dx: number, dy: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
+    drawImage(canvasImageSource: CanvasImageSource | Image) {
+        let img = canvasImageSource instanceof Image ? canvasImageSource.skImage : CK.MakeImageFromCanvasImageSource(canvasImageSource)
         const iPaint = this._fillPaint();
         let destRect: CanvasKit.Rect,
             srcRect: CanvasKit.Rect;
         if (arguments.length === 3 || arguments.length === 5) {
             destRect = CK.XYWHRect(arguments[1], arguments[2],
                 arguments[3] || img.width, arguments[4] || img.height);
-            srcRect = CK.XYWHRect(0, 0, img.width, img.height);
+            srcRect = CK.XYWHRect(0, 0, img.width(), img.height());
         } else if (arguments.length === 9) {
             destRect = CK.XYWHRect(arguments[5], arguments[6],
                 arguments[7], arguments[8]);
@@ -763,7 +788,7 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
         } else {
             throw 'invalid number of args for drawImage, need 3, 5, or 9; got ' + arguments.length;
         }
-        this.canvas.drawImageRect(img.skImage, srcRect, destRect, iPaint, false);
+        this.canvas.drawImageRect(img, srcRect, destRect, iPaint, false);
     };
 
     putImageData(imageData: ImageData, x: number, y: number, dirtyX: number, dirtyY: number, dirtyWidth: number, dirtyHeight: number) {
@@ -963,9 +988,11 @@ export class CanvaskitRenderer extends BaseRenderer<CanvaskitRendererOptions, Ca
             }
         })
         if (this.options.backgroundColor) {
+            this.save()
             this.fillStyle = this.options.backgroundColor
             this.globalCompositeOperation = GlobalCompositeOperation.DestinationOver
             this.fillRect(0, 0, this.pixelWidth, this.pixelHeight)
+            this.restore()
         }
         canvas.restore()
         this.surface.flush()

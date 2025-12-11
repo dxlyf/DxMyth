@@ -1,10 +1,19 @@
 import { CKEngine, Circle, Rect,Text, Group, Ellipse, GraphicPath } from "src/index"
 import { ExampleBase, ExampleManager } from "../lib/Example"
+import { BorderSide } from "src/enum"
 
 
 class RectExample extends ExampleBase {
     static title: string = '矩形'
+    active=true
     rect: Rect
+    stateOptions: Record<string, any>={
+        borderSide:{
+            'Outside':0,
+            'Inside':1,
+            'Middle':2,
+        }
+    }
     getDefaultState() {
         return {
             x: 0,
@@ -12,6 +21,11 @@ class RectExample extends ExampleBase {
             width: 100,
             height: 100,
             color: '#ff0000',
+            strokeColor:'#0000ff',
+            lineWidth:1,
+            borderSide:2,
+            fill:true,
+            stroke:false,
             radius:[0,0,0,0],
             ...super.getDefaultState(),
             ...this.createTransformState([100, 100]),
@@ -30,6 +44,9 @@ class RectExample extends ExampleBase {
                 fillStyle: this.state.color
             },
         })
+         this.rect.on('click',e=>{
+            console.log('click')
+        })
         this.rect.on('drag',e=>{
             console.log('drag')
         })
@@ -45,42 +62,65 @@ class RectExample extends ExampleBase {
             radius:this.state.radius,
         })
         this.rect.setStyle({
-            fillStyle: this.state.color
+            borderSide:this.state.borderSide,
+            fillStyle: this.state.fill?this.state.color:null,
+            lineWidth:this.state.lineWidth,
+            strokeStyle:this.state.stroke?this.state.strokeColor:null,
         })
         this.updateTransform(this.rect, this.state)
     }
 }
 
 
-class RingExample extends ExampleBase {
-    static title: string = '环形'
+class GraphicPathExample extends ExampleBase {
+    static title: string = 'GraphicPathExample'
         active=true
     shape: GraphicPath       
+ stateOptions: Record<string, any>={
+        borderSide:{
+            'Outside':0,
+            'Inside':1,
+            'Middle':2,
+        }
+    }
     getDefaultState() {
         return {
             cx: 0,
             cy: 0,
-            innerR: 20,
-            outerR: 50,
-            color:'#ff0000',
+            innerR: 50,
+            outerR: 20,
+            color: '#ff0000',
+            strokeColor:'#0000ff',
+            lineWidth:1,
+            borderSide:2,
+            fill:true,
+            stroke:false,
+            radius:[0,0,0,0],
             ...super.getDefaultState(),
             ...this.createTransformState([100, 100]),
         }
     }
     async enter() {
         this.shape = new GraphicPath()
- 
+        this.shape.on('click',e=>{
+            console.log('click')
+        })
         this.onChange()
         this.owner.add(this.shape)
     }
     onChange(property?: string, value?: any): void {
         this.shape.clearPath()
-        this.shape.beginPath()
-        this.shape.arc(this.state.cx,this.state.cy,this.state.innerR,0,Math.PI * 2,false)
-        this.shape.arc(this.state.cx,this.state.cy,this.state.outerR,0,Math.PI * 2,true)
+        this.shape.moveTo(100,100)
+        this.shape.lineTo(200,200)
+        this.shape.lineTo(200,300)
+        this.shape.closePath()
 
-        this.shape.drawPaint({
-            fillStyle: this.state.color,
+        this.shape.setStyle({
+
+            borderSide:this.state.borderSide,
+            fillStyle: this.state.fill?this.state.color:null,
+            lineWidth:this.state.lineWidth,
+            strokeStyle:this.state.stroke?this.state.strokeColor:null,
         })
         
         this.updateTransform(this.shape, this.state)
@@ -127,5 +167,5 @@ class TextExample extends ExampleBase {
         this.updateTransform(this.shape, this.state)
     }
 }
-ExampleManager.examples = [RectExample,TextExample,RingExample]
+ExampleManager.examples = [RectExample,TextExample,GraphicPathExample]
 ExampleManager.getSignleInstance().init()

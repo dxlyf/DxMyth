@@ -1,8 +1,12 @@
+// core
 export {CK,type CanvasKit} from 'src/canvaskit'
 export {MakeCanvas} from 'src/canvaskit/htmlcanvas/htmlcanvas'
 export {CanvasRenderingContext2D} from 'src/canvaskit/htmlcanvas/canvas2dcontext'
 export {Path2D} from 'src/canvaskit/htmlcanvas/path2d'
 export {CKEngine} from 'src/core/CKEngine'
+export {Image as ImageResource} from 'src/core/Image'
+
+
 // plugins
 export * from 'src/plugins'
 export * from 'src/events'
@@ -17,5 +21,6 @@ export * from 'src/scene/Ellipse'
 export * from 'src/scene/Text'
 export * from 'src/scene/GraphicPath'
 export * from 'src/scene/Paragraph'
+export * from 'src/scene/Image'
 
 

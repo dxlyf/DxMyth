@@ -15,4 +15,6 @@ export interface NodeEvents {
     drag: [PointerInteractionEvent];
     dragEnd: [PointerInteractionEvent];
     click: [PointerInteractionEvent];
+    pointerenter: [PointerInteractionEvent];
+    pointerleave: [PointerInteractionEvent];
 }

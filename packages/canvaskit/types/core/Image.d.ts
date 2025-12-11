@@ -10,11 +10,12 @@ declare class Image {
     image: CanvasImageSource | null;
     skImage: CanvasKit.Image | null;
     complete: boolean;
+    constructor();
     cb: () => void;
     shouldRenderer(): boolean;
     onChange(cb: () => void): void;
-    get width(): number;
-    get height(): number;
+    width(): number;
+    height(): number;
     setImage(image: CanvasImageSource): this;
     dispose(): void;
 }
