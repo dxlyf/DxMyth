@@ -428,15 +428,46 @@ export const generateGraduations = (options: { width: number, height: number, ti
     }
 }
 /**
+ * 
+我们定义屏幕坐标（screen）与世界坐标（world）的关系为：
+screen=world*𝑠+𝑜
+其中：
+s = scale（缩放倍率）
+o = offset（平移）
+world = 世界坐标（理想数学坐标）
+screen = 屏幕像素坐标
+这是所有 2D 平移 + 缩放摄像机的标准形式。
+先对世界坐标乘以 scale
+然后再加一个偏移 offset
+已知一个屏幕坐标 screen = c（例如鼠标位置），我们想知道它对应的世界坐标是什么。
+c=w*s+0
+解：
+w=(c-o)/s
+
+我们用以下约定（这是常见的画布变换约定）：
+scale = s：当前缩放（屏幕每个像素对应世界单位的比例因子）。
+offset = o：屏幕坐标 = 世界坐标 * s + o（向量运算）。
+center = c：鼠标在屏幕坐标系的位置（screenX, screenY）。
+zoomFactor = z，新的缩放 s' = s * z。
+我们要保证：鼠标所在的世界点在放大前后仍映射到同一个屏幕点 c。
+先求放大前该屏幕点对应的世界坐标 w：
+w=(c-o)/s
+放大后要求:
+c=w*s'+o'
+解出新的偏移量o'
+o'=c-w*s' =c-(c-o)/s*s'=c-(c-o)*(s'/s)
+
+ * 
  *      mat2d.translate(m, m, [mx, my])//设置原点
         mat2d.scale(m, m, [zoom / oldZoom, zoom / oldZoom])
         mat2d.translate(m, m, [-mx, -my])
        let xy = vec2.transformMat2d([], [x, y], m);
- * @param out 
- * @param mouse 
- * @param oldScale 
- * @param newScale 
- * @param offset 
+
+ * @param out 最新偏移，缩放后的偏移
+ * @param mouse 鼠标位置
+ * @param oldScale 旧缩放
+ * @param newScale 新缩放
+ * @param offset 当前偏移
  * @returns 
  */
 export const wheelToScaleArtboard = (out: PointLike, oldScale: number, newScale: number, offset: PointLike, mouse: PointLike) => {
