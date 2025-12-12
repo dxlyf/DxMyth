@@ -1,5 +1,7 @@
 import { DepthTexturePixelFormat, MagnificationTextureFilter, Mapping, MinificationTextureFilter, TextureComparisonFunction, TextureDataType, Wrapping } from '../constants.js';
 import { Texture } from './Texture.js';
+
+
 /**
  * This class can be used to automatically save the depth information of a rendering into a texture
  * @see Example: {@link https://threejs.org/examples/#webgl_depth_texture | depth / texture}

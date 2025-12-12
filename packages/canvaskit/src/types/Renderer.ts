@@ -1,4 +1,4 @@
-import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits, FontStyle, FontWeight } from "src/enum";
+import { GlobalCompositeOperation,PaintStyle, PaintMode, BorderSide, BorderStyle, LineJoin, LineCap, FillRule, TextAlign, TextBaseline, TextRendering, FontStretch, FontVariant, FontKerning, FontDirection, ClipPathUnits, FontStyle, FontWeight, TextDirection } from "src/enum";
 import { Color, ColorValue } from 'src/math/Color'
 import { Gradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
@@ -26,7 +26,7 @@ export interface CanvaskitRendererEvents extends RendererEvents{
     mousedown:[e:any]
 }
 export type TextDrawingStyles={
-    direction?: FontDirection; // 字体方向
+    fontDirection?: FontDirection; // 字体方向
     fontStyle?: FontStyle // 字体样式
     fontSize?: number // 字体大小
     fontFamily?: string // 字体
@@ -37,11 +37,12 @@ export type TextDrawingStyles={
     textRendering?: TextRendering; // 文本渲染方式
     textAlign?: TextAlign; // 文本对齐方式
     textBaseline?: TextBaseline; // 文本基线
+    textDirection?: TextDirection; // 文本方向
     letterSpacing?: string // 字母间距
     wordSpacing?: string // 单词间距
 }
 export type ShadowStyles={
-    shadowColor?: Color;// 阴影颜色
+    shadowColor?: ColorValue;// 阴影颜色
     shadowBlur?: number;// 阴影模糊半径
     shadowOffsetX?: number; // 阴影水平偏移
     shadowOffsetY?: number;// 阴影垂直偏移
@@ -58,33 +59,37 @@ export type LineStyles={
 }
 export type FillStrokeValue=Gradient|Pattern|ColorValue|'none'|null
 export type FillStrokeStyles={
-   fillStyle?:FillStrokeValue
-   strokeStyle?:FillStrokeValue
+   fillStyle?:FillStrokeValue // 填充样式
+   strokeStyle?:FillStrokeValue // 描边样式
+   firstFill?:boolean // 是否先填充
+   fillRule?:FillRule // 填充规则
 }
 export type FillStrokeObject=Gradient|Pattern|Color
 
 export type CanvasCompositing={
-    globalAlpha?: number;
-    globalCompositeOperation?: GlobalCompositeOperation;
+    globalAlpha?: number; // 全局透明度
+    globalCompositeOperation?: GlobalCompositeOperation; // 全局合成操作
 }
 //PaintBrush
 export type PaintBrushStyle = LineStyles&ShadowStyles&TextDrawingStyles&{
-    type?: PaintStyle;
-    mode?: PaintMode
-    opacity?: number;
-    color?: Color;
-    gradient?: Gradient
-    pattern?: Pattern;
-    fillRule?: FillRule;
+    type?: PaintStyle; // 画笔类型
+    mode?: PaintMode // 画笔模式
+    opacity?: number; // 不透明度
+    color?: Color; // 颜色
+    gradient?: Gradient // 渐变
+    pattern?: Pattern; // 模式
+    fillRule?: FillRule; // 填充规则
 }
+// 裁剪路径样式
 export type ClipPathStyle={
     clip?:{
-        object?:Shape|GraphicPath
-        path?:CanvasKit.Path
-        fillRule?:FillRule
-        clipPathUnits?:ClipPathUnits
+        object?:Shape|GraphicPath // 裁剪对象
+        path?:CanvasKit.Path // 裁剪路径
+        fillRule?:FillRule // 填充规则
+        clipPathUnits?:ClipPathUnits // 裁剪路径单位
     }
 }
+// 遮罩样式
 export type MaskStyle={
     mask?:{
         image?:CanvasKit.Image
@@ -93,10 +98,12 @@ export type MaskStyle={
         maskFilter?:CanvasKit.MaskFilter
     }
 }
+export type CanvasDrawBaseStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&{
 
-export type CanvasDrawStyle= CanvasCompositing&MaskStyle&FillStrokeStyles&ClipPathStyle&LineStyles&ShadowStyles&TextDrawingStyles&{
-    firstFill?:boolean
-    fillRule?:FillRule
+}
+
+export type CanvasDrawStyle= CanvasDrawBaseStyle&TextDrawingStyles&{
+
 }
 
 export interface ICanvasContextService extends CanvasCompositing, CanvasDrawImage, CanvasDrawPath, CanvasFillStrokeStyles, CanvasFilters, CanvasImageData, CanvasImageSmoothing, CanvasPath, CanvasPathDrawingStyles, CanvasRect, CanvasShadowStyles, CanvasState, CanvasText, CanvasTextDrawingStyles, CanvasTransform   {

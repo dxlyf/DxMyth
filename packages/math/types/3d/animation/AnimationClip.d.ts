@@ -3,6 +3,8 @@ import { Object3D } from '../core/Object3D.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Bone } from '../objects/Bone.js';
 import { KeyframeTrack, KeyframeTrackJSON } from './KeyframeTrack.js';
+
+
 export interface AnimationClipJSON {
     name: string;
     duration: number;

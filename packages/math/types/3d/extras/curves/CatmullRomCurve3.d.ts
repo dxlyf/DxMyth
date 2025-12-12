@@ -1,5 +1,7 @@
 import { Vector3 } from '../../math/Vector3.js';
 import { Curve } from '../core/Curve.js';
+
+
 export type CurveType = "centripetal" | "chordal" | "catmullrom";
 
 /**

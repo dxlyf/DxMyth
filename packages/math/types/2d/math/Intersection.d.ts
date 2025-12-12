@@ -237,6 +237,14 @@ declare function circlePolygonIntersections(center: Vector2Like, radius: number,
  * 得到一个关于求解t 的一元二次方程：At^2+Bt+C=0
  */
 declare function lineQuadraticBezierIntersections(start: Vector2Like, end: Vector2Like, cp: Vector2Like[]): Vector2Like[];
+/**
+ * 计算线段与三次贝塞尔曲线的交点
+ * @param start 线段起点
+ * @param end 线段终点
+ * @param cp 三次贝塞尔曲线控制点数组，长度必须为3
+ * @returns 交点数组，可能为空
+ */
+declare function lineCubicBezierIntersections(start: Vector2Like, end: Vector2Like, cp: Vector2Like[]): Vector2Like[];
 export { lineLineIntersection, // 直线-直线相交检测
 lineSegmentIntersection, // 线段-线段相交检测
 isPointOnLineSegment, // 点是否在线段上检测
@@ -260,4 +268,5 @@ rectRectIntersections, // 矩形-矩形交点计算
 circleRectIntersections, // 圆-矩形交点计算
 polygonPolygonIntersections, // 多边形-多边形交点计算
 circlePolygonIntersections, // 圆-多边形交点计算
-lineQuadraticBezierIntersections };
+lineQuadraticBezierIntersections, // 线段-二次贝塞尔曲线交点计算
+lineCubicBezierIntersections };

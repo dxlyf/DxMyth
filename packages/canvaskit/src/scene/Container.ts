@@ -16,11 +16,14 @@ const priorityQueue =  new PriorityQueue<{index:number,node:DisplayObject}>((a, 
 })
 class Container extends Node<ContainerOptions, ContainerOptionsEvents> {
     type: string = 'Container'
-    engine: CKEngine
+    declare _owner: CKEngine
     _interactionRenderList: DisplayObject[] = [] // 交互渲染列表
     constructor(engine: CKEngine, options?: ContainerOptions) {
         super(options)
-        this.engine=engine
+        this._owner = engine
+    }
+    get engine(){
+        return this._owner
     }
     innerCalcBounds(): void { }
     shouldAddToPendingRenderList(): boolean {

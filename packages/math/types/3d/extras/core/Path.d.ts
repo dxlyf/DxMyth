@@ -1,5 +1,7 @@
 import { Vector2, Vector2Tuple } from '../../math/Vector2.js';
 import { CurvePath, CurvePathJSON } from './CurvePath.js';
+
+
 export interface PathJSON extends CurvePathJSON {
     currentPoint: Vector2Tuple;
 }

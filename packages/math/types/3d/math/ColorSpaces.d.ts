@@ -1,4 +1,4 @@
-import { Matrix3 } from '../../../../../../../../../src/3d/index.core.ts';
+import { Matrix3 } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * Display-P3 color space.
  *

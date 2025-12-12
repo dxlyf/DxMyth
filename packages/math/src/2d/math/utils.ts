@@ -1,3 +1,4 @@
+import { guid } from "../core/util";
 import { Vector2 } from "./vec2";
 
 export const PI = Math.PI;
@@ -8,13 +9,69 @@ export const DEGREES_RADIAN = PI / 180
 export const INVERT_DEGREES_RADIAN = 1 / DEGREES_RADIAN
 
 type PointLike = { x: number; y: number };
-export function findIndexRight<T=any>(arr: T[], predicate: (value: T, index: number, obj: T[]) => boolean, thisArg?: any) {
+export function findIndexRight<T = any>(arr: T[], predicate: (value: T, index: number, obj: T[]) => boolean, thisArg?: any) {
     for (let i = arr.length - 1; i >= 0; i--) {
         if (predicate.call(thisArg, arr[i], i, arr)) {
             return i;
         }
     }
 }
+// 创建掩码
+export function createMask(...args: boolean[]) {
+    var nMask = 0, nFlag = 0, nLen = args.length > 32 ? 32 : args.length;
+    for (nFlag; nFlag < nLen; nMask |= Number(args[nFlag]) << nFlag++);
+    return nMask;
+}
+// 逆算法：从掩码得到布尔数组节
+// 如果你希望从掩码得到得到 Boolean Array ：
+export function arrayFromMask(nMask: number) {
+    // nMask 必须介于 -2147483648 和 2147483647 之间
+    if (nMask > 0x7fffffff || nMask < -0x80000000) {
+        throw new TypeError("arrayFromMask - out of range");
+    }
+    for (var nShifted = nMask, aFromMask = []; nShifted;
+        aFromMask.push(Boolean(nShifted & 1)), nShifted >>>= 1);
+    return aFromMask;
+}
+//  function createBinaryString(nMask) {
+//             // nMask must be between -2147483648 and 2147483647
+//             for (var nFlag = 0, nShifted = nMask, sMask = ""; nFlag < 32;
+//                  nFlag++, sMask += String(nShifted >>> 31), nShifted <<= 1);
+//             return sMask;
+//         }
+// 十进制转为二进制
+export function decimalToBit(v: number, bit = 32) {
+   
+    let str = ''
+    for (let i = bit - 1; i >= 0; i--) {
+        str += ((v >>> i) & 1)
+    }
+    return str;
+}
+// 将32位整数转换为有符号整数
+export function as_signed(value: number, bits: number = 32) { var s = 32 - bits; return (value << s) >> s; }
+// 将32位整数转换为无符号整数
+export function as_unsigned(value: number, bits: number = 32) { var s = 32 - bits; return (value << s) >>> s; }
+// 计算32位整数的最低位
+export function calcLowBit(value:number){
+    //  return value & ~(value - 1);
+    return value & -value;
+}
+// 计算32位整数的最高位
+export function calcHighBit(value:number){
+    let bit=calc32Shift(value);
+    return (value>>>bit)<<bit
+}
+export function includeBit(value:number,bit:number){
+    return (value&bit)===bit;
+}
+export function removeBit(value:number,bit:number){
+    return value&~bit;
+}
+export function calcBitIndex(value:number){
+    return Math.trunc(Math.log2(value));
+}
+// 计算32位整数的有效位
 export function calc32Shift(value: number) {
     return 31 - Math.clz32(value)
 }
@@ -36,7 +93,7 @@ export function allAreFinite(args: number[]) {
     }
     return true;
 }
-export function equalsEpsilon(a: number, b: number, epsilon: number =1e-6): boolean {
+export function equalsEpsilon(a: number, b: number, epsilon: number = 1e-6): boolean {
     return Math.abs(a - b) <= epsilon;
 }
 
@@ -62,7 +119,34 @@ export function min(n1: number, n2: number): number {
 export function max(n1: number, n2: number): number {
     return Math.max(n1, n2);
 }
-
+// dot([1,0],p)
+export enum AngleType {
+    Nearly180, // 近似-1 ，角度为180度
+    Sharp, // -1<dot<0，角度为90<x<180度
+    Shallow, // 0<dot<1，角度为0<x<90度
+    NearlyLine, // 返似1，角度为0度,几乎是直线
+}
+export function isNearlyZero(value: number, epsilon: number = 1e-6) {
+    return Math.abs(value) <= epsilon
+}
+// 计算点剩cos值的角度类型
+export function dotToAngleType(dot: number): AngleType {
+    if (dot >= 0.0) {
+        // shallow or line
+        if (isNearlyZero(1.0 - dot)) {
+            return AngleType.NearlyLine
+        } else {
+            return AngleType.Shallow
+        }
+    } else {
+        // sharp or 180
+        if (isNearlyZero(1.0 + dot)) {
+            return AngleType.Nearly180
+        } else {
+            return AngleType.Sharp
+        }
+    }
+}
 export function usignfactorial(n: number): number {
     if (n < 0) return -1;
     let result = 1;
@@ -81,6 +165,20 @@ export function fast_nCr(n: number, r: number): number {
     }
     return result;
 }
+/**
+   * 计算二项式系数 C(n, k)
+   */
+export function binomialCoefficient(n: number, k: number): number {
+    if (k < 0 || k > n) return 0;
+    if (k === 0 || k === n) return 1;
+
+    let result = 1;
+    for (let i = 1; i <= k; i++) {
+        result *= (n - (k - i)) / i;
+    }
+    return Math.round(result);
+}
+
 // 排列 P(n,r) = n! / (n-r)!
 export function fast_nPr(n: number, r: number): number {
     if (r > n) return 0;
@@ -211,6 +309,50 @@ export const centralDifference = (fn: any, h: number, ...args: any[]) => {
  */
 export function derivative(f: (x: number) => number, x: number, h: number = 1e-5) {
     return (f(x + h) - f(x - h)) / (2 * h);
+}
+
+/**
+  * 使用中心差分法计算函数在x处的N阶导数（数值方法）
+  * @param f 原始函数
+  * @param n 导数阶数 (n >= 0)
+  * @param x 求导点
+  * @param h 步长 (默认1e-5)
+  * @returns N阶导数的数值近似
+  */
+export function numericalNthDerivative(
+    f: (x: number) => number,
+    n: number,
+    x: number,
+    h: number = 1e-5
+): number {
+    if (n < 0) throw new Error("导数阶数必须为非负整数");
+    if (n === 0) return f(x);
+
+    // 使用中心差分公式的高阶版本
+    const centralDifference = (g: (x: number) => number, x: number, h: number, order: number): number => {
+        if (order === 1) {
+            return (g(x + h) - g(x - h)) / (2 * h);
+        } else if (order === 2) {
+            return (g(x + h) - 2 * g(x) + g(x - h)) / (h * h);
+        }
+
+        // 对于高阶导数，使用递归或显式公式
+        let sum = 0;
+        for (let k = 0; k <= order; k++) {
+            const coefficient = Math.pow(-1, k) * nCr(order, k);
+            sum += coefficient * g(x + (order / 2 - k) * h);
+        }
+        return sum / Math.pow(h, order);
+    };
+
+    // 递归计算
+    let currentFunction = f;
+    for (let i = 0; i < n; i++) {
+        const prevFunction = currentFunction;
+        currentFunction = (x: number) => centralDifference(prevFunction, x, h, 1);
+    }
+
+    return currentFunction(x);
 }
 // 微积分求面积
 export const integral = (fn: any, a: number, b: number, h: number = 1e-5) => {
@@ -718,7 +860,7 @@ export function adjointFromNthMatrix(m: Float32Array | number[]) {
     for (let i = 0; i < l; i++) {
         let r = i % n
         let c = i / n >> 0;
-       // let value = tm[i]
+        // let value = tm[i]
         let sign = ((r + c) % 2 == 0 ? 1 : -1)// 当前行+列，偶数为正,奇数为负
         let cofactor = createLowMatrix(r, c, n, tm)
         let det = determinantFromNthMatrix(cofactor)
@@ -743,63 +885,63 @@ export function identityMatrix(out: Float32Array | number[], n: number) {
     return out
 }
 
-export const getIntersectionGridCell=(options:{start:Vector2,dir:Vector2,rows:number,cols:number, cellWidth:number, cellHeight:number,onCollisionDetection?:(x:number,y:number)=>boolean})=>{
-    const {start,dir,rows,cols,cellWidth,cellHeight,onCollisionDetection}=options
-    const cellSize=Vector2.create(cellWidth,cellHeight)
-    const coord=start.clone().div(cellSize) // 屏幕坐标转换为网格坐标
-    const mapCoord=coord.clone().floor() // 地图坐标 
-    const offset=coord.clone().sub(mapCoord) // 在格子的偏移量
-    const sign=dir.clone().sign() // 方向符号
+export const getIntersectionGridCell = (options: { start: Vector2, dir: Vector2, rows: number, cols: number, cellWidth: number, cellHeight: number, onCollisionDetection?: (x: number, y: number) => boolean }) => {
+    const { start, dir, rows, cols, cellWidth, cellHeight, onCollisionDetection } = options
+    const cellSize = Vector2.create(cellWidth, cellHeight)
+    const coord = start.clone().div(cellSize) // 屏幕坐标转换为网格坐标
+    const mapCoord = coord.clone().floor() // 地图坐标 
+    const offset = coord.clone().sub(mapCoord) // 在格子的偏移量
+    const sign = dir.clone().sign() // 方向符号
     // 判断正割
-    const deltaX=dir.x===0?1e30:Math.abs(1/dir.x); // 正割,dist和x的比 计算x轴相对dir方向的距离
-    const deltaY=dir.y===0?1e30:Math.abs(1/dir.y); // 余割 计算y轴相对dir方向的距离
-  
+    const deltaX = dir.x === 0 ? 1e30 : Math.abs(1 / dir.x); // 正割,dist和x的比 计算x轴相对dir方向的距离
+    const deltaY = dir.y === 0 ? 1e30 : Math.abs(1 / dir.y); // 余割 计算y轴相对dir方向的距离
+
     // 计算x轴和y轴的距离
-    let sideDistX=sign.x===1?(1-offset.x)*deltaX:offset.x*deltaX // 计算start相对右侧或左侧的距离
+    let sideDistX = sign.x === 1 ? (1 - offset.x) * deltaX : offset.x * deltaX // 计算start相对右侧或左侧的距离
 
-    let sideDistY=sign.y===1?(1-offset.y)*deltaY:offset.y*deltaY;// 计算start相对上方和下方距离 
-   
-    const intersections=[] // 与线段方向相交的格子坐标
+    let sideDistY = sign.y === 1 ? (1 - offset.y) * deltaY : offset.y * deltaY;// 计算start相对上方和下方距离 
 
-    let side=false; // 是否侧面
-    let count=rows*cols
-    while(count--){
-        
+    const intersections = [] // 与线段方向相交的格子坐标
+
+    let side = false; // 是否侧面
+    let count = rows * cols
+    while (count--) {
+
         // 如果x轴距离更小，应该向x轴移动，反之向y轴移动
-        if(sideDistX<sideDistY){
-            side=true
-            mapCoord.x+=sign.x;
-        }else{
-            side=false
-            mapCoord.y+=sign.y;
-           
+        if (sideDistX < sideDistY) {
+            side = true
+            mapCoord.x += sign.x;
+        } else {
+            side = false
+            mapCoord.y += sign.y;
+
         }
-        let col=mapCoord.x
-        let row=mapCoord.y
-    
-   
-        if(side){
-            let x=start.x+sideDistX*cellWidth*dir.x;
-            let y=start.y+sideDistX*cellWidth*dir.y
-            intersections.push(Vector2.create(x,y))
-            sideDistX+=deltaX
-        }else{
-            let x=start.x+sideDistY*cellHeight*dir.x;
-            let y=start.y+sideDistY*cellHeight*dir.y
-            intersections.push(Vector2.create(x,y))
-            sideDistY+=deltaY
+        let col = mapCoord.x
+        let row = mapCoord.y
+
+
+        if (side) {
+            let x = start.x + sideDistX * cellWidth * dir.x;
+            let y = start.y + sideDistX * cellWidth * dir.y
+            intersections.push(Vector2.create(x, y))
+            sideDistX += deltaX
+        } else {
+            let x = start.x + sideDistY * cellHeight * dir.x;
+            let y = start.y + sideDistY * cellHeight * dir.y
+            intersections.push(Vector2.create(x, y))
+            sideDistY += deltaY
         }
-        if(col<0||col>=cols||row<0||row>=rows||onCollisionDetection?.(mapCoord.x,mapCoord.y)){
+        if (col < 0 || col >= cols || row < 0 || row >= rows || onCollisionDetection?.(mapCoord.x, mapCoord.y)) {
             break
         }
     }
-  
+
     return intersections;
-  }
-export const getRays3D = (player:{rotate:number,x:number,y:number},map:number[][], fovAngle:number, width:number, height:number, cellSize:number, fish = true) => {
+}
+export const getRays3D = (player: { rotate: number, x: number, y: number }, map: number[][], fovAngle: number, width: number, height: number, cellSize: number, fish = true) => {
     const rays = []
-    const fovRad=fovAngle / 180 * Math.PI
-    const fov = Math.tan(fovRad*0.5)// 视野（0-1）之间
+    const fovRad = fovAngle / 180 * Math.PI
+    const fov = Math.tan(fovRad * 0.5)// 视野（0-1）之间
     const origin = Vector2.create(player.x, player.y)
     for (let i = 0; i <= width; i++) {
         // 每个x像素相对光线方向的角度
@@ -856,10 +998,10 @@ export const getRays3D = (player:{rotate:number,x:number,y:number},map:number[][
     return rays
 }
 
-export const drawRays3d=(options:{getStrokeColor:(ray:any)=>string,ctx:CanvasRenderingContext2D,rays:any[],map:number[][]})=>{
-    const {ctx,rays,map,getStrokeColor}=options
+export const drawRays3d = (options: { getStrokeColor: (ray: any) => string, ctx: CanvasRenderingContext2D, rays: any[], map: number[][] }) => {
+    const { ctx, rays, map, getStrokeColor } = options
     const height = ctx.canvas.height;
-    const width=ctx.canvas.width
+    const width = ctx.canvas.width
     const halfHeight = height * 0.5;
     const cellSize = width / map[0].length >> 0
     let x1, y1, x2, y2;
@@ -876,7 +1018,7 @@ export const drawRays3d=(options:{getStrokeColor:(ray:any)=>string,ctx:CanvasRen
         y2 = Math.max(0, Math.min(y2, height))
 
         ctx.beginPath()
-        ctx.strokeStyle=strokeColor
+        ctx.strokeStyle = strokeColor
         ctx.moveTo(x1, y1)
         ctx.lineTo(x2, y2)
         ctx.stroke()
@@ -946,7 +1088,7 @@ export function invertFromNMatrixByElementary(m: Float32Array | number[]) {
 
     return out
 }
-export function multiplyMatrices(result: Float32Array | number[]|null, a: Float32Array | number[], b: Float32Array | number[]) {
+export function multiplyMatrices(result: Float32Array | number[] | null, a: Float32Array | number[], b: Float32Array | number[]) {
 
     let aRow = Math.sqrt(a.length)
     let bCol = Math.sqrt(b.length)
@@ -1094,7 +1236,7 @@ export function invertFromNMatrixByLU(matrix: Float32Array | number[]) {
 }
 
 
-export function trapezoidalIntegralArea(f:(x:number)=>number, a:number, b:number, n:number) {
+export function trapezoidalIntegralArea(f: (x: number) => number, a: number, b: number, n: number) {
     const h = (b - a) / n;
     let sum = (f(a) + f(b)) / 2;
     for (let i = 1; i < n; i++) {
@@ -1380,13 +1522,13 @@ export class BezierExtremaFinder {
 export function solveQuadratic(a: number, b: number, c: number): number[] {
     const discriminant = b * b - 4 * a * c;
     // a===0时，退化为一次方程
-    if(a===0){
-        if(b===0){
+    if (a === 0) {
+        if (b === 0) {
             return []
         }
-        return [-c/b]
+        return [-c / b]
     }
-    if (discriminant < 0){
+    if (discriminant < 0) {
         return []
     }
     let roots: number[] = [];
@@ -1556,22 +1698,22 @@ export function solveQuadraticEpsilon(a: number, b: number, c: number, epsilon =
  * 求解四次方程 ax⁴ + bx³ + cx² + dx + e = 0
  * 使用Ferrari方法
  */
-export function solveQuarticEpsilon(a:number, b:number, c:number, d:number, e:number, epsilon = 1e-12): number[] {
+export function solveQuarticEpsilon(a: number, b: number, c: number, d: number, e: number, epsilon = 1e-12): number[] {
     if (Math.abs(a) < epsilon) {
         return solveCubicEpsilon(b, c, d, e); // 退化为三次方程
     }
-    
+
     // 归一化系数
     const A = b / a;
     const B = c / a;
     const C = d / a;
     const D = e / a;
-    
+
     // 消去三次项：令 x = y - A/4
     const p = B - (3 * A * A) / 8;
     const q = C - (A * B) / 2 + (A * A * A) / 8;
     const r = D - (A * C) / 4 + (A * A * B) / 16 - (3 * A * A * A * A) / 256;
-    
+
     // 求解辅助三次方程
     const cubicRoots = solveCubicEpsilon(
         1,
@@ -1579,36 +1721,36 @@ export function solveQuarticEpsilon(a:number, b:number, c:number, d:number, e:nu
         -r,
         (p * r) / 2 - (q * q) / 8
     );
-    
+
     // 选择实根
     const z = cubicRoots.find(root => !isNaN(root) && isFinite(root));
-    
+
     if (z === undefined) {
         throw new Error('无法找到合适的实根');
     }
-    
+
     // 计算中间变量
     const sqrt2z = Math.sqrt(2 * z);
     const term1 = Math.sqrt(z * z - r);
     const term2 = q / (2 * sqrt2z);
-    
+
     // 四个可能的根
     const roots = [];
-    
+
     // 第一种组合
     const sqrt1 = Math.sqrt(z + term1 - term2);
     const sqrt2 = Math.sqrt(z - term1 - term2);
-    roots.push(-A/4 + (sqrt2z + sqrt1 + sqrt2)/2);
-    roots.push(-A/4 + (sqrt2z - sqrt1 - sqrt2)/2);
-    
+    roots.push(-A / 4 + (sqrt2z + sqrt1 + sqrt2) / 2);
+    roots.push(-A / 4 + (sqrt2z - sqrt1 - sqrt2) / 2);
+
     // 第二种组合
     const sqrt3 = Math.sqrt(z + term1 + term2);
     const sqrt4 = Math.sqrt(z - term1 + term2);
-    roots.push(-A/4 + (-sqrt2z + sqrt3 + sqrt4)/2);
-    roots.push(-A/4 + (-sqrt2z - sqrt3 - sqrt4)/2);
-    
+    roots.push(-A / 4 + (-sqrt2z + sqrt3 + sqrt4) / 2);
+    roots.push(-A / 4 + (-sqrt2z - sqrt3 - sqrt4) / 2);
+
     // 过滤有效根
-    return roots.filter(root => 
+    return roots.filter(root =>
         !isNaN(root) && isFinite(root)
     ).sort((a, b) => a - b);
 }
@@ -1681,11 +1823,11 @@ export function secant(f: (a: any) => number, x0: any, x1: any, tolerance = 1e-1
  * @param {number} maxIterations - 最大迭代次数
  * @returns {number} 根的近似值
  */
-export function brentMethod(f:(x:number)=>number, a:number, b:number, tolerance = 1e-10, maxIterations = 100) {
+export function brentMethod(f: (x: number) => number, a: number, b: number, tolerance = 1e-10, maxIterations = 100) {
     /**
  * 逆二次插值
  */
-    function inverseQuadraticInterpolation(a:number, b:number, c:number, fa:number, fb:number, fc:number) {
+    function inverseQuadraticInterpolation(a: number, b: number, c: number, fa: number, fb: number, fc: number) {
         const L0 = a * fb * fc / ((fa - fb) * (fa - fc));
         const L1 = b * fa * fc / ((fb - fa) * (fb - fc));
         const L2 = c * fa * fb / ((fc - fa) * (fc - fb));
@@ -1695,7 +1837,7 @@ export function brentMethod(f:(x:number)=>number, a:number, b:number, tolerance 
     /**
      * 割线法
      */
-    function secantMethod(a:number, b:number, fa:number, fb:number) {
+    function secantMethod(a: number, b: number, fa: number, fb: number) {
         return b - fb * (b - a) / (fb - fa);
     }
 
@@ -1784,8 +1926,8 @@ export function brentMethod(f:(x:number)=>number, a:number, b:number, tolerance 
 垂直移位是D
 
 **/
-export function periodicFunction(a:number,b:number,c:number,d:number){
-    return (x:number)=>{
-        return a*Math.sin(b*x+c)+d
+export function periodicFunction(a: number, b: number, c: number, d: number) {
+    return (x: number) => {
+        return a * Math.sin(b * x + c) + d
     }
 }

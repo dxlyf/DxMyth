@@ -3,6 +3,8 @@ import { Matrix4 } from './Matrix4.js';
 import { Plane } from './Plane.js';
 import { Sphere } from './Sphere.js';
 import { Vector3 } from './Vector3.js';
+
+
 export class Ray {
     constructor(origin?: Vector3, direction?: Vector3);
 

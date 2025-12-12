@@ -45,6 +45,9 @@ export class DisposableManager{
     }
     private disposables:IDispose[]=[]
     private persistentDisposables:IDispose[]=[]
+    constructor(){
+        activeDisposableManager=this
+    }
     add(disposable:IDispose){
         this.disposables.push(disposable)
     }

@@ -2,6 +2,8 @@ import { ColorSpaceTransfer } from '../constants.js';
 import { Color } from './Color.js';
 import { Matrix3 } from './Matrix3.js';
 import { Vector3 } from './Vector3.js';
+
+
 export interface ColorSpaceDefinition {
     primaries: [number, number, number, number, number, number];
     whitePoint: [number, number];

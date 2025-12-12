@@ -8,6 +8,8 @@ import { Matrix3 } from './Matrix3.js';
 import { Matrix4 } from './Matrix4.js';
 import { QuaternionLike } from './Quaternion.js';
 import { Spherical } from './Spherical.js';
+
+
 export type Vector3Tuple = [number, number, number];
 
 export interface Vector3Like {

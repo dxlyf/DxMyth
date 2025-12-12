@@ -1,4 +1,6 @@
 import { Vector3 } from './Vector3.js';
+
+
 export class Spherical {
     constructor(radius?: number, phi?: number, theta?: number);
 

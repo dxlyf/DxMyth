@@ -1,4 +1,6 @@
 import { PolyhedronGeometry } from './PolyhedronGeometry.js';
+
+
 /**
  * A class for generating an icosahedron geometry.
  * @see {@link https://threejs.org/docs/index.html#api/en/geometries/IcosahedronGeometry | Official Documentation}

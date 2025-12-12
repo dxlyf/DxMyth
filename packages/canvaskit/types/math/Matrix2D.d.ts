@@ -1,0 +1,52 @@
+import { Vector2, Vector2Like } from './Vector2';
+export type Matrix2DLike = number[] | Float32Array;
+declare class Matrix2D extends Float32Array {
+    static identity(): Matrix2D;
+    static fromValues(a: number, b: number, c: number, d: number, tx: number, ty: number): Matrix2D;
+    static fromRotation(angleInRad: number): Matrix2D;
+    static fromTranslation(v: Vector2Like): Matrix2D;
+    static fromScaling(v: Vector2Like): Matrix2D;
+    constructor();
+    copy(m: Matrix2D): this;
+    clone(): Matrix2D;
+    hasIdentity(): boolean;
+    fromValues(a: number, b: number, c: number, d: number, tx: number, ty: number): this;
+    fromRotation(angleInRad: number): this;
+    fromTranslation(v: Vector2Like): this;
+    fromScaling(v: Vector2Like): this;
+    fromTranslationRotationScale(position: Vector2Like, angleInRad: number, scale: Vector2Like): this;
+    fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like): this;
+    translate(v: Vector2Like): this;
+    rotateDegrees(degress: number): void;
+    rotate(angleInRad: number): this;
+    scale(v: Vector2Like): this;
+    getTranslation(out?: Vector2Like): Vector2Like;
+    getRotation(): number;
+    getScale(out?: Vector2Like): Vector2Like;
+    invert(): this;
+    multiply(m: Matrix2D): this;
+    premultiply(m: Matrix2D): this;
+    multiplyMatrices(a: Matrix2D, b: Matrix2D): this;
+    mapVector(v: Vector2Like, out?: Vector2Like): Vector2Like;
+    mapPoints(v: number[] | Float32Array, out?: number[] | Float32Array): number[] | Float32Array<ArrayBufferLike>;
+    mapVectors(vectors: Vector2Like[], out?: Vector2Like[]): Vector2Like[];
+    decomposeTransform(matrix: Matrix2D, out?: {
+        position?: Vector2;
+        scale?: Vector2;
+        rotation?: number;
+        pivot?: Vector2;
+    }): {
+        position?: Vector2;
+        scale?: Vector2;
+        rotation?: number;
+        pivot?: Vector2;
+    };
+    equals(m: Matrix2D): boolean;
+    equalsWithEpsilon(m: Matrix2D, epsilon?: number): boolean;
+    fromRowMajorOrderMatrix3x3(m: Matrix2DLike): this;
+    fromColumnMajorOrderMatrix3x3(m: Matrix2DLike): this;
+    toMatrix3x3(out?: Matrix2DLike): Matrix2DLike;
+    toRowMajorOrderMatrix3x3(out?: Matrix2DLike): Matrix2DLike;
+    toString(): string;
+}
+export { Matrix2D };

@@ -5,6 +5,8 @@
 export declare function solveQuadratic(a: number, b: number, c: number): number[];
 /** 三次方程求根 ax³ + bx² + cx + d = 0 (Cardano公式) */
 export declare function solveCubic(a: number, b: number, c: number, d: number): number[];
+/** 三次方程求根 Shengjin 公式 */
+export declare function solveCubicByShengjin(a: number, b: number, c: number, d: number): number[];
 /** 二分法求根 */
 export declare function bisection(f: (x: number) => number, a: number, b: number, tolerance?: number, maxIterations?: number): number | null;
 /** 牛顿法求根 */

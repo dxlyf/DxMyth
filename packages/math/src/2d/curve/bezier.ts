@@ -360,11 +360,61 @@ export function bezierCurvatureAt(points: Vector2[], t: number) {
     const firstDerivative = bezierFirstDerivative(points, t)
     const secondDerivative = bezierSecondDerivative(points, t)
     const numerator = Math.abs(firstDerivative.cross(secondDerivative))
+    if(numerator===0){
+        return 0
+    }
     //pow(firstDerivative.magnitudeSquared(),3/2)=pow(firstDerivative.magnitude(),3)
     const denominator = Math.pow(firstDerivative.magnitudeSquared(), 3 / 2) //pow(firstDerivative.magnitudeSquared(),3/2)
 
     return numerator / denominator
 }
+/**
+   * 寻找贝塞尔曲线的最大曲率（数值方法）
+   * 使用黄金分割搜索法
+   */
+  export function findMaxCurvature(
+    points: Vector2[],
+    tolerance: number = 1e-6,
+    maxIterations: number = 100
+  ): { t: number; curvature: number; point: Vector2 } {
+    // 黄金分割比例
+    const PHI = (Math.sqrt(5) - 1) / 2; // 约等于0.618
+    
+    let a = 0;
+    let b = 1;
+    let c = b - PHI * (b - a);
+    let d = a + PHI * (b - a);
+    
+    let fc = bezierCurvatureAt(points, c);
+    let fd = bezierCurvatureAt(points, d);
+    
+    let iterations = 0;
+    
+    while (Math.abs(c - d) > tolerance && iterations < maxIterations) {
+      if (fc > fd) {
+        b = d;
+        d = c;
+        fd = fc;
+        c = b - PHI * (b - a);
+        fc = bezierCurvatureAt(points, c);
+      } else {
+        a = c;
+        c = d;
+        fc = fd;
+        d = a + PHI * (b - a);
+        fd = bezierCurvatureAt(points, d);
+      }
+      
+      iterations++;
+    }
+    
+    const t = (a + b) / 2;
+    const curvature = bezierCurvatureAt(points, t);
+    const point =getBezierPointWithDeCasteljau(points, t);
+    
+    return { t, curvature, point };
+  }
+  
 /**
  * 二次贝塞尔曲线，使用矩阵计算
  */
@@ -536,6 +586,32 @@ export function bezierDerivative(points: Vector2[], t: number, k: number) {
     result.y *= coeff
     return result;
 }
+// 使用De Casteljau算法计算贝塞尔曲线的k阶导数
+export function bezierDerivativeWithDeCasteljau(points: Vector2[], t: number, derivativeOrder: number) {
+    const n = points.length - 1;
+    if (derivativeOrder > n) throw new Error("导数阶数不能超过贝塞尔曲线阶数");
+  // 计算导数控制点
+    let currentPoints = points;
+    for (let k = 0; k < derivativeOrder; k++) {
+      const n = currentPoints.length - 1;
+      const derivativePoints: Vector2[] = [];
+      
+      for (let i = 0; i < n; i++) {
+        derivativePoints.push(Vector2.create(
+          n * (currentPoints[i + 1].x - currentPoints[i].x),
+          n * (currentPoints[i + 1].y - currentPoints[i].y)
+        ));
+      }
+      
+      currentPoints = derivativePoints;
+    }
+    
+    // 计算导数曲线在t处的值
+    return getBezierPointWithDeCasteljau(currentPoints, t);
+}
+
+
+
 export function quadraticBezierDerivative(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2 {
     const _1t = 1 - t
     const x = 2 * _1t * (p1.x - p0.x) + 2 * t * (p2.x - p1.x)
@@ -636,9 +712,91 @@ export function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2) 
     findQuadExtrema(p0.y, p1.y, p2.y, tValue)
     if (tValue.length > 0) {
         const t = tValue[0]
-        return chopQuadBezierAt(p0, p1, p2, t)
+        const controls = chopQuadBezierAt(p0, p1, p2, t)
+        return [[controls[0], controls[1], controls[2]],[controls[2], controls[3], controls[4]]] as const
     }
-    return []
+    return [[p0,p1,p2]] as const
+}
+enum ReductionType {
+    Point,       // 所有曲线点实际上都是相同的
+    Line,        // 控制点在两端之间的线上
+    Quad,        // 控制点在端点之间的线外
+    Degenerate,  // 控制点在直线上，但在端点之外
+    Degenerate2, // 两个控制点在直线上，但在两端之外 (cubic)
+    Degenerate3, // 发现三个最大曲率区域 (for cubic)
+}
+function degenerateVector(v: Vector2) {
+    return v.canNormalize()?0:1;
+}
+
+/// 给定二次贝塞尔曲线，判断所有三个点是否在同一直线上。
+/// 如果内部点靠近连接最外侧两点的直线，则返回true。
+///
+/// 通过寻找X或Y坐标差值最大的点来确定最外侧点。
+/// 由于索引的异或结果为3 (0 ^ 1 ^ 2)
+/// 缺失的索引等于：outer_1 ^ outer_2 ^ 3。
+function quadInLine(quad: Vector2[]): boolean {
+    let pt_max = -1.0;
+    let outer1 = 0;
+    let outer2 = 0;
+    for (let index = 0; index < 2; index++) {
+        for (let inner = index + 1; inner < 3; inner++) {
+            let test_diff = quad[inner].clone().sub(quad[index]);
+            let test_max = Math.max(Math.abs(test_diff.x), Math.abs(test_diff.y))
+            if (pt_max < test_max) {
+                outer1 = index;
+                outer2 = inner;
+                pt_max = test_max;
+            }
+        }
+    }
+
+    // console.assert(outer1 <= 1);
+    // console.assert(outer2 >= 1 && outer2 <= 2);
+    // console.assert(outer1 < outer2);
+    let mid = outer1 ^ outer2 ^ 3;
+    const CURVATURE_SLOP: number = 0.000005; // this multiplier is pulled out of the air
+    let line_slop = pt_max * pt_max * CURVATURE_SLOP;
+    return ptToLine(quad[mid], quad[outer1], quad[outer2]) <= line_slop
+}
+
+// 返回点到直线的距离平方
+function ptToLine(pt: Vector2, line_start: Vector2, line_end: Vector2): number {
+    let dxy = line_end.clone().sub(line_start);
+    let ab0 = pt.clone().sub(line_start);
+    let numer = dxy.dot(ab0);
+    let denom = dxy.dot(dxy);
+    let t = numer / denom;
+    if (t >= 0.0 && t <= 1.0) {
+        let hit =line_start.clone().lerp(line_end,t);
+        return hit.distanceSquared(pt)
+    } else {
+        return pt.distanceSquared(line_start) // t不在线段内，返回点到线段起始端点的距离平方
+    }
+}
+// 检查二次贝塞尔曲线是否为线性
+export function checkQuadLinear(quad: Vector2[]): [Vector2, ReductionType] {
+    let degenerate_ab = degenerateVector(quad[1].clone().sub(quad[0]));
+    let degenerate_bc = degenerateVector(quad[2].clone().sub(quad[1]));
+    if (degenerate_ab & degenerate_bc) {
+        return [Vector2.default(), ReductionType.Point]
+    }
+
+    if (degenerate_ab | degenerate_bc) {
+        return [Vector2.default(), ReductionType.Line];
+    }
+
+    if (!quadInLine(quad)) {
+        return [Vector2.default(), ReductionType.Quad];
+    }
+
+    let t = findQuadMaxCurvature(quad[0],quad[1],quad[2]);
+    if (t == 0 || t == 1) {
+        return [Vector2.default(), ReductionType.Line];
+    }
+
+    let v = quadraticBezierPointAt(quad[0],quad[1],quad[2], t)
+    return [v, ReductionType.Degenerate]
 }
 /***
  * p=(x,y)
@@ -1503,6 +1661,75 @@ export function findClosestTNewton(p:Vector2, controlPoints:Vector2[]) {
     return bestT;
 }
 
+/**
+ * 验证曲线是否在Y方向上是单调的
+ * @param curves 分割后的曲线数组
+ * @returns 如果所有子曲线在Y方向都是单调的，返回true
+ */
+export function isMonotonicInY(curves:Vector2[][]): boolean {
+  for (const curve of curves) {
+    const [p0, p1, p2, p3] = curve;
+    const extrema:number[] = []
+    findCubicExtrema(p0.y, p1.y, p2.y, p3.y,extrema);
+    if (extrema.length > 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * 在Y方向极值点处分割三次贝塞尔曲线
+ * 三次贝塞尔曲线的Y极值点可以通过求导找到
+ * @param p0 起始点
+ * @param p1 控制点1
+ * @param p2 控制点2
+ * @param p3 结束点
+ * @returns 分割后的曲线数组（可能为1条、2条或3条）
+ */
+export function chopCubicBezierAtYExtrema(
+  p0: Vector2,
+  p1: Vector2,
+  p2: Vector2,
+  p3: Vector2
+): [Vector2, Vector2, Vector2, Vector2][] {
+    
+  const roots:number[]=[]
+  findCubicExtrema(p0.y, p1.y, p2.y, p3.y,roots);
+  // 按升序排序
+  roots.sort((a, b) => a - b);
+  
+  // 如果没有有效极值点，返回原曲线
+  if (roots.length === 0) {
+    return [[p0, p1, p2, p3]];
+  }
+  // 在极值点处分割曲线
+  const curves: [Vector2, Vector2, Vector2, Vector2][] = [];
+  let currentCurve = [p0, p1, p2, p3] as [Vector2, Vector2, Vector2, Vector2];
+  let lastT = 0;
+  
+  for (let i = 0; i < roots.length; i++) {
+    const t = roots[i];
+    
+    // 调整参数到当前子曲线的局部参数
+    const localT = (t - lastT) / (1 - lastT);
+    
+    // 分割当前曲线
+    const controls = chopCubicBezierAt(currentCurve[0], currentCurve[1], currentCurve[2], currentCurve[3], localT);
+    
+    // 左半部分加入结果
+    curves.push([controls[0], controls[1], controls[2], controls[3]]);
+    
+    // 右半部分作为当前曲线继续处理
+    currentCurve = [controls[3], controls[4], controls[5], controls[6]];
+    lastT = t;
+  }
+  
+  // 加入最后一段
+  curves.push(currentCurve);
+  
+  return curves;
+}
 
 /**
  * css animation function:cubic-bezier(0,0,1,1)

@@ -1,4 +1,4 @@
-import { Color } from '../../../../../../../../../src/3d/index.core.ts';
+import { Color } from '../../../../../../../../src/3d/index.core.ts';
 /**
  * Represents a lookup table for colormaps. It is used to determine the color
  * values from a range of data values.

@@ -30,4 +30,3 @@ async function initLoadCanvaskit():Promise<CanvasKitImp>{
     })
     return loadingPromise
 }
-await getCanvasKit()

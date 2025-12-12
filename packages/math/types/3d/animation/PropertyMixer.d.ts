@@ -1,4 +1,6 @@
 import { PropertyBinding } from './PropertyBinding.js';
+
+
 /**
  * Buffered scene graph property that allows weighted accumulation; used internally.
  */

@@ -5,6 +5,8 @@ import { Vector3 } from './Vector3.js';
 import { Vector4 } from './Vector4.js';
 import { BufferAttribute } from '../core/BufferAttribute.js';
 import { InterleavedBufferAttribute } from '../core/InterleavedBufferAttribute.js';
+
+
 export class Triangle {
     constructor(a?: Vector3, b?: Vector3, c?: Vector3);
 

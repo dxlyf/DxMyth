@@ -51,6 +51,10 @@ enum TextBaseline{
     Ideographic='ideographic', // 文本基线：表意基线
     Bottom='bottom', // 文本基线：底部基线
 }
+enum TextDirection{
+    LTR='ltr', // 从左到右文本方向
+    RTL='rtl', // 从右到左文本方向
+}
 enum TextRendering{
     Auto='auto', // 自动文本渲染
     OptimizeSpeed='optimizeSpeed', // 优化速度文本渲染
@@ -107,7 +111,6 @@ enum FontWeight{
     Bold='bold', // 粗体字体粗细
 }
 
-
 enum GlobalCompositeOperation{
     SourceOver='source-over', // 源图像在目标图像上方绘制
     DestinationOver='destination-over', // 目标图像在源图像上方绘制
@@ -155,8 +158,8 @@ enum BlendMode{
     Luminosity='luminosity', // 颜色混合模式
 }
 enum ClipPathUnits{
-    UserSpaceOnUse='userSpaceOnUse', // 用户空间 clipPathUnits
-    ObjectBoundingBox='objectBoundingBox', // 对象边界 clipPathUnits
+    UserSpaceOnUse='userSpaceOnUse', // 用户空间 clipPathUnits  绝对坐标
+    ObjectBoundingBox='objectBoundingBox', // 对象空间 clipPathUnits 坐标 0-1 之间
 }
 export {
     FontWeight,
@@ -172,6 +175,7 @@ export {
     TextRendering,
     TextAlign,
     TextBaseline,
+    TextDirection,
     LineJoin,
     LineCap,
     FillRule,

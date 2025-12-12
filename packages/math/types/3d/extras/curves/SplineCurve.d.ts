@@ -1,5 +1,7 @@
 import { Vector2 } from '../../math/Vector2.js';
 import { Curve } from '../core/Curve.js';
+
+
 /**
  * Create a smooth **2D** spline curve from a series of points.
  * @example

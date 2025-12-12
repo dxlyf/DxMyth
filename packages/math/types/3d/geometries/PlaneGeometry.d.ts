@@ -1,4 +1,6 @@
 import { BufferGeometry } from '../core/BufferGeometry.js';
+
+
 /**
  * A class for generating plane geometries.
  * @example

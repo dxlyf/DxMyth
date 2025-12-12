@@ -8,6 +8,13 @@ export declare class QuadBezier {
     p2: Vector2;
     constructor(p0: Vector2, p1: Vector2, p2: Vector2);
     getBoundingBox(): BoundingRect;
+    getCenter(): Vector2;
+    getLength(maxIterations?: number): number;
+    x(t: number): number;
+    y(t: number): number;
+    invertY(y: number): number;
+    invertX(x: number): number;
+    solveT(xOry: number, p0: number, p1: number, p2: number): number;
     split(t: number): Vector2[];
     getPolynomial(): {
         a: Vector2;
@@ -21,9 +28,10 @@ export declare class QuadBezier {
      * @memberof QuadBezier
      */
     getPoint(t: number): Vector2;
-    getPoints(tolerance?: number): Vector2[];
+    getPoints(maxIterations?: number): Vector2[];
     getExtermas(extrenas: Vector2[]): number;
     fatten(tessellationTolerance?: number): Vector2[];
+    getTangent(t: number): Vector2;
 }
 export declare class CubicBezier {
     static fromQuadBezier(q: QuadBezier): CubicBezier;
@@ -35,6 +43,12 @@ export declare class CubicBezier {
     p3: Vector2;
     constructor(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2);
     getBoundingBox(): BoundingRect;
+    x(t: number): number;
+    y(t: number): number;
+    invertY(y: number): number;
+    invertX(x: number): number;
+    solveT(xOry: number, p0: number, p1: number, p2: number, p3: number): number;
+    getLength(maxIterations?: number): number;
     getPolynomial(): {
         a: Vector2;
         b: Vector2;
@@ -47,6 +61,19 @@ export declare class CubicBezier {
     getExtermas(extrenas: Vector2[]): number;
     fatten(tessellationTolerance?: number): Vector2[];
 }
+/**
+ * @description 计算二次贝塞尔曲线在t点的切线向量
+ * 公式：a(1-t)^2+2t(1-t)b+t^2c
+    (-2+2t)a+(2-4t)b+2tc=2t(a-2b+c)+2(b-a)
+    2(b-a+(a-2b+c)t)
+ * @param p0 起点
+ * @param p1 控制点
+ * @param p2 终点
+ * @param t 插值参数
+ * @returns
+ */
+export declare function quadraticBezierTangentAt(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2;
+export declare function cubicBezierTangentAt(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2;
 export declare function bernstein(n: number, i: number, t: number): number;
 export declare function getBezierPowerBasis(controls: {
     x: number;
@@ -80,6 +107,15 @@ export declare function getRationalBezierPointWithBernstein(points: Vector2[], w
     曲率半径=1/k
 */
 export declare function bezierCurvatureAt(points: Vector2[], t: number): number;
+/**
+   * 寻找贝塞尔曲线的最大曲率（数值方法）
+   * 使用黄金分割搜索法
+   */
+export declare function findMaxCurvature(points: Vector2[], tolerance?: number, maxIterations?: number): {
+    t: number;
+    curvature: number;
+    point: Vector2;
+};
 /**
  * 二次贝塞尔曲线，使用矩阵计算
  */
@@ -136,6 +172,9 @@ export declare function bezierSecondDerivative(points: Vector2[], t: number): Ve
  * @returns
  */
 export declare function bezierDerivative(points: Vector2[], t: number, k: number): Vector2;
+export declare function bezierDerivativeWithDeCasteljau(points: Vector2[], t: number, derivativeOrder: number): Vector2;
+export declare function quadraticBezierDerivative(p0: Vector2, p1: Vector2, p2: Vector2, t: number): Vector2;
+export declare function cubicBezierDerivative(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2;
 /**
  * 计算贝塞尔曲线的N阶导数控制点
  * 求t的导
@@ -150,6 +189,7 @@ const  secondDerivativeControls=getBezierDerivativeControlPoints(firstDerivative
  */
 export declare function getBezierDerivativeControlPoints(points: Vector2[]): Vector2[];
 export declare function chopBezierBetween(points: Vector2[], t0: number, t1: number): Vector2[];
+export declare function getBezierPoints(controlPoints: Vector2[], maxIterations?: number): Vector2[];
 /**
  * N阶贝塞尔曲线细分（使用德卡斯特里奥算法）
  * @param {Array} points - 控制点数组，格式 [{x, y}, ...]
@@ -161,7 +201,16 @@ export declare function chopBezierAt(points: Vector2[], t?: number): {
     right: Vector2[];
 };
 export declare function chopQuadBezierAt(p0: Vector2, p1: Vector2, p2: Vector2, t?: number): Vector2[];
-export declare function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2): Vector2[];
+export declare function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2): readonly [readonly [Vector2, Vector2, Vector2], readonly [Vector2, Vector2, Vector2]] | readonly [readonly [Vector2, Vector2, Vector2]];
+declare enum ReductionType {
+    Point = 0,// 所有曲线点实际上都是相同的
+    Line = 1,// 控制点在两端之间的线上
+    Quad = 2,// 控制点在端点之间的线外
+    Degenerate = 3,// 控制点在直线上，但在端点之外
+    Degenerate2 = 4,// 两个控制点在直线上，但在两端之外 (cubic)
+    Degenerate3 = 5
+}
+export declare function checkQuadLinear(quad: Vector2[]): [Vector2, ReductionType];
 /***
  * p=(x,y)
  * d(t)=p.y =y0+(y1-y0)*t=p.y
@@ -170,6 +219,11 @@ export declare function chopQuadBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: V
    x>p.x
  */
 export declare function windLine(p: Vector2, p0: Vector2, p1: Vector2): number;
+export declare function quadraticBezierPolynomial(p0: Vector2, p1: Vector2, p2: Vector2): readonly [Vector2, Vector2, Vector2];
+export declare function cubicBezierPolynomial(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): readonly [Vector2, Vector2, Vector2, Vector2];
+export declare function linePolynomial(start: Vector2, end: Vector2): readonly [number, number, number];
+export declare function lineQuadraticBezierIntersection(start: Vector2, end: Vector2, p0: Vector2, p1: Vector2, p2: Vector2): Vector2[];
+export declare function lineCubicBezierIntersection(start: Vector2, end: Vector2, p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): Vector2[];
 /***
  * 发出一条射线与二次贝塞尔曲线交点
  * 假始射线是一条水平线，从左向右发射，与二次贝塞尔曲线交点
@@ -308,3 +362,54 @@ export declare function cubicLength(x0: number, y0: number, x1: number, y1: numb
  * @returns
  */
 export declare function findClosestTNewton(p: Vector2, controlPoints: Vector2[]): number;
+/**
+ * 验证曲线是否在Y方向上是单调的
+ * @param curves 分割后的曲线数组
+ * @returns 如果所有子曲线在Y方向都是单调的，返回true
+ */
+export declare function isMonotonicInY(curves: Vector2[][]): boolean;
+/**
+ * 在Y方向极值点处分割三次贝塞尔曲线
+ * 三次贝塞尔曲线的Y极值点可以通过求导找到
+ * @param p0 起始点
+ * @param p1 控制点1
+ * @param p2 控制点2
+ * @param p3 结束点
+ * @returns 分割后的曲线数组（可能为1条、2条或3条）
+ */
+export declare function chopCubicBezierAtYExtrema(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): [Vector2, Vector2, Vector2, Vector2][];
+/**
+ * css animation function:cubic-bezier(0,0,1,1)
+ *
+ * Y轴(动画进度)
+  ↑
+1 |                    P3(1,1)
+  |                   /
+  |                  /
+  |                 /
+  |                •
+  |               /
+  |     P1(x1,y1)
+  |     •
+  |    /
+  |   /
+  |  /
+P0 •------------------→ X轴(时间)
+ (0,0)              1
+ */
+export declare class CubicBezierSolver {
+    private x1;
+    private y1;
+    private x2;
+    private y2;
+    constructor(x1: number, y1: number, x2: number, y2: number);
+    private bezier;
+    private bezierDerivative;
+    private x;
+    private xDerivative;
+    private y;
+    solve(inputT: number): number;
+    private findParameterForX;
+    private binarySearchForX;
+}
+export {};

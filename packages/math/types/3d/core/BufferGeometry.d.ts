@@ -9,6 +9,8 @@ import { BufferAttribute, BufferAttributeJSON } from './BufferAttribute.js';
 import { EventDispatcher } from './EventDispatcher.js';
 import { GLBufferAttribute } from './GLBufferAttribute.js';
 import { InterleavedBufferAttribute } from './InterleavedBufferAttribute.js';
+
+
 export type NormalBufferAttributes = Record<string, BufferAttribute | InterleavedBufferAttribute>;
 export type NormalOrGLBufferAttributes = Record<
     string,

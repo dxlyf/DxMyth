@@ -1,11 +1,11 @@
 import { CKEngine } from 'src/core/CKEngine';
 import type { IPlugin } from 'src/core/PluginService'
 import type { CKEnginePluginHooks, CKEnginePluginMethods } from 'src/types/CKEngine';
-import {PointerInteraction,type PointerInteractionEvent} from './PointerInteraction'
-import {Node} from 'src/scene/Node'
+import { PointerInteraction, type PointerInteractionEvent } from './PointerInteraction'
+import { Node } from 'src/scene/Node'
 import { DisplayObject } from 'src/scene/DisplayObject';
-function getEmitterListenerEvents(emitter:any,evt:string) {
-    var handlers = emitter._events[evt],ee:any[];
+function getEmitterListenerEvents(emitter: any, evt: string) {
+    var handlers = emitter._events[evt], ee: any[];
     if (!handlers) return [];
     if (handlers.fn) return [handlers];
 
@@ -14,42 +14,42 @@ function getEmitterListenerEvents(emitter:any,evt:string) {
     }
     return ee;
 }
-let lastTarget:DisplayObject
-function dispatchNodeEvent(engine:CKEngine,e:PointerInteractionEvent){
-        const type=e.type,x=e.x,y=e.y;
-        let target=null
-        if(type==='pointerdown'){
-            target=engine.hitObject(x,y)
-        }
-        
-        if(target){
-            e.target=target
-            const targetPaths=e.composedPath() as Node[]
-            while(targetPaths.length){
-                const el=targetPaths.shift()
-                const listenrCount=el.listenerCount(type as any)
-                if(listenrCount>0){
-                    e.currentTarget=el
-                    const listeners = getEmitterListenerEvents(el,type)
-                    for(let j=0,len=listeners.length;j<len;j++){
-                        const event=listeners[j]
-                        // 如果是一次性就删除
-                        if(event.once){
-                            el.off(type as any,event.fn,event.context,event.once)
-                        }
-                        event.fn(e)
-                        // 如果用户执行了立即停止冒泡，就直接结束
-                        if(e.immediateCancelBubble){
-                            break
-                        }
-                    }
+let hitTarget: DisplayObject = null
+function dispatchNodeEvent(engine: CKEngine, e: PointerInteractionEvent) {
+    const type = e.type, x = e.x, y = e.y;
+
+    if (type === 'pointerdown') {
+        hitTarget = engine.hitObject(x, y)
+    }
+    else if (type === 'pointermove') {
+        hitTarget = engine.hitObject(x, y)
+    }
+    e.target = hitTarget
+    const targetPaths = e.composedPath() as Node[]
+    while (targetPaths.length) {
+        const el = targetPaths.shift()
+        const listenrCount = el.listenerCount(type as any)
+        if (listenrCount > 0) {
+            e.currentTarget = el
+            const listeners = getEmitterListenerEvents(el, type)
+            for (let j = 0, len = listeners.length; j < len; j++) {
+                const event = listeners[j]
+                // 如果是一次性就删除
+                if (event.once) {
+                    el.off(type as any, event.fn, event.context, event.once)
                 }
-                // 如果取消冒泡，就停止向上
-                if(e.cancelBubble){
+                event.fn(e)
+                // 如果用户执行了立即停止冒泡，就直接结束
+                if (e.immediateCancelBubble) {
                     break
                 }
             }
         }
+        // 如果取消冒泡，就停止向上
+        if (e.cancelBubble) {
+            break
+        }
+    }
 }
 
 export default {
@@ -60,8 +60,8 @@ export default {
             let pointerInteraction = new PointerInteraction()
             pointerInteraction.init({
                 domElement: engine.renderer.domElment!,
-                emit:(e)=>{
-                    dispatchNodeEvent(engine,e)
+                emit: (e) => {
+                    dispatchNodeEvent(engine, e)
                 }
             })
             engine.renderer.on('resize', () => {
@@ -69,10 +69,10 @@ export default {
             })
             engine.on('dispose', () => {
                 pointerInteraction.dispose()
-                pointerInteraction=null
+                pointerInteraction = null
             })
         })
-      
+
 
 
     }
