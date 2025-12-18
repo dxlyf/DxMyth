@@ -354,7 +354,9 @@ export function numericalNthDerivative(
 
     return currentFunction(x);
 }
-// 微积分求面积
+
+
+// 微积分求面积 int
 export const integral = (fn: any, a: number, b: number, h: number = 1e-5) => {
     let sum = 0;
     for (let x = a; x < b; x += h) {
@@ -504,6 +506,7 @@ export const floorMod = (v: number, m: number) => {
 export const truncMod = (v: number, m: number) => {
     return v - Math.trunc(v / m) * m
 }
+
 
 // 给定偏移和缩放和单位，计算起始坐标值
 // 用于标尺或网格的计算起点坐标值
@@ -690,8 +693,279 @@ export const fastFactorial = (x: number): number => {
     }
     return x * fastFactorial(x - 1)
 }
+// 类型定义
+type MathFunction = (x: number) => number;
+type DerivativeFunction = (order: number, x: number) => number;
+
+// 级数项接口
+interface SeriesTerm {
+    coefficient: number;  // 系数
+    exponent: number;     // 指数
+    factorial?: number;   // 阶乘（可选）
+}
+
+// 级数结果接口
+interface SeriesResult {
+    terms: SeriesTerm[];
+    approximation: number;
+    errorEstimate?: number;
+}
+// MacLaurin series 麦克劳林级数
+export class MaclaurinSeries {
+    
+    /**
+     * 计算函数的麦克劳林级数展开
+     * @param fn 要展开的函数
+     * @param center 展开中心（默认为0，对于麦克劳林）
+     * @param maxTerms 最大项数
+     * @param h 数值微分的步长（如果提供数值导数）
+     */
+    static expand(
+        fn: MathFunction | DerivativeFunction,
+        maxTerms: number = 10,
+        h: number = 1e-5
+    ): SeriesTerm[] {
+        const terms: SeriesTerm[] = [];
+        
+        for (let n = 0; n < maxTerms; n++) {
+            // 计算n阶导数在0处的值
+            const nthDerivative = this.calculateNthDerivative(fn, n, 0, h);
+            const coefficient = nthDerivative / this.factorial(n);
+            
+            terms.push({
+                coefficient,
+                exponent: n,
+                factorial: this.factorial(n)
+            });
+        }
+        
+        return terms;
+    }
+    
+    /**
+     * 计算n阶导数（数值方法或解析方法）
+     */
+    private static calculateNthDerivative(
+        fn: MathFunction | DerivativeFunction,
+        n: number,
+        x: number,
+        h: number = 1e-5
+    ): number {
+        // 如果函数本身提供了导数计算方法
+        if (fn.length === 2) {
+            return (fn as DerivativeFunction)(n, x);
+        }
+        
+        // 否则使用数值微分
+        if (n === 0) {
+            return (fn as MathFunction)(x);
+        }
+        
+        // 使用中心差分进行数值微分
+        const derivativeFn = this.createDerivativeFunction(fn as MathFunction, n-1, h);
+        return (derivativeFn(x + h) - derivativeFn(x - h)) / (2 * h);
+    }
+    
+    /**
+     * 创建导函数
+     */
+    private static createDerivativeFunction(
+        fn: MathFunction,
+        order: number,
+        h: number
+    ): MathFunction {
+        if (order === 0) return fn;
+        
+        const prevDerivative = this.createDerivativeFunction(fn, order - 1, h);
+        return (x: number) => {
+            return (prevDerivative(x + h) - prevDerivative(x - h)) / (2 * h);
+        };
+    }
+    
+    /**
+     * 计算阶乘
+     */
+    static factorial(n: number): number {
+        if (n < 0) throw new Error("阶乘不能为负数");
+        if (n === 0 || n === 1) return 1;
+        
+        let result = 1;
+        for (let i = 2; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    }
+    
+    /**
+     * 使用麦克劳林级数近似计算函数值
+     */
+    static approximate(
+        fn: MathFunction | DerivativeFunction,
+        x: number,
+        maxTerms: number = 10
+    ): SeriesResult {
+        const terms = this.expand(fn, maxTerms);
+        let approximation = 0;
+        
+        for (const term of terms) {
+            approximation += term.coefficient * Math.pow(x, term.exponent);
+        }
+        
+        return {
+            terms,
+            approximation,
+            errorEstimate: this.estimateError(fn, x, maxTerms)
+        };
+    }
+    
+    /**
+     * 估计截断误差（使用拉格朗日余项）
+     */
+    private static estimateError(
+        fn: MathFunction | DerivativeFunction,
+        x: number,
+        n: number
+    ): number {
+        // 简单估计：最后一项的绝对值 * 2
+        const terms = this.expand(fn, n + 1);
+        const lastTerm = terms[terms.length - 1];
+        return Math.abs(lastTerm.coefficient * Math.pow(x, lastTerm.exponent)) * 2;
+    }
+    
+    /**
+     * 预定义常见函数的麦克劳林展开
+     */
+    static predefined = {
+        /**
+         * 指数函数 e^x
+         */
+        exp(maxTerms: number = 10): SeriesTerm[] {
+            const terms: SeriesTerm[] = [];
+            for (let n = 0; n < maxTerms; n++) {
+                terms.push({
+                    coefficient: 1 / MaclaurinSeries.factorial(n),
+                    exponent: n,
+                    factorial: MaclaurinSeries.factorial(n)
+                });
+            }
+            return terms;
+        },
+        
+        /**
+         * 正弦函数 sin(x)
+         */
+        sin(maxTerms: number = 10): SeriesTerm[] {
+            const terms: SeriesTerm[] = [];
+            for (let n = 0; n < maxTerms; n++) {
+                const exponent = 2 * n + 1;
+                const sign = (n % 2 === 0) ? 1 : -1;
+                terms.push({
+                    coefficient: sign / MaclaurinSeries.factorial(exponent),
+                    exponent: exponent,
+                    factorial: MaclaurinSeries.factorial(exponent)
+                });
+            }
+            return terms;
+        },
+        
+        /**
+         * 余弦函数 cos(x)
+         */
+        cos(maxTerms: number = 10): SeriesTerm[] {
+            const terms: SeriesTerm[] = [];
+            for (let n = 0; n < maxTerms; n++) {
+                const exponent = 2 * n;
+                const sign = (n % 2 === 0) ? 1 : -1;
+                terms.push({
+                    coefficient: sign / MaclaurinSeries.factorial(exponent),
+                    exponent: exponent,
+                    factorial: MaclaurinSeries.factorial(exponent)
+                });
+            }
+            return terms;
+        },
+        
+        /**
+         * 几何级数 1/(1-x)
+         */
+        geometric(maxTerms: number = 10): SeriesTerm[] {
+            const terms: SeriesTerm[] = [];
+            for (let n = 0; n < maxTerms; n++) {
+                terms.push({
+                    coefficient: 1,
+                    exponent: n
+                });
+            }
+            return terms;
+        },
+        
+        /**
+         * 自然对数 ln(1+x)
+         */
+        ln1px(maxTerms: number = 10): SeriesTerm[] {
+            const terms: SeriesTerm[] = [];
+            for (let n = 1; n <= maxTerms; n++) {
+                const sign = (n % 2 === 0) ? -1 : 1;
+                terms.push({
+                    coefficient: sign / n,
+                    exponent: n
+                });
+            }
+            return terms;
+        }
+    };
+    
+    /**
+     * 格式化显示级数
+     */
+    static formatSeries(terms: SeriesTerm[], variable: string = 'x'): string {
+        let result = '';
+        
+        for (let i = 0; i < terms.length; i++) {
+            const term = terms[i];
+            const coeff = term.coefficient;
+            
+            if (coeff === 0) continue;
+            
+            let termStr = '';
+            
+            // 系数
+            if (i === 0 || Math.abs(coeff) !== 1 || term.exponent === 0) {
+                termStr += coeff.toFixed(4);
+            } else if (coeff === -1) {
+                termStr += '-';
+            }
+            
+            // 变量和指数
+            if (term.exponent > 0) {
+                termStr += variable;
+                if (term.exponent > 1) {
+                    termStr += `^${term.exponent}`;
+                }
+            }
+            
+            // 阶乘信息（如果存在）
+            if (term.factorial && term.exponent > 1) {
+                termStr += `/${term.factorial}!`;
+            }
+            
+            // 添加符号
+            if (i > 0 && coeff > 0) {
+                termStr = ' + ' + termStr;
+            } else if (i > 0 && coeff < 0) {
+                termStr = ' - ' + termStr.replace('-', '');
+            }
+            
+            result += termStr;
+        }
+        
+        return result || '0';
+    }
+}
+
+
 // 求和
-export const sum = (i: number, n: number, add: (sum: number, index: number, len: number) => number) => {
+export const summation = (i: number, n: number, add: (sum: number, index: number, len: number) => number) => {
     let sum = 0
     for (; i <= n; i++) {
         sum += add(sum, i, n)
