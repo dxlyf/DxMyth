@@ -907,6 +907,57 @@ class Matrix4 {
 	}
 
 	/**
+	 * 
+	 *  R(n,theta)
+       满足:vR(n,theta)=v'
+       p 分解为 v0,v1
+       v0=平行为axis =(p·n)n
+       v1=垂直于axis的平面 =p - v0
+       w=n*v1=n*(p-v0)=n*p
+       v1'=v1*cos+w*sin
+       p'=v0+v1'= (p-(p·n)n)*cos+(n*p)sin+(p·n)n== p*cos+(n*p)sin+(p·n)n*(1-cos)
+        x轴基向量:[1,0,0]
+        [nx,1
+         ny,0   = [0,nz,-ny]
+         nz,0]
+        w=n*p=(0,nz,-ny)
+        t=1-cos
+        p'=(cos,0,0)+(0,nzsin,-nysin)+(nx^2*t,nxny*t,nxnz*t)=(nx^2*t+cos,nxny*t+nzsin,nxnz*t-nysin)
+
+        y轴基向量:[0,1,0]
+        [nx,0
+         ny,1   = [-nz,0,nx]
+         nz,0]
+        w=n*p=(-nz,0,nx)
+        t=1-cos
+        p'=(0,cos,0)+(-nzsin,0,nxsin)+(nynx*t,ny^2*t,nynz*t)=(nynx*t-nzsin,ny^2*t+cos,nynz*t+nxsin)
+
+        z轴基向量:[0,0,1]
+        [nx,0
+         ny,0   = [ny,-nx,0]
+         nz,1]
+        w=n*p=(ny,-nx,0)
+        t=1-cos
+        p'=(0,0,cos)+(nysin,-nxsin,0)+(nznx*t,nzny*t,nz^2*t)=(nznx*t+nysin,nzny*t-nxsin,nz^2*t+cos)
+
+        列主序:
+        m00=nx^2*t+cos      m01=nynx*t-nzsin    m02=nznx*t+nysin    
+        m10=nxny*t+nzsin    m11=ny^2*t+cos      m12=nzny*t-nxsin    
+        m20=nxnz*t-nysin    m21=nynz*t+nxsin    m22=nz^2*t+cos    
+
+        [
+         m00,m01,m02,
+         m10,m11,m12,
+         m20,m21,m22, 
+        ]
+		float t=1-c;
+		float nx=axis.x,ny=axis.y,nz=axis.z;
+		float tx=nx*t,ty=ny*t;
+		vec3 x=vec3(tx*nx+c,tx*ny+nz*s,tx*nz-ny*s)
+		vec3 y=vec3(tx*ny-nz*sin,ty*ny+c,ty*nz+nx*sin)
+		vec3 z=vec3(tx*nz+ny*s,ty*nz-nx*s,nz*nz*t+c)
+		return mat4(vec4(x.x,y.x,z.x,0),vec4(x.y,y.y,z.y,0),vec4(x.z,y.z,z.z,0),vec4(0,0,0,1));    
+	 * 
 	 * Sets this matrix as a rotational transformation around the given axis by
 	 * the given angle.
 	 *
