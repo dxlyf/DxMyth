@@ -12,7 +12,22 @@ float SDFSphere(vec3 p){
 vec3 rayDir(vec2 coord){
     return normalize(vec3(coord,0)-CAMERA_POS);
 }
-
+vec3 sdfNormal2(vec3 uv,vec3 p,vec3 size){
+    float h=0.0001;
+    vec2 e=vec2(h,0);
+    vec2 k=vec2(1,-1);
+	// 积分差分法
+//    float d=sdfBox(uv+e.xyy,p,size);
+//    float x=(d-sdfBox(uv-e.xyy,p,size))/(e.x);
+//    float y=(d-sdfBox(uv-e.yxy,p,size))/(e.x);
+//    float z=(d-sdfBox(uv-e.yyx,p,size))/(e.x);
+   
+  // return normalize(vec3(x,y,z));
+  return normalize(k.xyy * sdfBox(uv + k.xyy * h,p,size) +
+    k.yyx * sdfBox(uv + k.yyx * h,p,size) +
+    k.yxy * sdfBox(uv + k.yxy * h,p,size) +
+    k.xxx * sdfBox(uv + k.xxx * h,p,size));
+}
 // 计算球体的法线
 vec3 SDFNormal(in vec3 p) {
   const float h = 0.0001;
