@@ -1,3 +1,4 @@
+
 export class Triangle {
     constructor(
         public x1: number,

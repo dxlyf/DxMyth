@@ -79,6 +79,7 @@ function makeRotation<T extends Matrix2dLike = Matrix2dLike>(out: T, radian: num
     out[5] = 0;
     return out;
 }
+
 function makeScale<T extends Matrix2dLike = Matrix2dLike>(out: T, v: Vector2Like) {
     const sx = v[0];
     const sy = v[1];
@@ -86,6 +87,32 @@ function makeScale<T extends Matrix2dLike = Matrix2dLike>(out: T, v: Vector2Like
     out[1] = 0;
     out[2] = 0;
     out[3] = sy;
+    out[4] = 0;
+    out[5] = 0;
+    return out;
+}
+/**
+ * 任意方向缩放
+ * v=要缩放的向量
+ * n=缩放的轴方向
+ * v0=(v·n)n 平行于v
+ * v1=v-v0 垂直于v
+ * v0'=v0*k
+ * v1'=v1
+ * v'=v0'+v1'=(v·n)n*k+v-(v·n)n=(v·n)n*(k-1)+v
+ * 转换为矩阵形式
+ * x轴缩时，代入v=x轴基向量(1,0)=v'=[x*x*(k-1)+1,x*y*(k-1)+0]
+   y轴缩时，代入v=y轴基向量(0,1)=v'=[y*x*(k-1)+0,y*y*(k-1)+1]
+ 
+
+ */
+function makeScaleAxis<T extends Matrix2dLike = Matrix2dLike>(out: T, axis: Vector2Like,k:number) {
+    const x = axis[0];
+    const y = axis[1];
+    out[0] = x*x*(k-1.)+1;
+    out[1] = y*x*(k-1.);
+    out[2] = x*y*(k-1.);
+    out[3] = y*y*(k-1.)+1;
     out[4] = 0;
     out[5] = 0;
     return out;
@@ -523,6 +550,7 @@ export class Matrix2D extends Float32Array {
     static makeTranslation = makeTranslation
     static makeRotation = makeRotation
     static makeScale = makeScale
+    static makeScaleAxis=makeScaleAxis
     static makeTranslationRotationScale = makeTranslationRotationScale
     static makeTranslationRotationScaleOrigin = makeTranslationRotationScaleOrigin
     static makeTranslationSkewRotationScaleOrigin = makeTranslationSkewRotationScaleOrigin

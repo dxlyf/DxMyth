@@ -90,11 +90,72 @@ function makeRotation<T extends Matrix3Like = Matrix3Like>(out: T, rad: number) 
     out[2] = 0; out[5] = 0; out[8] = 1;
     return out
 }
+/**
+ * 向任意方向旋转
+ * v=向量
+ * n=轴方向
+ * v0=(v·n)n 平行于v
+ * v1=v-v0 垂直于v
+ * v2=n cross v1=n cross (v-v0)=n*v (n cross v0由于v0平行n,为0,所以v2=n*v) 垂直于n和v
+ * v1'=v1*cos+v2*sin
+ * v'=v0+v1'
+ * @param out 
+ * @param axis 
+ * @param radian 
+ * @returns 
+ */
+function makeRotationAxis<T extends Matrix3Like = Matrix3Like>(out: T, axis: Vector2Like, radian: number) {
+    const c = Math.cos(radian);
+    const s = Math.sin(radian);
+    const x = axis[0], y = axis[1], z = axis[2]
+    const t = 1 - c;
+    const tx = t * x, ty = t * y;
+    out[0] = tx * x + c;
+    out[1] = ty * x - z * s;
+    out[2] = tx * z + y * s;
+    out[3] = tx * y + z * s;
+    out[4] = ty * y + c;
+    out[5] = ty * z - x * s;
+    out[6] = tx * z - y * s;
+    out[7] = ty * z + x * s;
+    out[8] = z * z * t + c;
+    return out;
+}
 function makeScale<T extends Matrix3Like = Matrix3Like>(out: T, vec: Vector2Like) {
     out[0] = vec[0]; out[3] = 0; out[6] = 0;
     out[1] = 0; out[4] = vec[1]; out[7] = 0;
     out[2] = 0; out[5] = 0; out[8] = 1;
     return out
+}
+/**
+ * 任意方向缩放
+ * v=要缩放的向量
+ * n=缩放的轴方向
+ * v0=(v·n)n 平行于v
+ * v1=v-v0 垂直于v
+ * v0'=v0*k
+ * v1'=v1
+ * v'=v0'+v1'=(v·n)n*k+v-(v·n)n=(v·n)n*(k-1)+v
+ * 转换为矩阵形式
+ * x轴缩时，代入v=x轴基向量(1,0,0)=v'=[x*x*(k-1)+1,x*y*(k-1)+0,x*z*(k-1)+0]
+   y轴缩时，代入v=y轴基向量(0,1,0)=v'=[y*x*(k-1)+0,y*y*(k-1)+1,y*z*(k-1)+0]
+   z轴缩时，代入v=z轴基向量(0,0,1)=v'=[z*x*(k-1)+0,z*y*(k-1)+0,z*z*(k-1)+1]
+
+ */
+function makeScaleAxis<T extends Matrix3Like = Matrix3Like>(out: T, axis: Vector2Like, k: number) {
+    const x = axis[0];
+    const y = axis[1];
+    const z = axis[2];
+    out[0] = x * x * (k - 1) + 1;
+    out[1] = y * x * (k - 1);
+    out[2] = z * x * (k - 1);
+    out[3] = x * y * (k - 1);
+    out[4] = y * y * (k - 1) + 1;
+    out[5] = z * y * (k - 1);
+    out[6] = x * z * (k - 1);
+    out[7] = y * z * (k - 1);
+    out[8] = z * z * (k - 1) + 1;
+    return out;
 }
 function makeSkew<T extends Matrix3Like = Matrix3Like>(out: T, k: Vector2Like) {
     out[0] = 1; out[3] = Math.tan(k[0]); out[6] = 0;
@@ -354,7 +415,9 @@ export class Matrix3 extends Float32Array {
     static makeProjection = makeProjection
     static makeTranslation = makeTranslation
     static makeRotation = makeRotation
+    static makeRotationAxis = makeRotationAxis
     static makeScale = makeScale
+    static makeScaleAxis=makeScaleAxis
     static makeTranslationRotationScale = makeTranslationRotationScale
     static makeTranslationRotationScaleOrigin = makeTranslationRotationScaleOrigin
     static makeTranslationRotationScaleOriginPivot = makeTranslationRotationScaleOriginPivot
