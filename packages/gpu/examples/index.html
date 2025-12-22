@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL 3D渲染器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e6e6e6;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            text-align: center;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #glCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls-panel {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .controls-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .controls-section h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4fc3f7;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #29b6f6;
+            transform: scale(1.1);
+        }
+        
+        .value-display {
+            min-width: 40px;
+            text-align: right;
+            font-size: 14px;
+            color: #4fc3f7;
+            font-weight: 500;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .checkbox-container label {
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #29b6f6 0%, #0288d1 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(41, 182, 246, 0.3);
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #4fc3f7;
+        }
+        
+        .info-text {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .controls-panel {
+                width: 100%;
+                height: 300px;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .stats {
+                top: 10px;
+                right: 10px;
+                font-size: 10px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WebGL 3D渲染器</h1>
+            <p>基于PBR的完整3D渲染实现</p>
+        </div>
+        
+        <div class="content">
+            <div class="canvas-container">
+                <canvas id="glCanvas"></canvas>
+                <div class="stats" id="stats">
+                    FPS: 60<br>
+                    Triangles: 0<br>
+                    Draw Calls: 0
+                </div>
+                <div class="loading" id="loading">
+                    加载中...
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="controls-section">
+                    <h3>🎨 材质设置</h3>
+                    
+                    <div class="control-group">
+                        <label class="control-label">金属度</label>
+                        <div class="slider-container">
+                            <input type="range" id="metallicSlider" min="0" max="1" step="0.01" value="0.5">
+                            <span class="value-display" id="metallicValue">0.50</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">粗糙度</label>
+                        <div class="slider-container">
+                            <input type="range" id="roughnessSlider" min="0" max="1" step="0.01" value="0.5">
+                            <span class="value-display" id="roughnessValue">0.50</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">环境光遮蔽</label>
+                        <div class="slider-container">
+                            <input type="range" id="aoSlider" min="0" max="1" step="0.01" value="1.0">
+                            <span class="value-display" id="aoValue">1.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="normalMapping" checked>
+                        <label for="normalMapping">法线贴图</label>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <h3>💡 光照设置</h3>
+                    
+                    <div class="control-group">
+                        <label class="control-label">光源强度</label>
+                        <div class="slider-container">
+                            <input type="range" id="lightIntensitySlider" min="0" max="5" step="0.1" value="1.0">
+                            <span class="value-display" id="lightIntensityValue">1.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">环境光强度</label>
+                        <div class="slider-container">
+                            <input type="range" id="ambientSlider" min="0" max="2" step="0.1" value="0.1">
+                            <span class="value-display" id="ambientValue">0.10</span>
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="shadowsCheckbox" checked>
+                        <label for="shadowsCheckbox">启用阴影</label>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="fogCheckbox">
+                        <label for="fogCheckbox">启用雾效</label>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <h3>🎮 相机控制</h3>
+                    
+                    <div class="control-group">
+                        <label class="control-label">视野(FOV)</label>
+                        <div class="slider-container">
+                            <input type="range" id="fovSlider" min="30" max="120" step="1" value="60">
+                            <span class="value-display" id="fovValue">60°</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">相机距离</label>
+                        <div class="slider-container">
+                            <input type="range" id="cameraDistanceSlider" min="1" max="20" step="0.5" value="5.0">
+                            <span class="value-display" id="cameraDistanceValue">5.0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="autoRotate" checked>
+                        <label for="autoRotate">自动旋转</label>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <h3>🔄 模型选择</h3>
+                    <div class="control-group">
+                        <select id="modelSelect" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;">
+                            <option value="cube">立方体</option>
+                            <option value="sphere">球体</option>
+                            <option value="torus">圆环</option>
+                            <option value="cylinder">圆柱体</option>
+                        </select>
+                    </div>
+                    
+                    <button id="resetCameraBtn">重置相机</button>
+                    <button id="wireframeBtn">线框模式</button>
+                </div>
+                
+                <div class="info-text">
+                    使用鼠标拖动旋转视角，滚轮缩放
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="webgl-renderer.js"></script>
+</body>
+</html>
