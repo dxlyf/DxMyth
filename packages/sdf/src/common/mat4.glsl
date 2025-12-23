@@ -257,3 +257,103 @@ mat4 rotateZ(float angle) {
         0.0, 0.0, 0.0, 1.0
     );
 }
+
+mat4 makeRotateAxis(vec3 axis, float angle) {
+    float c=cos(angle);
+    float s=sin(angle);
+    // R(n,theta)
+    // 满足:vR(n,theta)=v'
+    // p 分解为 v0,v1
+    // v0=平行为axis =(p·n)n
+    // v1=垂直于axis的平面 =p - v0
+    // w=n*v1=n*(p-v0)=n*p
+    // v1'=v1*cos+w*sin
+    // p'=v0+v1'= (p-(p·n)n)*cos+(n*p)sin+(p·n)n== p*cos+(n*p)sin+(p·n)n*(1-cos)
+    /**
+        x轴基向量:[1,0,0]
+        [nx,1
+         ny,0   = [0,nz,-ny]
+         nz,0]
+        w=n*p=(0,nz,-ny)
+        t=1-cos
+        p'=(cos,0,0)+(0,nzsin,-nysin)+(nx^2*t,nxny*t,nxnz*t)=(nx^2*t+cos,nxny*t+nzsin,nxnz*t-nysin)
+
+        y轴基向量:[0,1,0]
+        [nx,0
+         ny,1   = [-nz,0,nx]
+         nz,0]
+        w=n*p=(-nz,0,nx)
+        t=1-cos
+        p'=(0,cos,0)+(-nzsin,0,nxsin)+(nynx*t,ny^2*t,nynz*t)=(nynx*t-nzsin,ny^2*t+cos,nynz*t+nxsin)
+
+        z轴基向量:[0,0,1]
+        [nx,0
+         ny,0   = [ny,-nx,0]
+         nz,1]
+        w=n*p=(ny,-nx,0)
+        t=1-cos
+        p'=(0,0,cos)+(nysin,-nxsin,0)+(nznx*t,nzny*t,nz^2*t)=(nznx*t+nysin,nzny*t-nxsin,nz^2*t+cos)
+
+        列主序:
+        m00=nx^2*t+cos      m01=nynx*t-nzsin    m02=nznx*t+nysin    
+        m10=nxny*t+nzsin    m11=ny^2*t+cos      m12=nzny*t-nxsin    
+        m20=nxnz*t-nysin    m21=nynz*t+nxsin    m22=nz^2*t+cos    
+
+        [
+         m00,m01,m02,
+         m10,m11,m12,
+         m20,m21,m22, 
+        ]
+    */
+    float t=1.-c;
+    float nx=axis.x,ny=axis.y,nz=axis.z;
+    float tx=nx*t,ty=ny*t;
+    vec3 x=vec3(tx*nx+c,tx*ny+nz*s,tx*nz-ny*s);
+    vec3 y=vec3(tx*ny-nz*s,ty*ny+c,ty*nz+nx*s);
+    vec3 z=vec3(tx*nz+ny*s,ty*nz-nx*s,nz*nz*t+c);
+    return transpose(mat4(vec4(x,0),vec4(y,0),vec4(z,0),vec4(0,0,0,1)));    
+
+}
+mat4 makeScaleAxis(vec3 axis,float k){
+    /**
+        v0=(v·n)n
+        v1=v-v0
+        v0'=v0*k
+        v1'=v1
+        v'=v0'+v1'=(v·n)n*k+v-(v·n)n=(k-1)*(v·n)n+v
+        
+        [1,0,0]=((k-1)*nx^2+1,(k-1)*nxny,(k-1)*nxnz)
+        [0,1,0]=((k-1)*nynx,(k-1)*ny^2+1,(k-1)*nynz)
+        [0,0,1]=((k-1)*nznx,(k-1)*nzny,(k-1)*nz^2+1)
+
+    */
+    float t=k-1.;
+    float nx=axis.x;
+    float ny=axis.y;
+    float nz=axis.z;
+    float tx=nx*t;
+    float ty=ny*t;
+    float tz=nz*t;
+    vec4 x=vec4(tx*nx+1.,tx*ny,tx*nz,0);
+    vec4 y=vec4(ty*nx,ty*ny+1.,ty*nz,0);
+    vec4 z=vec4(tz*nx,tz*ny,tz*nz+1.,0);
+    return transpose(mat4(x,y,z,vec4(0,0,0,1)));
+}
+/**
+    透视投影矩阵
+    fovy:视角
+    aspect:宽高比
+    zNear:近裁剪面
+    zFar:远裁剪面
+
+*/
+mat4 makePerspective(float fovy,float aspect,float zNear,float zFar){
+    float f=1./tan(fovy*.5);
+    float nf=zNear-zFar;
+    return mat4(vec4(f/aspect,0,0,0),vec4(0,f,0,0),vec4(0,0,(zNear+zFar)/nf,-1),vec4(0,0,-2*zNear*zFar/nf,0));
+}
+vec3 applyMat4(vec3 v,mat4 m){
+    vec4 res=m*vec4(v,1);
+    res.xyz/=res.w;
+    return res.xyz;
+}
