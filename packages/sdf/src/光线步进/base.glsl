@@ -205,7 +205,6 @@ mat3 cameraMatrix(vec3 position,vec3 target){
 vec3 applyMat4(vec3 v,mat4 m){
     return (m*vec4(v,1.0)).xyz;
 }
-
 // 点到直线距离
 float distancePointLine(vec3 p, vec3 linePoint, vec3 lineDir) {
     vec3 v = p - linePoint;

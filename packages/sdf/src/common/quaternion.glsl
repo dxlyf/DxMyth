@@ -1,26 +1,4 @@
 
-
-// 四元数相乘
-vec4 multiplyQuaternions(vec4 a,vec4 b){
-
-	vec4 quat;
-	// 利用复数中的虚数性质：i^2=j^2=k^2=-1 
-	// 这里相当,i=x轴,j=y轴,k=z轴. 
-	// 以右手坐标系为准，xy叉乘=z=k yx叉乘=-k
-	// ij= k  jk= i ki= j
-	// ji=-k  kj=-i ik=-j
-	float aw=a.w,ax=a.x,ay=a.y,az=a.z;
-	float bw=b.w,bx=b.x,by=b.y,bz=b.z;
-	
-	// 这里符号是负或是正，是根据上面的性质
-	// out.w=a.w*b.w-dot(a.xyz,b.xyz)
-	// out.xyz=a.w*b.xyz+b.w*a.xyz+cross(a.xyz,b.xyz)
-	quat.w=aw*bw-ax*bx-ay*by-ax*bz;
-	quat.x=aw*bx+ax*bw+ay*bz-az*by;// 如这里 ayj*bzk是正,因为jk=+i ，azk*bxi,因为ki=-j ，所以是负
-	quat.y=aw*by+ay*bw-ax*bz+az*bx;
-	quat.z=aw*bz+az*bw+ax*by-ay*bx;
-	return quat;
-}
 // 四元数与四元数相乘的函数
 vec4 quatMultiply(vec4 q1, vec4 q2) {
     vec4 result;
@@ -54,37 +32,21 @@ vec3 applyQuat2(vec4 q,vec3 v){
 
 // 从欧拉角任意顺序生成四元数
 vec4 quatFromEulerOrder(vec3 euler, ivec3 order) {
-    float c1 = cos(euler.x * 0.5);
-    float c2 = cos(euler.y * 0.5);
-    float c3 = cos(euler.z * 0.5);
-
-    float s1 = sin(euler.x * 0.5);
-    float s2 = sin(euler.y * 0.5);
-    float s3 = sin(euler.z * 0.5);
+   
     
-    vec4 q;
+    vec4 xAxis=quatFromAxis(vec3(1,0,0),euler.x);
+    vec4 yAxis=quatFromAxis(vec3(0,1,0),euler.y);
+    vec4 zAxis=quatFromAxis(vec3(0,0,1),euler.z);
 
-    if (order == ivec3(0, 1, 2)) {  // 'XYZ' 顺序
-        q.x = s1 * c2 * c3 + c1 * s2 * s3;
-        q.y = c1 * s2 * c3 - s1 * c2 * s3;
-        q.z = c1 * c2 * s3 + s1 * s2 * c3;
-        q.w = c1 * c2 * c3 - s1 * s2 * s3;
-    } 
-    else if (order == ivec3(2, 1, 0)) { // 'ZYX' 顺序
-        q.x = s1 * c2 * c3 - c1 * s2 * s3;
-        q.y = c1 * s2 * c3 + s1 * c2 * s3;
-        q.z = c1 * c2 * s3 - s1 * s2 * c3;
-        q.w = c1 * c2 * c3 + s1 * s2 * s3;
-    } 
-    else if (order == ivec3(0, 2, 1)) { // 'XZY' 顺序
-        q.x = s1 * c2 * c3 - c1 * s2 * s3;
-        q.y = c1 * s2 * c3 - s1 * c2 * s3;
-        q.z = c1 * c2 * s3 + s1 * s2 * c3;
-        q.w = c1 * c2 * c3 + s1 * s2 * s3;
-    }
-    // 可以按需要添加更多的旋转顺序
+    // 获取顺序索引：order.x 是第一个旋转的轴，order.z 是最后一个
+    vec4 q[3] = vec4[3](qx, qy, qz);
 
-    return q;
+    // 按照 order 指定的顺序相乘（从最后一个旋转开始向左乘）
+    // 例如 order=XYZ(0,1,2)：先转X(0)，再转Y(1)，最后转Z(2)
+    // 那么合成四元数应为：q[2] * q[1] * q[0]
+    vec4 result = quatMultiply(q[order.y],q[order.z]); // 先乘最后两个
+    result = quatMultiply(q[order.x],result); // 再乘第一个
+    return result;
 }
 // 从欧拉角生成四元数
 vec4 quatFromEuler(vec3 euler) {
@@ -122,8 +84,7 @@ vec4 quatConjugate(vec4 q) {
 
 // 四元数的逆
 vec4 quatInverse(vec4 q) {
-    float lenSquared = dot(q, q);
-    return quatConjugate(q) / lenSquared; // 四元数的逆
+    return quatConjugate(q) / quatLength(q); // 四元数的逆
 }
 
 // 四元数的长度
@@ -131,11 +92,43 @@ float quatLength(vec4 q) {
     return sqrt(dot(q, q)); // 四元数的长度
 }
 
+
 // 生成纯虚四元数
 vec4 quatFromVector(vec3 v) {
     return vec4(v, 0.0); // 实部为0，虚部为向量v
 }
+mat3 quatToMat3(vec4 q) { // 输入 q 必须是单位四元数
+    float x = q.x, y = q.y, z = q.z, w = q.w;
 
+    // 计算这些中间变量可优化性能（避免重复计算平方项）
+    float xx = x * x, yy = y * y, zz = z * z;
+    float xy = x * y, xz = x * z, yz = y * z;
+    float wx = w * x, wy = w * y, wz = w * z;
+
+    mat3 m;
+    // 第一列：旋转后的X轴 (即用q旋转向量(1, 0, 0)的结果)
+    m[0][0] = 1.0 - 2.0 * (yy + zz); // 1 - 2y² - 2z²
+    m[1][0] = 2.0 * (xy + wz);       // 2xy + 2zw
+    m[2][0] = 2.0 * (xz - wy);       // 2xz - 2yw
+
+    // 第二列：旋转后的Y轴 (即用q旋转向量(0, 1, 0)的结果)
+    m[0][1] = 2.0 * (xy - wz);       // 2xy - 2zw
+    m[1][1] = 1.0 - 2.0 * (xx + zz); // 1 - 2x² - 2z²
+    m[2][1] = 2.0 * (yz + wx);       // 2yz + 2xw
+
+    // 第三列：旋转后的Z轴 (即用q旋转向量(0, 0, 1)的结果)
+    m[0][2] = 2.0 * (xz + wy);       // 2xz + 2yw
+    m[1][2] = 2.0 * (yz - wx);       // 2yz - 2xw
+    m[2][2] = 1.0 - 2.0 * (xx + yy); // 1 - 2x² - 2y²
+
+    // 在GLSL中，mat3构造函数按列填充，所以也可以这样写：
+    // mat3 m = mat3(
+    //     1-2*(yy+zz),  2*(xy+wz),   2*(xz-wy),
+    //     2*(xy-wz),   1-2*(xx+zz),  2*(yz+wx),
+    //     2*(xz+wy),   2*(yz-wx),   1-2*(xx+yy)
+    // );
+    return m;
+}
 // 从旋转矩阵提取四元数
 vec4 quatFromRotationMatrix(mat4 m) {
     float trace = m[0][0] + m[1][1] + m[2][2];
@@ -190,50 +183,13 @@ float quatAngleBetween(vec4 q1, vec4 q2) {
 }
 
 // 用四元数旋转向量
+// q*p*q^-1 = q*p*q^-1
+
 vec3 applyQuat(vec4 q,vec3 v) {
-    // 将向量转换为四元数的形式 (0, v)
-    vec4 vq = vec4(v,0);
-
-    // 计算 q * vq
-    vec4 qv;
-    qv.w = -dot(q.v, v); // w component
-    qv.v = q.w * v + cross(q.v, v); // xyz component
-
-    // 计算 (q * vq) * q^(-1)
-    vec4 qConj = quatConjugate(q);
-    vec4 rotatedQ;
-    rotatedQ.w = qv.w * qConj.w - dot(qv.xyz, qConj.xyz);
-    rotatedQ.xyz = qv.w * qConj.xyz + qConj.w * qv.xyz + cross(qv.xyz, qConj.xyz);
-    // 返回旋转后的向量部分
-    return rotatedQ.v;
+    //将v定义下纯四元数
+    vec4 p=vec4(v,0);
+    // 
+    vec3 qi=quatInverse(q);
+    return quatMultiply(q,quatMultiply(p,qi)).v;
 }
 
-// 欧拉角转四元数 
-vec3 quatFromEulerOrder2(vec3 euler,ivec3 order){
-	Quaternion quat;
-	// 四元数绕x轴旋转 Qx=quat(cos(a/2),sin(a/2),0,0)
-	// 四元数绕y轴旋转 Qy=quat(cos(a/2),0,sin(a/2),0)
-	// 四元数绕z轴旋转 Qz=quat(cos(a/2),0,0,sin(a/2))
-	// euler xyz->Qz*(Qy*Qx)
-	vec4 qx=quatFromAxis(vec3(1,0,0),euler.x);
-	vec4 qy=quatFromAxis(vec3(0,1,0),euler.y);
-	vec4 qz=quatFromAxis(vec3(0,0,1),euler.z);
-	
-    vec3 qxyz[3]
-    if(order==ivec3(0,1,2)){ // xyz
-        qxyz[0]=qx;
-        qxyz[1]=qy;
-        qxyz[2]=qz;
-    }
-    else if(order==ivec3(1,0,2)){ // ZYX
-        qxyz[0]=qz;
-        qxyz[1]=qy;
-        qxyz[2]=qx;
-    }  
-    else if(order==ivec3(1,0,2)){ // XZY
-        qxyz[0]=qx;
-        qxyz[1]=qz;
-        qxyz[2]=qy;
-    }
-	return quatMultiply(qxyz[2],quatMultiply(qxyz[1],qxyz[0]));;
-}
