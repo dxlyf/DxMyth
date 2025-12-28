@@ -1,26 +1,28 @@
 
 #include "base.glsl"
-#define MAX_STEPS 50 
+#define MAX_STEPS 200 
 #define NEAR 0.01
-#define FAR 50.
+#define FAR 100.
 #define EPSILON 0.001
-#define CAMERA_POS vec3(0.,0,6.)
-#define CAMERA_TARGET vec3(0,0,0)
-#define LIGHT_POS vec3(0.,4.,2.)
+#define CAMERA_POS vec3(0.,1.5,0)
+#define CAMERA_TARGET vec3(0,1,-4)
+#define LIGHT_POS vec3(3.,4.,2.)
 #define LIGHT_COLOR vec3(1)
+#define SPHERE_POS vec3(0,1,-4)
 #define AA 2  // 2x2 = 4 samples
 
 struct MapResult{
     float d;
     vec3 color;
+    int type;
 };
  
 MapResult map(vec3 p){
 
     int len=2;
     MapResult d[2];
-    d[0]=MapResult(sdGroundPlane(p),vec3(0.8,0.8,0.8));
-    d[1]=MapResult(sphere(p-vec3(0,1,2),1.),vec3(1,0,0));
+    d[0]=MapResult(sdGroundPlane(p),vec3(0.3,0.7,0.8),1);
+    d[1]=MapResult(sphere(p-SPHERE_POS,1.),vec3(1,0,0),2);
     MapResult minD=d[0];
     for(int i=1;i<len;i++){
         if(d[i].d<minD.d){
@@ -79,14 +81,50 @@ mat3 mat3FromQuat(vec4 q){
 
     return mat3(qx,qy,qz);
 }
-vec3 addLight(vec3 rayOrigin,vec3 p,vec3 normal,vec3 objectColor){
+float Shadow(vec3 rayOrigin,vec3 rayDir){
+     float t=NEAR;
+     float result=1.;
+    for(int i=0;i<MAX_STEPS;i++){
+        vec3 p=rayOrigin+rayDir*t;
+        MapResult ret=map(p);
+        t+=ret.d;
+        if(ret.d<EPSILON){  
+           // vec3 normal=mapNormal(p);
+            result=ret.d/t;
+            break;
+        }
+        if(t>FAR){
+            break;
+        }
+    }
+    return result;
+}
+float SoftShadow(vec3 rayOrigin,vec3 rayDir,float k){
+     float t=NEAR;
+     float result=1.;
+    for(int i=0;i<MAX_STEPS;i++){
+        vec3 p=rayOrigin+rayDir*t;
+        MapResult ret=map(p);
+        t+=ret.d;
+        if(ret.d<EPSILON){  
+           // vec3 normal=mapNormal(p);
+           return 0.;
+        }
+        result=min(result,k*ret.d/t);
+        if(t>FAR){
+            break;
+        }
+    }
+    return result;
+}
+vec3 addLight(vec3 rayOrigin,vec3 positon,vec3 normal,vec3 objectColor){
              // 环境光
             float ambientStrength=1.;
             vec3 ambientColor=vec3(0);
             vec3 ambient=ambientStrength*ambientColor;
             // 漫反射
             vec3 lightPos=LIGHT_POS;
-            vec3 lightDir=normalize(lightPos-p);
+            vec3 lightDir=normalize(lightPos-positon);
          //   vec3 lightDir=normalize(vec3(0,0,-1));
 
             vec3 lightColor=LIGHT_COLOR;
@@ -95,11 +133,15 @@ vec3 addLight(vec3 rayOrigin,vec3 p,vec3 normal,vec3 objectColor){
             vec3 diffuse=diffuseStrength*lightColor;
             // 镜面反射
             //视线方向，从相机出发，看向物体的方向
-            vec3 viewDir=normalize(rayOrigin-p);
+            vec3 viewDir=normalize(rayOrigin-positon);
             float specularStrength=pow(max(dot(viewDir,reflect(-lightDir,normal)),0.),16.);
             vec3 specular=specularStrength*lightColor;
+
+            // 阴影
+            float shadow = SoftShadow(positon,normalize(LIGHT_POS-positon),8.);
+            diffuse *= shadow * 0.5 + 0.5;
             // 最终颜色
-            vec3 finalColor=objectColor*(diffuse+ambient);
+            vec3 finalColor=objectColor*(diffuse+ambient+specular);
             return finalColor;
 }
 RayMarchingResult rayMarching(vec3 rayOrigin,vec3 rayDir){
@@ -119,13 +161,15 @@ RayMarchingResult rayMarching(vec3 rayOrigin,vec3 rayDir){
             result.hit=true;
             result.point=p;
             result.normal=normal;
-            result.color=addLight(rayOrigin,p,normal,mapResult.color);
+            result.type=mapResult.type;
+          result.color=addLight(rayOrigin,p,normal,mapResult.color);
             break;
         }
         if(t>FAR){
             break;
         }
     }
+ 
 
    
     return result;

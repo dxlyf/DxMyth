@@ -23,11 +23,18 @@ vec4 multiplyImaginaryQuaternions(vec4 q,vec4 vq){
 // v 向量转纯虚四元数 q=(0,v.x,v.y,v.z)
 // v'=q*vq*p^-1
 vec3 applyQuat2(vec4 q,vec3 v){
-	vec4 qInverse=vec4(-q.v,q.w);
+	vec4 qInverse=vec4(-q.xyz,q.w);
 	vec4 vq=vec4(v,0);
-	vec4 qv=multiplyQuaternions(q,vq);
-	vec4 qvi=multiplyQuaternions(qv,qInverse);
+	vec4 qv=quatMultiply(q,vq);
+	vec4 qvi=quatMultiply(qv,qInverse);
 	return qvi.xyz;
+}
+
+// 绕任意轴旋转的四元数
+vec4 quatFromAxis(vec3 axis, float angle) {
+    float halfAngle = angle * 0.5;
+    float s = sin(halfAngle);
+    return vec4(axis * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
 }
 
 // 从欧拉角任意顺序生成四元数
@@ -39,7 +46,7 @@ vec4 quatFromEulerOrder(vec3 euler, ivec3 order) {
     vec4 zAxis=quatFromAxis(vec3(0,0,1),euler.z);
 
     // 获取顺序索引：order.x 是第一个旋转的轴，order.z 是最后一个
-    vec4 q[3] = vec4[3](qx, qy, qz);
+    vec4 q[3] = vec4[3](xAxis, yAxis, zAxis);
 
     // 按照 order 指定的顺序相乘（从最后一个旋转开始向左乘）
     // 例如 order=XYZ(0,1,2)：先转X(0)，再转Y(1)，最后转Z(2)
@@ -53,12 +60,6 @@ vec4 quatFromEuler(vec3 euler) {
     return quatFromEulerOrder(euler,ivec3(0,1,2));
 }
 
-// 绕任意轴旋转的四元数
-vec4 quatFromAxis(vec3 axis, float angle) {
-    float halfAngle = angle * 0.5;
-    float s = sin(halfAngle);
-    return vec4(axis * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
-}
 
 // 四元数乘法
 vec4 quatMultiply2(vec4 q1, vec4 q2) {
@@ -82,14 +83,14 @@ vec4 quatConjugate(vec4 q) {
     return vec4(-q.x, -q.y, -q.z, q.w); // 共轭的四元数
 }
 
-// 四元数的逆
-vec4 quatInverse(vec4 q) {
-    return quatConjugate(q) / quatLength(q); // 四元数的逆
-}
-
 // 四元数的长度
 float quatLength(vec4 q) {
     return sqrt(dot(q, q)); // 四元数的长度
+}
+
+// 四元数的逆
+vec4 quatInverse(vec4 q) {
+    return quatConjugate(q) / quatLength(q); // 四元数的逆
 }
 
 
@@ -189,7 +190,7 @@ vec3 applyQuat(vec4 q,vec3 v) {
     //将v定义下纯四元数
     vec4 p=vec4(v,0);
     // 
-    vec3 qi=quatInverse(q);
-    return quatMultiply(q,quatMultiply(p,qi)).v;
+    vec4 qi=quatInverse(q);
+    return quatMultiply(q,quatMultiply(p,qi)).xyz;
 }
 

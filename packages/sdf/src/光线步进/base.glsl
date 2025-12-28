@@ -7,6 +7,7 @@ struct RayMarchingResult{
     vec3 color;
     vec3 point;
     vec3 normal;
+    int type;
     float distance;
 
 };

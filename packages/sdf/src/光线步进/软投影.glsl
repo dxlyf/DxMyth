@@ -11,7 +11,7 @@
 // 相机视点位
 #define CAMERA_POS vec3(0, 1.5, 0)
 // 相机目标点
-#define CAMERA_TARGET vec3(0, 1, -4)
+#define CAMERA_TARGET vec3(0, 1, -5)
 // 上方向
 #define CAMERA_UP vec3(0, 1, 0)
 

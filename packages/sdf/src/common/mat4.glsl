@@ -308,16 +308,16 @@ mat4 makeRotateAxis(vec3 axis, float angle) {
      float t=1.-c;
      float nx=axis.x,ny=axis.y,nz=axis.z;
      float tx=nx*t,ty=ny*t,tz=nz*t;
-    // vec3 x=vec3(tx*nx+c,tx*ny+nz*s,tx*nz-ny*s);
-    // vec3 y=vec3(tx*ny-nz*s,ty*ny+c,ty*nz+nx*s);
-    // vec3 z=vec3(tx*nz+ny*s,ty*nz-nx*s,nz*nz*t+c);
-    // return transpose(mat4(vec4(x,0),vec4(y,0),vec4(z,0),vec4(0,0,0,1)));    
+    vec3 x=vec3(tx*nx+c,tx*ny+nz*s,tx*nz-ny*s);
+    vec3 y=vec3(tx*ny-nz*s,ty*ny+c,ty*nz+nx*s);
+    vec3 z=vec3(tx*nz+ny*s,ty*nz-nx*s,nz*nz*t+c);
+    return transpose(mat4(vec4(x,0),vec4(y,0),vec4(z,0),vec4(0,0,0,1)));    
 
-    vec4 x=mat3(vec4(tx,0,0.c),vec4(0,tx,-s,0),vec4(0,s,tx,0))*vec4(axis,1)
-    vec4 y=mat3(vec4(ty,0,s,0),vec4(0,ty,0,c),vec4(-s,0,ty,0))*vec4(axis,1)
-    vec4 z=mat3(vec4(tz,-s,0,0),vec4(s,tz,0,0),vec4(0,0,tz,c))*vec4(axis,1)
+    // vec4 x=mat3(vec4(tx,0,0.c),vec4(0,tx,-s,0),vec4(0,s,tx,0))*vec4(axis,1);
+    // vec4 y=mat3(vec4(ty,0,s,0),vec4(0,ty,0,c),vec4(-s,0,ty,0))*vec4(axis,1);
+    // vec4 z=mat3(vec4(tz,-s,0,0),vec4(s,tz,0,0),vec4(0,0,tz,c))*vec4(axis,1);
 
-    return mat4(x,y,z,vec4(0,0,0,1));
+    // return mat4(x,y,z,vec4(0,0,0,1));
 }
 mat4 makeScaleAxis(vec3 axis,float k){
     /**
@@ -355,7 +355,7 @@ mat4 makeScaleAxis(vec3 axis,float k){
 mat4 makePerspective(float fovy,float aspect,float zNear,float zFar){
     float f=1./tan(fovy*.5);
     float nf=zNear-zFar;
-    return mat4(vec4(f/aspect,0,0,0),vec4(0,f,0,0),vec4(0,0,(zNear+zFar)/nf,-1),vec4(0,0,-2*zNear*zFar/nf,0));
+    return mat4(vec4(f/aspect,0,0,0),vec4(0,f,0,0),vec4(0,0,(zNear+zFar)/nf,-1),vec4(0,0,-2.*zNear*zFar/nf,0));
 }
 vec3 applyMat4(vec3 v,mat4 m){
     vec4 res=m*vec4(v,1);

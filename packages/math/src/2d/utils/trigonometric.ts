@@ -42,6 +42,22 @@ cot(x/2)=sqrt((1+cos)/(1-cos))
 sec(x/2)=sqrt((2+sec)/(sec+1))
 csc(x/2)=sqrt((2+sec)/(sec-1))
 
+// 双倍角：
+sin2θ=2sinθcosθ=2tanθ/(1+tanθ)
+tan2θ=2tanθ/(1-tanθ)=1/(1-tanθ)-1/(1+tanθ)
+sec2θ=sec^2θ/(1-tan^2θ)=sec^2θ/(2-sec^2θ)
+
+cos2θ=cos^2θ-sin^2θ=2cos^2θ-1=1-2sin^θ=(1-tan^2θ)/(1+tan^2θ)
+cot2θ=(cot^2θ-1)/2cotθ=(cotθ-tanθ)/2
+csc2θ=csc^2θ/2cotθ=secθcscθ/2
+
+// 降次公式
+sin^2θ=(1-cos2θ)/2   sin^3θ=(3sinθ-sin3θ)/4 sin^4θ=(3-4sin2θ+cos4θ)/8
+tan^2θ=(1-cos2θ)/(1+cos2θ) 
+cos^2θ=(1+cos2θ)/2   cos^3θ=(3cosθ-cos3θ)/4 cos^4θ=(3+4cos2θ+cos4θ)/8
+cot^2θ=(1+cos2θ)/(1-cos2θ)
+
+sin^2θcos^2θ=(1-cos4θ)/8 sin^3θcos^3θ=(3sin2θ-sin6θ)/32
 
  */
 const sin=(radian:number)=>{
