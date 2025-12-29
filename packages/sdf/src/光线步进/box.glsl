@@ -5,8 +5,8 @@
 #define NEAR 0.01
 #define FAR 100.
 #define EPSILON 0.001
-#define CAMERA_POS vec3(0.,1.5,0)
-#define CAMERA_TARGET vec3(0,1,-4)
+#define CAMERA_POS vec3(0.,1.5,1)
+#define CAMERA_TARGET vec3(0,1,-2)
 #define LIGHT_POS vec3(3.,4.,2.)
 #define LIGHT_COLOR vec3(1)
 #define SPHERE_POS vec3(0,1,-4)
@@ -185,29 +185,29 @@ vec3 texturedGround(vec3 p) {
     return mix(mix(col1, col2, 0.5), col3, 0.2);
 }
 // 完整的纹理+光照着色器
-vec3 shadeTexturedSurface(vec3 hitPos, vec3 normal, vec3 albedo, float roughness, float metallic) {
-    // 基础颜色来自纹理
-    vec3 color = albedo;
+// vec3 shadeTexturedSurface(vec3 hitPos, vec3 normal, vec3 albedo, float roughness, float metallic) {
+//     // 基础颜色来自纹理
+//     vec3 color = albedo;
     
-    // 计算光照
-    vec3 lightPos = vec3(2, 5, 2);
-    vec3 lightDir = normalize(lightPos - hitPos);
+//     // 计算光照
+//     vec3 lightPos = vec3(2, 5, 2);
+//     vec3 lightDir = normalize(lightPos - hitPos);
     
-    // 漫反射
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * color;
+//     // 漫反射
+//     float diff = max(dot(normal, lightDir), 0.0);
+//     vec3 diffuse = diff * color;
     
-    // 镜面反射（受粗糙度影响）
-    vec3 viewDir = normalize(cameraPos - hitPos);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0 * (1.0 - roughness));
-    vec3 specular = spec * (1.0 - metallic) * vec3(1.0);
+//     // 镜面反射（受粗糙度影响）
+//     vec3 viewDir = normalize(cameraPos - hitPos);
+//     vec3 reflectDir = reflect(-lightDir, normal);
+//     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0 * (1.0 - roughness));
+//     vec3 specular = spec * (1.0 - metallic) * vec3(1.0);
     
-    // 环境光
-    vec3 ambient = color * 0.1;
+//     // 环境光
+//     vec3 ambient = color * 0.1;
     
-    return ambient + diffuse + specular;
-}
+//     return ambient + diffuse + specular;
+// }
 // 使用示例
 vec3 textureSphere(vec3 hitPos, vec3 center, float radius, sampler2D tex) {
     vec2 uv = sphereUV(hitPos, center, radius);
@@ -329,8 +329,12 @@ vec3 addLight(RayMarchingResult result){
 
 RayMarchingResult render(vec2 uv){
     vec3 rayOrigin=CAMERA_POS;
-    vec3 rayDir=vec3(uv,-1);
-    mat3 cameraMatrix=lookAt(rayOrigin,CAMERA_TARGET,vec3(0.,1.,0.));
+    vec4 q=quatFromAngleAxis(degToRad(iTime*15.),vec3(0,1,0));
+    rayOrigin=applyQuat(rayOrigin,q); 
+    vec3 rayDir=vec3(uv,1);
+
+
+    mat3 cameraMatrix=lookAt(CAMERA_TARGET,rayOrigin,vec3(0.,1.,0.));
     rayDir=normalize(cameraMatrix*rayDir);
     RayMarchingResult result=rayCast(rayOrigin,rayDir);
     if(result.hit){
