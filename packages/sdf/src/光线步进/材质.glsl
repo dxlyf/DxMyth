@@ -21,39 +21,7 @@ struct MapResult{
 float sdPlane(vec3 p,vec3 n){
     return dot(p,n);    
 }
-//  // 完整的玻璃着色器
-// vec3 glassShading(vec3 rayDir, vec3 normal, vec3 hitPos, vec3 glassColor, float ior) {
-//     // 1. 菲涅尔效应：计算反射比例
-//     float cosTheta = dot(-rayDir, normal);
-//     float fresnel = fresnelSchlick(cosTheta, ior);
-    
-//     // 2. 反射部分
-//     vec3 reflectedDir = reflect(rayDir, normal);
-//     RayCastResult reflectResult = rayCast(hitPos + reflectedDir * 0.01, reflectedDir);
-//     vec3 reflectColor = reflectResult.hit ? reflectResult.color : getSkyColor(reflectedDir);
-    
-//     // 3. 折射部分
-//     vec3 refractedDir = refract(rayDir, normal, 1.0/ior);
-//     if(length(refractedDir) > 0.0) {  // 折射可能发生全反射
-//         RayCastResult refractResult = rayCast(hitPos + refractedDir * 0.01, refractedDir);
-//         vec3 refractColor = refractResult.hit ? refractResult.color : getSkyColor(refractedDir);
-        
-//         // 玻璃颜色会影响折射光
-//         refractColor *= glassColor;
-        
-//         // 4. 混合反射和折射（根据菲涅尔系数）
-//         return mix(refractColor, reflectColor, fresnel);
-//     } else {
-//         // 全反射
-//         return reflectColor;
-//     }
-// }
 
-// 菲涅尔近似公式
-float fresnelSchlick(float cosTheta, float ior) {
-    float r0 = pow((1.0 - ior) / (1.0 + ior), 2.0);
-    return r0 + (1.0 - r0) * pow(1.0 - cosTheta, 5.0);
-}
 
 MapResult map(vec3 p){
 
