@@ -1,0 +1,1342 @@
+<head>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: fixed;
+            position: relative;
+        }
+        
+        .error {
+            font-family: Consolas;
+            font-size: 1.2em;
+            color: black;
+            box-sizing: border-box;
+            background-color: lightcoral;
+            border-radius: 2px;
+            border-color: lightblue;
+            border-width: thin;
+            border-style: solid;
+            line-height: 1.4em;
+            cursor:pointer;
+        }
+        .error:hover {
+            color: black;
+            background-color: brown;
+            border-color: blue;
+        }
+        #message {
+            font-family: Consolas;
+            font-size: 1.2em;
+            color: #ccc;
+            background-color: black;
+            font-weight: bold;
+            z-index: 2;
+            position: absolute;
+        }
+
+        #dat_gui_container {
+            position: absolute;
+            left: 0px;   /* position inside relatively positioned parent */
+            top: 0px;
+            z-index: 3;   /* adjust as needed */
+        }
+
+        /* Pause Button Style */
+
+        .rec_base {
+            position: absolute;
+            border: none;
+            right: 0px;
+            padding: 26px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 26px;
+            border-radius: 8px;
+            margin: 8px;
+            transform: translateX(0%);
+            z-index: 1;
+        }
+        .rec_base:nth-of-type(2) {
+            top: 60px;
+        }
+        
+        /* Screenshot Button Style */
+        
+        /* Record Button Style */
+
+        /* Reload Button Style */
+    </style>
+</head>
+<body>
+    <div id="message"></div>
+    <div id="dat_gui_container"></div>
+    <div id="container">
+        <!-- Pause Element -->
+    </div>
+    <!-- Screenshot Element -->
+    <!-- Record Element -->
+    <!-- Reload Element -->
+</body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+<!-- Stats.js -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js' onload="
+let stats = new Stats();
+compileTimePanel = stats.addPanel(new Stats.Panel('CT MS', '#ff8', '#221'));
+stats.showPanel(1);
+document.body.appendChild(stats.domElement);
+requestAnimationFrame(function loop() {
+    stats.update();
+    requestAnimationFrame(loop);
+});
+"></script>
+<!-- dat.gui -->
+
+<canvas id="canvas"></canvas>
+
+<!-- Shaders -->
+<script id='d:/fanyonglong/projects/DxMyth/packages/sdf/src/common/quaternion.glsl' type='x-shader/x-fragment'>#version 300 es
+    precision highp float;
+    uniform vec3        iResolution;
+uniform float       iTime;
+uniform float       iTimeDelta;
+uniform int         iFrame;
+uniform vec4        iDate;
+uniform vec3        iChannelResolution[10];
+uniform vec4        iMouse;
+uniform vec4        iMouseButton;
+uniform mat4        iViewMatrix;
+uniform sampler2D   iChannel0;
+uniform sampler2D   iChannel1;
+uniform sampler2D   iChannel2;
+uniform sampler2D   iChannel3;
+uniform sampler2D   iChannel4;
+uniform sampler2D   iChannel5;
+uniform sampler2D   iChannel6;
+uniform sampler2D   iChannel7;
+uniform sampler2D   iChannel8;
+uniform sampler2D   iChannel9;
+uniform sampler2D   iKeyboard;
+uniform float       iSampleRate;
+
+#define iGlobalTime iTime
+#define iGlobalFrame iFrame
+
+#define SHADER_TOY
+
+    
+// 四元数与四元数相乘的函数
+vec4 quatMultiply(vec4 q1, vec4 q2) {
+    vec4 result;
+    // 计算新的实部
+    result.w = q1.w * q2.w - dot(q1.xyz, q2.xyz);
+   
+    // 计算新的虚部 (x, y, z)
+    result.xyz = q1.w * q2.xyz + q2.w * q1.xyz + cross(q1.xyz, q2.xyz);
+
+    return result;
+}
+
+// 四元数和虚四元数相乘
+vec4 multiplyImaginaryQuaternions(vec4 q,vec4 vq){
+	
+	vec4 qv;
+    	qv.w = -dot(q.xyz, vq.xyz);  // 计算实部
+    	qv.xyz = q.w * vq.xyz + cross(q.xyz, vq.xyz);  // 计算虚部
+	return qv;
+}
+
+// v 向量转纯虚四元数 q=(0,v.x,v.y,v.z)
+// v'=q*vq*p^-1
+vec3 applyQuat2(vec4 q,vec3 v){
+	vec4 qInverse=vec4(-q.xyz,q.w);
+	vec4 vq=vec4(v,0);
+	vec4 qv=quatMultiply(q,vq);
+	vec4 qvi=quatMultiply(qv,qInverse);
+	return qvi.xyz;
+}
+
+// 绕任意轴旋转的四元数
+vec4 quatFromAxis(vec3 axis, float angle) {
+    float halfAngle = angle * 0.5;
+    float s = sin(halfAngle);
+    return vec4(-normalize(axis) * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
+}
+
+// 从欧拉角任意顺序生成四元数
+vec4 quatFromEulerOrder(vec3 euler, ivec3 order) {
+   
+    
+    vec4 xAxis=quatFromAxis(vec3(1,0,0),euler.x);
+    vec4 yAxis=quatFromAxis(vec3(0,1,0),euler.y);
+    vec4 zAxis=quatFromAxis(vec3(0,0,1),euler.z);
+
+    // 获取顺序索引：order.x 是第一个旋转的轴，order.z 是最后一个
+    vec4 q[3] = vec4[3](xAxis, yAxis, zAxis);
+
+    // 按照 order 指定的顺序相乘（从最后一个旋转开始向左乘）
+    // 例如 order=XYZ(0,1,2)：先转X(0)，再转Y(1)，最后转Z(2)
+    // 那么合成四元数应为：q[2] * q[1] * q[0]
+    vec4 result = quatMultiply(q[order.y],q[order.z]); // 先乘最后两个
+    result = quatMultiply(q[order.x],result); // 再乘第一个
+    return result;
+}
+// 从欧拉角生成四元数
+vec4 quatFromEuler(vec3 euler) {
+    return quatFromEulerOrder(euler,ivec3(0,1,2));
+}
+
+
+// 四元数乘法
+vec4 quatMultiply2(vec4 q1, vec4 q2) {
+    return vec4(
+        q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,  // x
+        q1.w * q2.y + q1.y * q2.w + q1.z * q2.x - q1.x * q2.z,  // y
+        q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x,  // z
+        q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z   // w
+    );
+}
+// 四元数乘法
+vec4 quatMultiply3(vec4 q1, vec4 q2) {
+    // 四元数乘法
+    vec4 q;
+    q.w=q1.w*q2.w-dot(q1.xyz,q2.xyz); 
+    q.xyz=q1.w*q2.xyz+q2.w*q1.xyz+cross(q1.xyz,q2.xyz);
+    return q;
+}
+// 四元数的共轭
+vec4 quatConjugate(vec4 q) {
+    return vec4(-q.x, -q.y, -q.z, q.w); // 共轭的四元数
+}
+
+// 四元数的长度
+float quatLength(vec4 q) {
+    return sqrt(dot(q, q)); // 四元数的长度
+}
+
+// 四元数的逆
+vec4 quatInverse(vec4 q) {
+    return quatConjugate(q) / quatLength(q); // 四元数的逆
+}
+
+
+// 生成纯虚四元数
+vec4 quatFromVector(vec3 v) {
+    return vec4(v, 0.0); // 实部为0，虚部为向量v
+}
+mat3 quatToMat3(vec4 q) { // 输入 q 必须是单位四元数
+    float x = q.x, y = q.y, z = q.z, w = q.w;
+
+    // 计算这些中间变量可优化性能（避免重复计算平方项）
+    float xx = x * x, yy = y * y, zz = z * z;
+    float xy = x * y, xz = x * z, yz = y * z;
+    float wx = w * x, wy = w * y, wz = w * z;
+
+    mat3 m;
+    // 第一列：旋转后的X轴 (即用q旋转向量(1, 0, 0)的结果)
+    m[0][0] = 1.0 - 2.0 * (yy + zz); // 1 - 2y² - 2z²
+    m[1][0] = 2.0 * (xy + wz);       // 2xy + 2zw
+    m[2][0] = 2.0 * (xz - wy);       // 2xz - 2yw
+
+    // 第二列：旋转后的Y轴 (即用q旋转向量(0, 1, 0)的结果)
+    m[0][1] = 2.0 * (xy - wz);       // 2xy - 2zw
+    m[1][1] = 1.0 - 2.0 * (xx + zz); // 1 - 2x² - 2z²
+    m[2][1] = 2.0 * (yz + wx);       // 2yz + 2xw
+
+    // 第三列：旋转后的Z轴 (即用q旋转向量(0, 0, 1)的结果)
+    m[0][2] = 2.0 * (xz + wy);       // 2xz + 2yw
+    m[1][2] = 2.0 * (yz - wx);       // 2yz - 2xw
+    m[2][2] = 1.0 - 2.0 * (xx + yy); // 1 - 2x² - 2y²
+
+    // 在GLSL中，mat3构造函数按列填充，所以也可以这样写：
+    // mat3 m = mat3(
+    //     1-2*(yy+zz),  2*(xy+wz),   2*(xz-wy),
+    //     2*(xy-wz),   1-2*(xx+zz),  2*(yz+wx),
+    //     2*(xz+wy),   2*(yz-wx),   1-2*(xx+yy)
+    // );
+    return m;
+}
+// 从旋转矩阵提取四元数
+vec4 quatFromRotationMatrix(mat4 m) {
+    float trace = m[0][0] + m[1][1] + m[2][2];
+    vec4 q;
+    if (trace > 0.0) {
+        float s = sqrt(trace + 1.0) * 2.0;
+        q.w = 0.25 * s;
+        q.x = (m[2][1] - m[1][2]) / s;
+        q.y = (m[0][2] - m[2][0]) / s;
+        q.z = (m[1][0] - m[0][1]) / s;
+    } else if ((m[0][0] > m[1][1]) && (m[0][0] > m[2][2])) {
+        float s = sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]) * 2.0;
+        q.w = (m[2][1] - m[1][2]) / s;
+        q.x = 0.25 * s;
+        q.y = (m[0][1] + m[1][0]) / s;
+        q.z = (m[0][2] + m[2][0]) / s;
+    } else if (m[1][1] > m[2][2]) {
+        float s = sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]) * 2.0;
+        q.w = (m[0][2] - m[2][0]) / s;
+        q.x = (m[0][1] + m[1][0]) / s;
+        q.y = 0.25 * s;
+        q.z = (m[1][2] + m[2][1]) / s;
+    } else {
+        float s = sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]) * 2.0;
+        q.w = (m[1][0] - m[0][1]) / s;
+        q.x = (m[0][2] + m[2][0]) / s;
+        q.y = (m[1][2] + m[2][1]) / s;
+        q.z = 0.25 * s;
+    }
+    return q;
+}
+
+// 四元数插值（球面线性插值, Slerp）
+vec4 quatSlerp(vec4 q1, vec4 q2, float t) {
+    float dotProd = dot(q1, q2);
+    if (dotProd < 0.0) {
+        q2 = -q2;
+        dotProd = -dotProd;
+    }
+    const float THRESHOLD = 0.9995;
+    if (dotProd > THRESHOLD) {
+        return normalize(q1 + t * (q2 - q1));
+    }
+    float theta = acos(dotProd);
+    float sinTheta = sin(theta);
+    return (sin((1.0 - t) * theta) * q1 + sin(t * theta) * q2) / sinTheta;
+}
+
+// 计算两个四元数之间的夹角
+float quatAngleBetween(vec4 q1, vec4 q2) {
+    return 2.0 * acos(abs(dot(q1, q2)));
+}
+
+// 用四元数旋转向量
+// q*p*q^-1 = q*p*q^-1
+
+vec3 applyQuat(vec3 v,vec4 q) {
+    //将v定义下纯四元数
+    vec4 p=vec4(v,0);
+    // 
+    vec4 qi=quatInverse(q);
+    return quatMultiply(quatMultiply(q,p),qi).xyz;
+}
+
+
+    void main() {}
+</script>
+<script id='d:/fanyonglong/projects/DxMyth/packages/sdf/src/光线步进/软投影.glsl' type='x-shader/x-fragment'>
+uniform vec3        iResolution;
+uniform float       iTime;
+uniform float       iTimeDelta;
+uniform int         iFrame;
+uniform vec4        iDate;
+uniform vec3        iChannelResolution[10];
+uniform vec4        iMouse;
+uniform vec4        iMouseButton;
+uniform mat4        iViewMatrix;
+uniform sampler2D   iChannel0;
+uniform sampler2D   iChannel1;
+uniform sampler2D   iChannel2;
+uniform sampler2D   iChannel3;
+uniform sampler2D   iChannel4;
+uniform sampler2D   iChannel5;
+uniform sampler2D   iChannel6;
+uniform sampler2D   iChannel7;
+uniform sampler2D   iChannel8;
+uniform sampler2D   iChannel9;
+uniform sampler2D   iKeyboard;
+uniform float       iSampleRate;
+
+#define iGlobalTime iTime
+#define iGlobalFrame iFrame
+
+#define SHADER_TOY
+
+
+
+// 四元数与四元数相乘的函数
+vec4 quatMultiply(vec4 q1, vec4 q2) {
+    vec4 result;
+    // 计算新的实部
+    result.w = q1.w * q2.w - dot(q1.xyz, q2.xyz);
+   
+    // 计算新的虚部 (x, y, z)
+    result.xyz = q1.w * q2.xyz + q2.w * q1.xyz + cross(q1.xyz, q2.xyz);
+
+    return result;
+}
+
+// 四元数和虚四元数相乘
+vec4 multiplyImaginaryQuaternions(vec4 q,vec4 vq){
+	
+	vec4 qv;
+    	qv.w = -dot(q.xyz, vq.xyz);  // 计算实部
+    	qv.xyz = q.w * vq.xyz + cross(q.xyz, vq.xyz);  // 计算虚部
+	return qv;
+}
+
+// v 向量转纯虚四元数 q=(0,v.x,v.y,v.z)
+// v'=q*vq*p^-1
+vec3 applyQuat2(vec4 q,vec3 v){
+	vec4 qInverse=vec4(-q.xyz,q.w);
+	vec4 vq=vec4(v,0);
+	vec4 qv=quatMultiply(q,vq);
+	vec4 qvi=quatMultiply(qv,qInverse);
+	return qvi.xyz;
+}
+
+// 绕任意轴旋转的四元数
+vec4 quatFromAxis(vec3 axis, float angle) {
+    float halfAngle = angle * 0.5;
+    float s = sin(halfAngle);
+    return vec4(-normalize(axis) * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
+}
+
+// 从欧拉角任意顺序生成四元数
+vec4 quatFromEulerOrder(vec3 euler, ivec3 order) {
+   
+    
+    vec4 xAxis=quatFromAxis(vec3(1,0,0),euler.x);
+    vec4 yAxis=quatFromAxis(vec3(0,1,0),euler.y);
+    vec4 zAxis=quatFromAxis(vec3(0,0,1),euler.z);
+
+    // 获取顺序索引：order.x 是第一个旋转的轴，order.z 是最后一个
+    vec4 q[3] = vec4[3](xAxis, yAxis, zAxis);
+
+    // 按照 order 指定的顺序相乘（从最后一个旋转开始向左乘）
+    // 例如 order=XYZ(0,1,2)：先转X(0)，再转Y(1)，最后转Z(2)
+    // 那么合成四元数应为：q[2] * q[1] * q[0]
+    vec4 result = quatMultiply(q[order.y],q[order.z]); // 先乘最后两个
+    result = quatMultiply(q[order.x],result); // 再乘第一个
+    return result;
+}
+// 从欧拉角生成四元数
+vec4 quatFromEuler(vec3 euler) {
+    return quatFromEulerOrder(euler,ivec3(0,1,2));
+}
+
+
+// 四元数乘法
+vec4 quatMultiply2(vec4 q1, vec4 q2) {
+    return vec4(
+        q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,  // x
+        q1.w * q2.y + q1.y * q2.w + q1.z * q2.x - q1.x * q2.z,  // y
+        q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x,  // z
+        q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z   // w
+    );
+}
+// 四元数乘法
+vec4 quatMultiply3(vec4 q1, vec4 q2) {
+    // 四元数乘法
+    vec4 q;
+    q.w=q1.w*q2.w-dot(q1.xyz,q2.xyz); 
+    q.xyz=q1.w*q2.xyz+q2.w*q1.xyz+cross(q1.xyz,q2.xyz);
+    return q;
+}
+// 四元数的共轭
+vec4 quatConjugate(vec4 q) {
+    return vec4(-q.x, -q.y, -q.z, q.w); // 共轭的四元数
+}
+
+// 四元数的长度
+float quatLength(vec4 q) {
+    return sqrt(dot(q, q)); // 四元数的长度
+}
+
+// 四元数的逆
+vec4 quatInverse(vec4 q) {
+    return quatConjugate(q) / quatLength(q); // 四元数的逆
+}
+
+
+// 生成纯虚四元数
+vec4 quatFromVector(vec3 v) {
+    return vec4(v, 0.0); // 实部为0，虚部为向量v
+}
+mat3 quatToMat3(vec4 q) { // 输入 q 必须是单位四元数
+    float x = q.x, y = q.y, z = q.z, w = q.w;
+
+    // 计算这些中间变量可优化性能（避免重复计算平方项）
+    float xx = x * x, yy = y * y, zz = z * z;
+    float xy = x * y, xz = x * z, yz = y * z;
+    float wx = w * x, wy = w * y, wz = w * z;
+
+    mat3 m;
+    // 第一列：旋转后的X轴 (即用q旋转向量(1, 0, 0)的结果)
+    m[0][0] = 1.0 - 2.0 * (yy + zz); // 1 - 2y² - 2z²
+    m[1][0] = 2.0 * (xy + wz);       // 2xy + 2zw
+    m[2][0] = 2.0 * (xz - wy);       // 2xz - 2yw
+
+    // 第二列：旋转后的Y轴 (即用q旋转向量(0, 1, 0)的结果)
+    m[0][1] = 2.0 * (xy - wz);       // 2xy - 2zw
+    m[1][1] = 1.0 - 2.0 * (xx + zz); // 1 - 2x² - 2z²
+    m[2][1] = 2.0 * (yz + wx);       // 2yz + 2xw
+
+    // 第三列：旋转后的Z轴 (即用q旋转向量(0, 0, 1)的结果)
+    m[0][2] = 2.0 * (xz + wy);       // 2xz + 2yw
+    m[1][2] = 2.0 * (yz - wx);       // 2yz - 2xw
+    m[2][2] = 1.0 - 2.0 * (xx + yy); // 1 - 2x² - 2y²
+
+    // 在GLSL中，mat3构造函数按列填充，所以也可以这样写：
+    // mat3 m = mat3(
+    //     1-2*(yy+zz),  2*(xy+wz),   2*(xz-wy),
+    //     2*(xy-wz),   1-2*(xx+zz),  2*(yz+wx),
+    //     2*(xz+wy),   2*(yz-wx),   1-2*(xx+yy)
+    // );
+    return m;
+}
+// 从旋转矩阵提取四元数
+vec4 quatFromRotationMatrix(mat4 m) {
+    float trace = m[0][0] + m[1][1] + m[2][2];
+    vec4 q;
+    if (trace > 0.0) {
+        float s = sqrt(trace + 1.0) * 2.0;
+        q.w = 0.25 * s;
+        q.x = (m[2][1] - m[1][2]) / s;
+        q.y = (m[0][2] - m[2][0]) / s;
+        q.z = (m[1][0] - m[0][1]) / s;
+    } else if ((m[0][0] > m[1][1]) && (m[0][0] > m[2][2])) {
+        float s = sqrt(1.0 + m[0][0] - m[1][1] - m[2][2]) * 2.0;
+        q.w = (m[2][1] - m[1][2]) / s;
+        q.x = 0.25 * s;
+        q.y = (m[0][1] + m[1][0]) / s;
+        q.z = (m[0][2] + m[2][0]) / s;
+    } else if (m[1][1] > m[2][2]) {
+        float s = sqrt(1.0 + m[1][1] - m[0][0] - m[2][2]) * 2.0;
+        q.w = (m[0][2] - m[2][0]) / s;
+        q.x = (m[0][1] + m[1][0]) / s;
+        q.y = 0.25 * s;
+        q.z = (m[1][2] + m[2][1]) / s;
+    } else {
+        float s = sqrt(1.0 + m[2][2] - m[0][0] - m[1][1]) * 2.0;
+        q.w = (m[1][0] - m[0][1]) / s;
+        q.x = (m[0][2] + m[2][0]) / s;
+        q.y = (m[1][2] + m[2][1]) / s;
+        q.z = 0.25 * s;
+    }
+    return q;
+}
+
+// 四元数插值（球面线性插值, Slerp）
+vec4 quatSlerp(vec4 q1, vec4 q2, float t) {
+    float dotProd = dot(q1, q2);
+    if (dotProd < 0.0) {
+        q2 = -q2;
+        dotProd = -dotProd;
+    }
+    const float THRESHOLD = 0.9995;
+    if (dotProd > THRESHOLD) {
+        return normalize(q1 + t * (q2 - q1));
+    }
+    float theta = acos(dotProd);
+    float sinTheta = sin(theta);
+    return (sin((1.0 - t) * theta) * q1 + sin(t * theta) * q2) / sinTheta;
+}
+
+// 计算两个四元数之间的夹角
+float quatAngleBetween(vec4 q1, vec4 q2) {
+    return 2.0 * acos(abs(dot(q1, q2)));
+}
+
+// 用四元数旋转向量
+// q*p*q^-1 = q*p*q^-1
+
+vec3 applyQuat(vec3 v,vec4 q) {
+    //将v定义下纯四元数
+    vec4 p=vec4(v,0);
+    // 
+    vec4 qi=quatInverse(q);
+    return quatMultiply(quatMultiply(q,p),qi).xyz;
+}
+
+
+// 坐标系缩放
+#define PROJECTION_SCALE  1.
+
+// 球体的球心位置
+#define SPHERE_POS vec3(0, 1, -4)
+// 球体的半径
+#define SPHERE_R 1.0
+// 球体的漫反射系数
+#define SPHERE_KD vec3(1)
+
+// 相机视点位
+#define CAMERA_POS vec3(0, 1.5, 0)
+// 相机目标点
+#define CAMERA_TARGET vec3(0, 1, -5)
+// 上方向
+#define CAMERA_UP vec3(0, 1, 0)
+
+// 光线推进的起始距离 
+#define RAYMARCH_NEAR 0.1
+// 光线推进的最远距离
+#define RAYMARCH_FAR 128.
+// 光线推进次数
+#define RAYMARCH_TIME 512
+// 当推进后的点位距离物体表面小于RAYMARCH_PRECISION时，默认此点为物体表面的点
+#define RAYMARCH_PRECISION 0.001 
+
+// 点光源位置
+#define LIGHT_POS vec3(3,4, -1)
+
+// 相邻点的抗锯齿的行列数
+#define AA 3
+
+// 投影坐标系
+vec2 ProjectionCoord(in vec2 coord) {
+  return PROJECTION_SCALE * 2. * (coord - 0.5 * iResolution.xy) / min(iResolution.x, iResolution.y);
+}
+
+//球体的SDF模型
+float SDFSphere(vec3 coord) {
+  return length(coord - SPHERE_POS) - SPHERE_R;
+}
+
+// 水平面的SDF模型
+float SDFPlane(vec3 coord) {
+  return coord.y;
+}
+
+// 所有的SDF模型
+float SDFAll(vec3 coord) {
+  return min(SDFSphere(coord), SDFPlane(coord));
+}
+
+// 计算球体的法线
+vec3 SDFNormal(in vec3 p) {
+  const float h = 0.0001;
+  const vec2 k = vec2(1, -1);
+  return normalize(k.xyy * SDFAll(p + k.xyy * h) +
+    k.yyx * SDFAll(p + k.yyx * h) +
+    k.yxy * SDFAll(p + k.yxy * h) +
+    k.xxx * SDFAll(p + k.xxx * h));
+}
+
+// 视图旋转矩阵
+mat3 RotateMatrix() {
+  //基向量c，视线
+  vec3 c = normalize(CAMERA_POS - CAMERA_TARGET);
+  //基向量a，视线和上方向的垂线
+  vec3 a = cross(CAMERA_UP, c);
+  //基向量b，修正上方向
+  vec3 b = cross(c, a);
+  //正交旋转矩阵
+  return mat3(a, b, c);
+}
+
+// 光线推进数据的结构体
+struct RayMarchData {
+  vec3 pos;
+  bool crash;
+};
+
+// 将RayMarch与渲染分离
+RayMarchData RayMarch(vec3 ro, vec3 rd) {
+  float d = RAYMARCH_NEAR;
+  // 光线推进次数
+  RayMarchData rm;
+  rm = RayMarchData(ro, false);
+  for(int i = 0; i < RAYMARCH_TIME && d < RAYMARCH_FAR; i++) {
+    // 光线推进后的点位
+    vec3 p = ro + d * rd;
+    // 光线推进后的点位到模型的有向距离
+    float curD = SDFAll(p);
+    // 若有向距离小于一定的精度，默认此点在模型表面
+    if(curD < RAYMARCH_PRECISION) {
+      rm = RayMarchData(p, true);
+      break;
+    }
+    // 距离累加
+    d += curD;
+  }
+  return rm;
+}
+
+// 投影
+float Shadow(in vec3 ro, in vec3 rd) {
+  for(float t = RAYMARCH_NEAR; t < RAYMARCH_FAR;) {
+    float h = SDFAll(ro + rd * t);
+    if(h < 0.001) {
+      return 0.0;
+    }
+    t += h;
+  }
+  return 1.0;
+}
+
+// 软投影
+float SoftShadow(in vec3 ro, in vec3 rd, float k) {
+  float res = 1.;
+  for(float t = RAYMARCH_NEAR; t < RAYMARCH_FAR;) {
+    float h = SDFAll(ro + rd * t);
+    if(h < RAYMARCH_PRECISION) {
+      return 0.;
+    }
+    res = min(res, k * h / t);
+    t += h;
+  }
+  return res;
+}
+
+// 打光
+vec3 AddLight(vec3 positon) {
+  // 当前着色点的法线
+  vec3 n = SDFNormal(positon);
+  // 当前着色点到光源的方向
+  vec3 lightDir = normalize(LIGHT_POS - positon);
+  // 漫反射
+  vec3 diffuse = SPHERE_KD * max(dot(lightDir, n), 0.);
+  // 投影
+  // float shadow = Shadow(positon, normalize(LIGHT_POS - positon));
+  float shadow = SoftShadow(positon, normalize(LIGHT_POS - positon), 8.);
+  diffuse *= shadow * 0.5 + 0.5;
+
+  // 环境光
+  float amb = 0.2 + dot(-lightDir, n) * 0.4;
+  // 最终颜色
+  return diffuse + amb;
+}
+
+// 渲染
+vec3 Render(vec2 coord) {
+
+  // 从相机视点到当前片元的射线
+  RayMarchData rm = RayMarch(CAMERA_POS, normalize(RotateMatrix() * vec3(coord, -1)));
+  // 片元颜色
+  vec3 color = vec3(0);
+  if(rm.crash) {
+    vec3 p = rm.pos;
+    // 打光
+    color = AddLight(p);
+
+  }
+  return color;
+}
+
+// 抗锯齿 Anti-Aliasing
+vec3 Render_anti(vec2 fragCoord) {
+  // 初始颜色
+  vec3 color = vec3(0);
+  // 行列的一半
+  float aa2 = float(AA / 2);
+  // 逐行列遍历
+  for(int y = 0; y < AA; y++) {
+    for(int x = 0; x < AA; x++) {
+      // 基于像素的偏移距离
+      vec2 offset = vec2(float(x), float(y)) / float(AA) - aa2;
+      // 投影坐标位
+      vec2 coord = ProjectionCoord(fragCoord + offset);
+      // 累加周围片元的颜色
+      color += Render(coord);
+    }
+  }
+  // 返回周围颜色的均值
+  return color / float(AA * AA);
+}
+
+/* 绘图函数，画布中的每个片元都会执行一次，执行方式是并行的。
+fragColor 输出参数，用于定义当前片元的颜色。
+fragCoord 输入参数，当前片元的位置，原点在画布左下角，右侧边界为画布的像素宽，顶部边界为画布的像素高
+*/
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  // 光线推进
+  vec3 color = Render_anti(fragCoord);
+  // 最终颜色
+  fragColor = vec4(color, 1);
+}
+
+void main() {
+    vec2 fragCoord = gl_FragCoord.xy;
+    mainImage(gl_FragColor, fragCoord);
+}
+</script>
+
+<!-- FlyControls -->
+
+<script type="text/javascript">
+    let vscode = undefined;
+    if (typeof acquireVsCodeApi === 'function') {
+        vscode = acquireVsCodeApi();
+    }
+    var compileTimePanel;
+
+    let revealError = function(line, file) {
+        if (vscode) {
+            vscode.postMessage({
+                command: 'showGlslsError',
+                line: line,
+                file: file
+            });
+        }
+    };
+
+    let currentShader = {};
+    // Error Callback
+    console.error = function () {
+        if('7' in arguments) {
+            let errorRegex = /ERROR: \d+:(\d+):\W(.*)\n/g;
+            let rawErrors = arguments[7];
+            let match;
+            
+            let diagnostics = [];
+            let message = '';
+            while(match = errorRegex.exec(rawErrors)) {
+                let lineNumber = Number(match[1]) - currentShader.LineOffset;
+                let error = match[2];
+                diagnostics.push({
+                    line: lineNumber,
+                    message: error
+                });
+                let lineHighlight = `<a class='error' unselectable onclick='revealError(${lineNumber}, "${currentShader.File}")'>Line ${lineNumber}</a>`;
+                message += `<li>${lineHighlight}: ${error}</li>`;
+            }
+            console.log(message);
+            let diagnosticBatch = {
+                filename: currentShader.File,
+                diagnostics: diagnostics
+            };
+            if (vscode !== undefined) {
+                vscode.postMessage({
+                    command: 'showGlslDiagnostic',
+                    type: 'error',
+                    diagnosticBatch: diagnosticBatch
+                });
+            }
+    
+            $('#message').append(`<h3>Shader failed to compile - ${currentShader.Name} </h3>`);
+            $('#message').append('<ul>');
+            $('#message').append(message);
+            $('#message').append('</ul>');
+        }
+    };
+
+    // Development feature: Output warnings from third-party libraries
+    // console.warn = function (message) {
+    //     $("#message").append(message + '<br>');
+    // };
+
+    let clock = new THREE.Clock();
+    let pausedTime = 0.0;
+    let deltaTime = 0.0;
+    let startingTime = 19538.2966000066;
+    let time = startingTime;
+
+    let date = new THREE.Vector4();
+
+    let updateDate = function() {
+        let today = new Date();
+        date.x = today.getFullYear();
+        date.y = today.getMonth();
+        date.z = today.getDate();
+        date.w = today.getHours() * 60 * 60 
+            + today.getMinutes() * 60
+            + today.getSeconds()
+            + today.getMilliseconds() * 0.001;
+    };
+    updateDate();
+
+    let paused = false;
+    let forceRenderOneFrame = paused;
+    let pauseButton = document.getElementById('pause-button');
+    if (pauseButton) {
+        pauseButton.checked = paused;
+        pauseButton.onclick = function(){
+            paused = pauseButton.checked;
+            if (!paused) {
+                // Audio Resume
+                pausedTime += clock.getDelta();
+            }
+            else {
+                // Audio Pause
+            }
+
+            if (vscode !== undefined) {
+                vscode.postMessage({
+                    command: 'setPause',
+                    paused: paused
+                });
+            }
+        };
+    }
+    
+    {
+        let screenshotButton = document.getElementById("screenshot");
+        if (screenshotButton) {
+            screenshotButton.addEventListener('click', saveScreenshot);
+        }
+    }
+    
+    {
+        let recordButton = document.getElementById("record");
+        if (recordButton) {
+            recordButton.addEventListener('click', recordAction);
+        }
+    }
+    
+    {
+        let reloadButton = document.getElementById("reload");
+        if (reloadButton) {
+            reloadButton.addEventListener('click', reloadWebview);
+        }
+    }
+    
+    window.addEventListener('message', event => {
+        const message = event.data; // The JSON data our extension sent
+        switch (message.command) {
+            case 'pause':
+                if (pauseButton) {
+                    pauseButton.checked = !pauseButton.checked;
+                }
+                paused = !paused;
+                if (!paused) {
+                    // Audio Resume
+                    pausedTime += clock.getDelta();
+                }
+                else {
+                    // Audio Pause
+                }
+
+                if (vscode !== undefined) {
+                    vscode.postMessage({
+                        command: 'setPause',
+                        paused: paused
+                    });
+                }
+                break;
+            case 'screenshot':
+                saveScreenshot();
+                break;
+        }
+    });
+
+    let canvas = document.getElementById('canvas');
+    let gl = canvas.getContext('webgl2');
+    let isWebGL2 = gl != null;
+    if (gl == null) gl = canvas.getContext('webgl');
+    let supportsFloatFramebuffer = (gl.getExtension('EXT_color_buffer_float') != null) || (gl.getExtension('WEBGL_color_buffer_float') != null);
+    let supportsHalfFloatFramebuffer = (gl.getExtension('EXT_color_buffer_half_float') != null);
+    let framebufferType = THREE.UnsignedByteType;
+    if (supportsFloatFramebuffer) framebufferType = THREE.FloatType;
+    else if (supportsHalfFloatFramebuffer) framebufferType = THREE.HalfFloatType;
+
+    let renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, context: gl, preserveDrawingBuffer: true });
+    let resolution = forceAspectRatio(window.innerWidth, window.innerHeight);
+    let mouse = new THREE.Vector4(98, 106, -99, -106);
+    let mouseButton = new THREE.Vector4(0, 0, 0, 0);
+    let normalizedMouse = new THREE.Vector2(0.060085836909871244, 0.8578431372549019);
+    let frameCounter = 0;
+    let recorder = null;
+
+    // Audio Init
+    const audioContext = {
+        sampleRate: 0
+    };
+    // Audio Resume
+
+    let buffers = [];
+    // Buffers
+    buffers.push({
+        Name: 'd:/fanyonglong/projects/DxMyth/packages/sdf/src/光线步进/软投影.glsl',
+        File: 'd:/fanyonglong/projects/DxMyth/packages/sdf/src/光线步进/软投影.glsl',
+        LineOffset: 330,
+        Target: null,
+        ChannelResolution: Array(10).fill(new THREE.Vector3(0,0,0)),
+        PingPongTarget: null,
+        PingPongChannel: 0,
+        Dependents: [],
+        Shader: new THREE.ShaderMaterial({
+            fragmentShader: document.getElementById('d:/fanyonglong/projects/DxMyth/packages/sdf/src/光线步进/软投影.glsl').textContent,
+            depthWrite: false,
+            depthTest: false,
+            uniforms: {
+                iResolution: { type: 'v3', value: resolution },
+                iTime: { type: 'f', value: 0.0 },
+                iTimeDelta: { type: 'f', value: 0.0 },
+                iFrame: { type: 'i', value: 0 },
+                iMouse: { type: 'v4', value: mouse },
+                iMouseButton: { type: 'v2', value: mouseButton },
+                iViewMatrix: {type: 'm44', value: new THREE.Matrix4() },
+                iChannelResolution: { type: 'v3v', value: Array(10).fill(new THREE.Vector3(0,0,0)) },
+    
+                iDate: { type: 'v4', value: date },
+                iSampleRate: { type: 'f', value: audioContext.sampleRate },
+    
+                iChannel0: { type: 't' },
+                iChannel1: { type: 't' },
+                iChannel2: { type: 't' },
+                iChannel3: { type: 't' },
+                iChannel4: { type: 't' },
+                iChannel5: { type: 't' },
+                iChannel6: { type: 't' },
+                iChannel7: { type: 't' },
+                iChannel8: { type: 't' },
+                iChannel9: { type: 't' },
+    
+                resolution: { type: 'v2', value: resolution },
+                time: { type: 'f', value: 0.0 },
+                mouse: { type: 'v2', value: normalizedMouse },
+            }
+        })
+    });
+    let commonIncludes = [];
+    // Includes
+    commonIncludes.push({
+        Name: 'd:/fanyonglong/projects/DxMyth/packages/sdf/src/common/quaternion.glsl',
+        File: 'd:/fanyonglong/projects/DxMyth/packages/sdf/src/common/quaternion.glsl'
+    });
+
+    // WebGL2 inserts more lines into the shader
+    if (isWebGL2) {
+        for (let buffer of buffers) {
+            buffer.LineOffset += 16;
+        }
+    }
+
+    // Keyboard Init
+    
+    // Uniforms Init
+    // Uniforms Update
+
+    let texLoader = new THREE.TextureLoader();
+    // Texture Init
+    
+
+    let scene = new THREE.Scene();
+    let quad = new THREE.Mesh(
+        new THREE.PlaneGeometry(resolution.x, resolution.y),
+        null
+    );
+    scene.add(quad);
+
+    let controlState = new THREE.Camera();
+    controlState.position.set(0,0,0);
+    controlState.quaternion.set(0,0,0,1);
+    scene.add(controlState);
+
+    let flyControls = undefined;
+    if (typeof FlyControls === 'function') {
+        flyControls = new FlyControls(controlState, renderer.domElement, vscode);
+        flyControls.movementSpeed = 1;
+        flyControls.domElement = renderer.domElement;
+        flyControls.rollSpeed = Math.PI / 24;
+        flyControls.autoForward = false;
+        flyControls.dragToLook = true;
+    }
+
+    let camera = new THREE.OrthographicCamera(-resolution.x / 2.0, resolution.x / 2.0, resolution.y / 2.0, -resolution.y / 2.0, 1, 1000);
+    camera.position.set(0, 0, 10);
+
+    // Run every shader once to check for compile errors
+    let compileTimeStart = performance.now();
+    let failed=0;
+    for (let include of commonIncludes) {
+        currentShader = {
+            Name: include.Name,
+            File: include.File,
+            // add two for version and precision lines
+            LineOffset: 27 + 2
+        };
+        // Test Compile Included Files
+        // bail if there is an error found in the include script
+        if(compileFragShader(gl, document.getElementById(include.Name).textContent) == false) {
+            throw Error(`Failed to compile ${include.Name}`);
+        }
+    }
+
+    for (let buffer of buffers) {
+        currentShader = {
+            Name: buffer.Name,
+            File: buffer.File,
+            LineOffset: buffer.LineOffset
+        };
+        quad.material = buffer.Shader;
+        renderer.setRenderTarget(buffer.Target);
+        renderer.render(scene, camera);
+    }
+    currentShader = {};
+    let compileTimeEnd = performance.now();
+    let compileTime = compileTimeEnd - compileTimeStart;
+    if (compileTimePanel !== undefined) {
+        for (let i = 0; i < 200; i++) {
+            compileTimePanel.update(compileTime, 200);
+        }
+    }
+
+    computeSize();
+    render();
+
+    function addLineNumbers( string ) {
+        let lines = string.split( '\\n' );
+        for ( let i = 0; i < lines.length; i ++ ) {
+            lines[ i ] = ( i + 1 ) + ': ' + lines[ i ];
+        }
+        return lines.join( '\\n' );
+    }
+
+    function compileFragShader(gl, fsSource) {
+        const fs = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fs, fsSource);
+        gl.compileShader(fs);
+        if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+            const fragmentLog = gl.getShaderInfoLog(fs);
+            console.error( 'THREE.WebGLProgram: shader error: ', gl.getError(), 'gl.COMPILE_STATUS', null, null, null, null, fragmentLog );
+            return false;
+        }
+        return true;
+    }
+
+    function render() {
+        requestAnimationFrame(render);
+        if (!forceRenderOneFrame) {
+            // Pause Whole Render
+            if (paused) return;
+        }
+        forceRenderOneFrame = false;
+
+        // Advance Time
+        deltaTime = clock.getDelta();
+        time = startingTime + clock.getElapsedTime() - pausedTime;
+        if (vscode !== undefined) {
+            vscode.postMessage({
+                command: 'updateTime',
+                time: time
+            });
+        }
+        updateDate();
+        
+        if(flyControls)
+        {
+            flyControls.update(0.1);
+        }
+
+        // Audio Update
+
+        for (let buffer of buffers) {
+            buffer.Shader.uniforms['iResolution'].value = resolution;
+            buffer.Shader.uniforms['iTimeDelta'].value = deltaTime;
+            buffer.Shader.uniforms['iTime'].value = time;
+            buffer.Shader.uniforms['iFrame'].value = frameCounter;
+            buffer.Shader.uniforms['iMouse'].value = mouse;
+            buffer.Shader.uniforms['iMouseButton'].value = mouseButton;
+
+            buffer.Shader.uniforms['iViewMatrix'].value = controlState.matrixWorld;
+
+            buffer.Shader.uniforms['resolution'].value = resolution;
+            buffer.Shader.uniforms['time'].value = time;
+            buffer.Shader.uniforms['mouse'].value = normalizedMouse;
+
+            quad.material = buffer.Shader;
+            renderer.setRenderTarget(buffer.Target);
+            renderer.render(scene, camera);
+        }
+        
+        // Uniforms Update
+
+        // Keyboard Update
+
+        if (mouse.w > 0.0) {
+            mouse.w = -mouse.w;
+            updateMouse();
+        }
+
+        for (let buffer of buffers) {
+            if (buffer.PingPongTarget) {
+                [buffer.PingPongTarget, buffer.Target] = [buffer.Target, buffer.PingPongTarget];
+                buffer.Shader.uniforms[`iChannel${buffer.PingPongChannel}`].value = buffer.PingPongTarget.texture;
+                for (let dependent of buffer.Dependents) {
+                    const dependentBuffer = buffers[dependent.Index];
+                    dependentBuffer.Shader.uniforms[`iChannel${dependent.Channel}`].value = buffer.Target.texture;
+                }
+            }
+        }
+
+        frameCounter++;
+    }
+    function forceAspectRatio(width, height) {
+        // Forced aspect ratio
+        let forcedAspects = [0,0];
+        let forcedAspectRatio = forcedAspects[0] / forcedAspects[1];
+        let aspectRatio = width / height;
+
+        if (forcedAspectRatio <= 0 || !isFinite(forcedAspectRatio)) {
+            let resolution = new THREE.Vector3(width, height, 1.0);
+            return resolution;
+        }
+        else if (aspectRatio < forcedAspectRatio) {
+            let resolution = new THREE.Vector3(width, Math.floor(width / forcedAspectRatio), 1);
+            return resolution;
+        }
+        else {
+            let resolution = new THREE.Vector3(Math.floor(height * forcedAspectRatio), height, 1);
+            return resolution;
+        }
+    }
+    function computeSize() {
+        
+        // Compute forced aspect ratio and align canvas
+        resolution = forceAspectRatio(window.innerWidth, window.innerHeight);
+        canvas.style.left = `${(window.innerWidth - resolution.x) / 2}px`;
+        canvas.style.top = `${(window.innerHeight - resolution.y) / 2}px`;
+
+        for (let buffer of buffers) {
+            if (buffer.Target) {
+                buffer.Target.setSize(resolution.x, resolution.y);
+            }
+            if (buffer.PingPongTarget) {
+                buffer.PingPongTarget.setSize(resolution.x, resolution.y);
+            }
+        }
+        renderer.setSize(resolution.x, resolution.y, false);
+        
+        // Update Camera and Mesh
+        quad.geometry = new THREE.PlaneGeometry(resolution.x, resolution.y);
+        camera.left = -resolution.x / 2.0;
+        camera.right = resolution.x / 2.0;
+        camera.top = resolution.y / 2.0;
+        camera.bottom = -resolution.y / 2.0;
+        camera.updateProjectionMatrix();
+
+        // Reset iFrame on resize for shaders that rely on first-frame setups
+        frameCounter = 0;
+    }
+    function saveScreenshot() {
+        let doSaveScreenshot = () => {
+            renderer.domElement.toBlob(function(blob){
+                let a = document.createElement('a');
+                let url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = 'shadertoy.png';
+                a.click();
+            }, 'image/png', 1.0);
+        };
+
+        let forcedScreenshotResolution = [0,0];
+        if (forcedScreenshotResolution[0] <= 0 || forcedScreenshotResolution[1] <= 0) {
+            renderer.render(scene, camera);
+            doSaveScreenshot();
+        }
+        else {
+            renderer.setSize(forcedScreenshotResolution[0], forcedScreenshotResolution[1], false);
+            
+            for (let buffer of buffers) {
+                buffer.Shader.uniforms['iResolution'].value = new THREE.Vector3(forcedScreenshotResolution[0], forcedScreenshotResolution[1], 1);
+                buffer.Shader.uniforms['resolution'].value = new THREE.Vector3(forcedScreenshotResolution[0], forcedScreenshotResolution[1], 1);
+
+                quad.material = buffer.Shader;
+                renderer.setRenderTarget(buffer.Target);
+                renderer.render(scene, camera);
+            }
+
+            doSaveScreenshot();
+            renderer.setSize(resolution.x, resolution.y, false);
+        }
+    }
+    function recordAction() {
+        let recordButton = document.getElementById("record");
+        if (recorder == null) {
+            recordButton.classList.add('recording');
+
+            let stream = canvas.captureStream(30);
+            let recorderOptions = {
+                mimeType: "video/webm"
+            };
+            recorder = new MediaRecorder(stream, recorderOptions);
+            recorder.start();
+            recorder.ondataavailable = function(evt) {
+                let a = document.createElement('a');
+                let url = URL.createObjectURL(evt.data);
+                a.href = url;
+                a.download = 'shadertoy.webm';
+                a.click();
+            };
+        }
+        else {
+            recordButton.classList.remove('recording');
+
+            recorder.stop();
+            recorder = null;
+        }
+    }
+    function reloadWebview() {
+        if (vscode !== undefined) {
+            vscode.postMessage({ command: 'reloadWebview' });
+        }
+    }
+    function updateMouse() {
+        if (vscode !== undefined) {
+            vscode.postMessage({
+                command: 'updateMouse',
+                mouse: {
+                    x: mouse.x,
+                    y: mouse.y,
+                    z: mouse.z,
+                    w: mouse.w
+                },
+                normalizedMouse: {
+                    x: normalizedMouse.x,
+                    y: normalizedMouse.y
+                }
+            });
+        }
+    }
+    let dragging = false;
+    function updateNormalizedMouseCoordinates(clientX, clientY) {
+        let rect = canvas.getBoundingClientRect();
+        let mouseX = clientX - rect.left;
+        let mouseY = resolution.y - clientY - rect.top;
+
+        if (mouseButton.x + mouseButton.y != 0) {
+            mouse.x = mouseX;
+            mouse.y = mouseY;
+        }
+
+        normalizedMouse.x = mouseX / resolution.x;
+        normalizedMouse.y = mouseY / resolution.y;
+    }
+    canvas.addEventListener('mousemove', function(evt) {
+        updateNormalizedMouseCoordinates(evt.clientX, evt.clientY);
+        updateMouse();
+    }, false);
+    canvas.addEventListener('mousedown', function(evt) {
+        if (evt.button == 0)
+            mouseButton.x = 1;
+        if (evt.button == 2)
+            mouseButton.y = 1;
+
+        if (!dragging) {
+            updateNormalizedMouseCoordinates(evt.clientX, evt.clientY);
+            mouse.z = mouse.x;
+            mouse.w = mouse.y;
+            dragging = true
+        }
+
+        updateMouse();
+    }, false);
+    canvas.addEventListener('mouseup', function(evt) {
+        if (evt.button == 0)
+            mouseButton.x = 0;
+        if (evt.button == 2)
+            mouseButton.y = 0;
+
+        dragging = false;
+        mouse.z = -mouse.z;
+        mouse.w = -mouse.w;
+
+        updateMouse();
+    }, false);
+    window.addEventListener('resize', function() {
+        computeSize();
+    });
+
+    // Keyboard Callbacks
+</script>

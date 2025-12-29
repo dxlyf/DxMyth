@@ -34,7 +34,7 @@ vec3 applyQuat2(vec4 q,vec3 v){
 vec4 quatFromAxis(vec3 axis, float angle) {
     float halfAngle = angle * 0.5;
     float s = sin(halfAngle);
-    return vec4(axis * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
+    return vec4(-normalize(axis) * s, cos(halfAngle)); // x, y, z (虚部), w (实部)
 }
 
 // 从欧拉角任意顺序生成四元数
@@ -186,11 +186,11 @@ float quatAngleBetween(vec4 q1, vec4 q2) {
 // 用四元数旋转向量
 // q*p*q^-1 = q*p*q^-1
 
-vec3 applyQuat(vec4 q,vec3 v) {
+vec3 applyQuat(vec3 v,vec4 q) {
     //将v定义下纯四元数
     vec4 p=vec4(v,0);
     // 
     vec4 qi=quatInverse(q);
-    return quatMultiply(q,quatMultiply(p,qi)).xyz;
+    return quatMultiply(quatMultiply(q,p),qi).xyz;
 }
 

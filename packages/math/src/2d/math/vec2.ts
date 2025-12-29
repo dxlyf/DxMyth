@@ -215,8 +215,8 @@ function perpendicular<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like
  * o=a-k*n
  * o=-o
  * @param out 输出向量，用于存储反射后的结果
- * @param a 输入向量
- * @param n 法向量
+ * @param a 输入向量 从外部指向表面
+ * @param n 法向量 从表面指向外部
  * @returns 返回输出向量 out
  */
 function reflect<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, n: Vector2Like) {
@@ -229,8 +229,8 @@ function reflect<T extends Vector2Like=Vector2Like>(out: T, a: Vector2Like, n: V
  /**
      * 折射（Refraction）是光线从一种介质进入另一种介质时发生的方向改变现象。折射的方向可以通过 斯涅尔定律（Snell's Law） 来计算
      * @param out
-     * @param incident 入射向量  
-     * @param normal 法向量
+     * @param incident 入射向量   从外部指向表面
+     * @param normal 法向量 从表面指向外部
      * @param eta1 入射介质的折射率
      * @param eta2 折射介质的折射率
      * @returns 

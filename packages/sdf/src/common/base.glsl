@@ -7,9 +7,9 @@
 // 光线推进的起始距离 
 #define RAYMARCH_NEAR 0.1
 // 光线推进的最远距离
-#define RAYMARCH_FAR 20.
+#define RAYMARCH_FAR 128.
 // 光线推进次数
-#define RAYMARCH_TIME 100
+#define RAYMARCH_TIME 512
 // 当推进后的点位距离物体表面小于RAYMARCH_PRECISION时，默认此点为物体表面的点
 #define RAYMARCH_PRECISION 0.001 
 
@@ -22,7 +22,21 @@
 // 栅格图像的z位置
 #define SCREEN_Z -1.
 
+struct MapResult{
+   float dist;
+   vec3 color;
+   int type;
 
+};
+struct RayCastResult{
+   bool hit;
+   vec3 pos;
+   vec3 normal;
+   vec3 color;
+   int type;
+
+   float dist;
+};
 struct TilingData{
    int tile;
    vec2 id;
@@ -42,7 +56,7 @@ vec2 projectionCoord(vec2 coord,float scale){
 	
 }
 vec2 projectionCoord(vec2 coord){
-	return projectionCoordImp(coord,iResolution.xy,2.);
+	return projectionCoordImp(coord,iResolution.xy,1.);
 	
 }
 
@@ -147,83 +161,10 @@ float CheckersGrad(in vec2 uv, in vec2 ddx, in vec2 ddy) {
   return 0.5 - 0.5 * i.x * i.y;
 }
 
-
-// 布尔运算
-
-
-float opUnion( float d1, float d2 )
-{
-    return min(d1,d2);
+float radToDeg(float rad) {
+    return rad * 180.0 / PI;
 }
 
-float opSubtraction( float d1, float d2 )
-{
-    return max(-d1,d2);
-}
-
-float opIntersection( float d1, float d2 )
-{
-    return max(d1,d2);
-}
-
-vec2 opUnion(vec2 d1, vec2 d2 )
-{
-
-    return d1.x<d2.x?d1:d2;
-}
-vec2 opUnionOver(vec2 d1, vec2 d2)
-{
-    return d2.x<RAYMARCH_PRECISION?d2:d1;
-}
-
-
-vec2 opSubtraction( vec2 d1, vec2 d2 )
-{
-    return -d1.x>d2.x?vec2(-d1.x,d1.y):d2;
-}
-
-vec2 opIntersection( vec2 d1, vec2 d2 )
-{
-    return d1.x>d2.x?d1:d2;
-}
-
-vec3 opUnion(vec3 d1, vec3 d2 )
-{
-    return d1.x<d2.x?d1:d2;
-}
-
-vec3 opSubtraction( vec3 d1, vec3 d2 )
-{
-    return -d1.x>d2.x?vec3(-d1.x,d1.y,d1.z):d2;
-}
-
-vec3 opIntersection( vec3 d1, vec3 d2 )
-{
-    return d1.x>d2.x?d1:d2;
-}
-// 使形状变圆润
-float opRound(float dist,float r )
-{
-  //return sdShape(p) - r;
-  return dist-r;
-}
-
-// 制作环形形状
-float opOnion( float dist,float r )
-{
-    return abs(dist)-r;
-}
-
-// 使形状变圆润
-float opRound( in vec2 p, in float r )
-{
-  //return sdShape(p) - r;
-  return 0.;
-}
-
-// 制作环形形状
-float opOnion( in vec2 p, in float r )
-{
-    return 0.;
- // return abs(sdShape(p)) - r;
+float degToRad(float deg) {
+    return deg * PI / 180.0;
 }

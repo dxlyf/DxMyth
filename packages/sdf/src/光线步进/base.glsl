@@ -7,6 +7,7 @@ struct RayMarchingResult{
     vec3 color;
     vec3 point;
     vec3 normal;
+    vec3 reflect;
     int type;
     float distance;
 
@@ -28,7 +29,9 @@ float degToRad(float deg) {
 vec2 projectionOnScrren(vec2 fragCoord,float scale){
     return scale*2.*(fragCoord-0.5*iResolution.xy)/min(iResolution.x,iResolution.y);
 }
-
+vec2 projectionOnScrren(vec2 fragCoord ){
+    return projectionOnScrren(fragCoord,1.);
+}
 mat4 makeRotateX(float angle) {
     float c=cos(angle);
     float s=sin(angle);

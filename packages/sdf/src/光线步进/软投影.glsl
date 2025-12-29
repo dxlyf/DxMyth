@@ -1,3 +1,4 @@
+#include "../common/quaternion.glsl"
 // 坐标系缩放
 #define PROJECTION_SCALE  1.
 
@@ -147,6 +148,7 @@ vec3 AddLight(vec3 positon) {
 
 // 渲染
 vec3 Render(vec2 coord) {
+
   // 从相机视点到当前片元的射线
   RayMarchData rm = RayMarch(CAMERA_POS, normalize(RotateMatrix() * vec3(coord, -1)));
   // 片元颜色

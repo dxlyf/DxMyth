@@ -96,27 +96,27 @@ mat4 lookAt2(vec3 eye, vec3 center, vec3 up) {
 mat4 lookAt(vec3 eye, vec3 center, vec3 up) {
     vec3 z = normalize(eye-center);
     vec3 x = normalize(cross(up, z));
-    vec3 y = cross(z, x);
+    vec3 y = normalize(cross(z, x));
     return mat4(
         vec4(x.x,y.x,z.x,0),
         vec4(x.y,y.y,z.y, 0.0),
         vec4(x.z,y.z,z.z, 0.0),
-        vec4(-dot(x, eye), -dot(y, eye), dot(z, eye), 1.0)
+        vec4(-dot(x, eye), -dot(y, eye), -dot(z, eye), 1.0)
     );
 }
 
 
 // 相机矩阵 列主序
-mat4 cameraMatrix(vec3 eye, vec3 center, vec3 up) {
-     vec3 z = normalize(eye-center);
+mat3 cameraMatrix(vec3 eye, vec3 center, vec3 up) {
+    vec3 z = normalize(eye-center);
     vec3 x = normalize(cross(up, z));
-    vec3 y = cross(z, x);
-    return mat4(vec4(x,0),vec4(y,0),vec4(z,0),vec4(eye,1));
+    vec3 y = normalize(cross(z, x));
+    return mat3(x,y,z);
 }
 
 // 视图矩阵
-mat4 viewMatrix2(vec3 eye,vec3 center, vec3 up) {
-    mat4 m=cameraMatrix(eye,center,up);
+mat3 viewMatrix2(vec3 eye,vec3 center, vec3 up) {
+    mat3 m=cameraMatrix(eye,center,up);
     return inverse(m);
 }
 // 正交旋转矩阵，逆等于转置
