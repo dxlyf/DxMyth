@@ -120,7 +120,22 @@ class Int24_8 {
         return value / this.ONE
     }
 }
-type Edge = { y0: number, y1: number, slope: number, x: number, winding: number,p0?:Vector2,p1?:Vector2 }
+class Int26_6{
+    static SHIFT = 6
+    static ONE = 1 << this.SHIFT
+    static MASK = this.ONE - 1
+    static HALF = this.ONE >> 1
+    static from(value: number) {
+        return Math.round(value * this.ONE)
+    }
+    static fract(value: number) {
+        return value & this.MASK
+    }
+    static to(value: number) {
+        return value / this.ONE
+    }
+}
+type Edge = { y0: number, y1: number, slope: number, x: number, winding: number, p0?: Vector2, p1?: Vector2 }
 class Rasterazier {
 
     fillPolygon2(path: ProxyPath, setPixel: SetPixel, fillRule: FillRule = 'nonzero') {
@@ -249,7 +264,7 @@ class Rasterazier {
             let slope = dx / dy
             let x = p0.y < p1.y ? p0.x : p1.x
             let winding = p0.y < p1.y ? 1 : -1
-            edges.push({ y0, y1, x, winding, slope,p0,p1 })
+            edges.push({ y0, y1, x, winding, slope, p0, p1 })
         }
         let minY = Infinity
         let maxY = -Infinity
@@ -271,7 +286,7 @@ class Rasterazier {
         let y1 = Math.ceil(maxY)
         let activeEdges: Edge[] = []
         let edgeIndex = 0
-         let insertActiveEdge = (edge: Edge) => {
+        let insertActiveEdge = (edge: Edge) => {
             let i = 0
             for (; i < activeEdges.length; i++) {
                 if (edge.x < activeEdges[i].x) {
@@ -283,10 +298,10 @@ class Rasterazier {
         }
         for (let y = y0; y < y1; y++) {
 
-            activeEdges.length=0
-            for(let i=0;i<edges.length;i++){
-                if(edges[i].y0<=y && edges[i].y1>y){
-                    edges[i].x=edges[i].p0.x+(y-edges[i].p0.y)*edges[i].slope
+            activeEdges.length = 0
+            for (let i = 0; i < edges.length; i++) {
+                if (edges[i].y0 <= y && edges[i].y1 > y) {
+                    edges[i].x = edges[i].p0.x + (y - edges[i].p0.y) * edges[i].slope
                     insertActiveEdge(edges[i])
                 }
             }
@@ -312,67 +327,67 @@ class Rasterazier {
                 }
                 winding += activeEdges[i].winding
             }
-            
+
 
 
 
         }
 
     }
-    scan(path: ProxyPath, setPixel: SetPixel){
+    scan(path: ProxyPath, setPixel: SetPixel) {
         let firstPoint = Vector2.create()
         let lastPoint = Vector2.create()
-        const moveTo=(x:number,y:number)=>{
-            firstPoint.set(x,y)
-            lastPoint.set(x,y)
+        const moveTo = (x: number, y: number) => {
+            firstPoint.set(x, y)
+            lastPoint.set(x, y)
         }
-        const lineTo=(x:number,y:number)=>{
-            let x0=lastPoint.x;
-            let y0=lastPoint.y;
-            let x1=x;
-            let y1=y;
-            lastPoint.set(x,y)
-            if(y0>y1){
-                ([y1,y0]=[y0,y1]);
-                ([x1,x0]=[x0,x1]);
+        const lineTo = (x: number, y: number) => {
+            let x0 = lastPoint.x;
+            let y0 = lastPoint.y;
+            let x1 = x;
+            let y1 = y;
+            lastPoint.set(x, y)
+            if (y0 > y1) {
+                ([y1, y0] = [y0, y1]);
+                ([x1, x0] = [x0, x1]);
             }
 
-            let i_x0=Int24_8.roundFloat(x0)
-            let f_x0=Int24_8.toFract(i_x0)
-            let i_y0=Int24_8.roundFloat(y0)
-            let f_y0=Int24_8.toFract(i_y0)
+            let i_x0 = Int24_8.roundFloat(x0)
+            let f_x0 = Int24_8.toFract(i_x0)
+            let i_y0 = Int24_8.roundFloat(y0)
+            let f_y0 = Int24_8.toFract(i_y0)
 
-            let i_x1=Int24_8.roundFloat(x1)
-            let f_x1=Int24_8.toFract(i_x1)
-            let i_y1=Int24_8.roundFloat(y1)
-            let f_y1=Int24_8.toFract(i_y1)
+            let i_x1 = Int24_8.roundFloat(x1)
+            let f_x1 = Int24_8.toFract(i_x1)
+            let i_y1 = Int24_8.roundFloat(y1)
+            let f_y1 = Int24_8.toFract(i_y1)
 
             // 如果y0==y1,水平绘制
-            if(Math.floor(y0)==Math.floor(y1)){
+            if (Math.floor(y0) == Math.floor(y1)) {
 
                 return
             }
             // 如果x0=x1,垂直绘制
-            if(Math.floor(x0)==Math.floor(x1)){
+            if (Math.floor(x0) == Math.floor(x1)) {
 
                 return;
             }
-            let abs_dx=Math.abs(x1-x0)
-            let abs_dy=Math.abs(y1-y0)
+            let abs_dx = Math.abs(x1 - x0)
+            let abs_dy = Math.abs(y1 - y0)
 
             // 哪个轴长，以哪个轴优先
-            if(abs_dx>abs_dy){
+            if (abs_dx > abs_dy) {
                 // 斜率
-                for(let i=0;i<abs_dx;i++){
-                    
+                for (let i = 0; i < abs_dx; i++) {
+
                 }
 
-            }else{
+            } else {
 
             }
 
 
-          
+
         }
 
         path.cmds.forEach(cmd => {
@@ -380,14 +395,14 @@ class Rasterazier {
 
             switch (type) {
                 case 'moveTo':
-                    moveTo(params[0],params[1])
-                    firstPoint.set(params[0],params[1])
+                    moveTo(params[0], params[1])
+                    firstPoint.set(params[0], params[1])
                     break
                 case 'lineTo':
-                    lineTo(params[0],params[1])
+                    lineTo(params[0], params[1])
                     break
                 case 'closePath':
-                    lineTo(firstPoint.x,firstPoint.y)
+                    lineTo(firstPoint.x, firstPoint.y)
             }
         })
     }
@@ -399,14 +414,15 @@ class Rasterazier {
 }
 
 
-let pixel = new PixelRenderer(20, 20, 64)
+
+let pixel = new PixelRenderer(20, 20, Int26_6.ONE)
 let path = new ProxyPath()
 let raster = new Rasterazier()
 
 let vertices = [[10, 2], [16, 10], [3, 13]]
 vertices.forEach(v => {
-  //  v[0] += 0.5
-   // v[1] += 0.5
+    //  v[0] += 0.5
+    // v[1] += 0.5
 })
 vertices.forEach((v, i) => {
 
@@ -443,3 +459,46 @@ path.cmds.forEach(cmd => {
             break;
     }
 })
+
+// 添加与轴的交点
+function addIntersectionGrid() {
+     const ctx = pixel.ctx
+     const cellSize=pixel.cellSize
+    const firstPoint = Vector2.create()
+    const lastPoint = Vector2.create()
+    const moveTo = (x: number, y: number) => {
+        firstPoint.set(x, y)
+        lastPoint.set(x, y)
+    }
+    const lineTo = (x: number, y: number) => {
+        let x0 = lastPoint.x;
+        let y0 = lastPoint.y;
+        let x1 = x;
+        let y1 = y;
+        lastPoint.set(x, y)
+        
+        let dx=x1-x0
+        let dy=y1-y0
+        let first=0
+        if(dy>0){
+            
+        }
+    }
+    path.cmds.forEach(cmd => {
+        const [type, ...params] = cmd
+
+        switch (type) {
+            case 'moveTo':
+                moveTo(params[0]*cellSize, params[1]*cellSize)
+
+                break;
+            case 'lineTo':
+                lineTo(params[0]*cellSize, params[1]*cellSize)
+                break;
+            case 'closePath':
+                lineTo(firstPoint.x,firstPoint.y)
+                break;
+        }
+    })
+
+}
