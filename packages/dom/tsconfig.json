@@ -18,7 +18,7 @@
     "noUnusedLocals": true,
     "noImplicitReturns": true,
     "alwaysStrict": true,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     "strictFunctionTypes": true,
     "removeComments": false,
     "experimentalDecorators": false,

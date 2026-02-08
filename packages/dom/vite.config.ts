@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           entry:{
             index:'./src/index.ts'
           },
-          name:'dxMyth.math',
+          name:'dxMyth.dom',
           fileName:(format,name)=>`${name}.${format}.js`
         },
         minify:true
