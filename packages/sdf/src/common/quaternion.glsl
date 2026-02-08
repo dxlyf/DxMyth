@@ -90,7 +90,7 @@ float quatLength(vec4 q) {
 
 // 四元数的逆
 vec4 quatInverse(vec4 q) {
-    return quatConjugate(q) / quatLength(q); // 四元数的逆
+    return quatConjugate(q) / dot(q,q); // 四元数的逆
 }
 
 

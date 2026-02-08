@@ -100,6 +100,7 @@ class Quaternion {
 
   /**
    * 获取四元数的逆
+   * q^-1 = conj(q) / |q|^2
    * @returns 逆四元数
    */
   inverse(): Quaternion {
