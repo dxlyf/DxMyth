@@ -45,8 +45,6 @@ import { default as update } from './update';
 import { default as updateWith } from './updateWith';
 import { default as values } from './values';
 import { default as valuesIn } from './valuesIn';
-
-
 declare const defaultExport: {
     assign: typeof assign;
     assignIn: typeof assignIn;

@@ -1,0 +1,20 @@
+.select input{
+    outline: none;
+    border: solid 1px rgba(0,0,0,0.2);
+}
+.select input:hover{
+    border-color:rgb(0,124,255);
+}
+.select input:focus{
+    border-color:rgb(0,114,255);
+}
+/* 下面我们会解释这些 class 是做什么的 */
+.v-enter-active,
+.v-leave-active {
+  transition: opacity 2s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+}

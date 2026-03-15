@@ -10,11 +10,11 @@ export default defineConfig(({ mode }) => {
   // `VITE_` 前缀。
  // const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [dts({
-     // root:__dirname,
-      entryRoot:"./src",
-      outDir:"./types"
-    })],
+    // plugins: [dts({
+    //  // root:__dirname,
+    //   entryRoot:"./src",
+    //   outDir:"./types"
+    // })],
     // vite 配置
     define: {
       'process.env.DEBUG': JSON.stringify(false)

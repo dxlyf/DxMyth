@@ -1,0 +1,1 @@
+type ParameterToArray<T extends any>=T extends any[]?T:[T]

@@ -54,8 +54,6 @@ import { default as toNumber } from './toNumber';
 import { default as toPlainObject } from './toPlainObject';
 import { default as toSafeInteger } from './toSafeInteger';
 import { default as toString } from './toString';
-
-
 declare const defaultExport: {
     castArray: typeof castArray;
     clone: typeof clone;

@@ -1,0 +1,34 @@
+import { RGBAColor, CompositeOperation, CompositeContext } from './composite-types';
+export declare class CompositeCore implements CompositeContext {
+    applyComposite(source: RGBAColor, destination: RGBAColor, operation: CompositeOperation): RGBAColor;
+    private sourceOver;
+    private sourceIn;
+    private sourceOut;
+    private sourceAtop;
+    private destinationOver;
+    private destinationIn;
+    private destinationOut;
+    private destinationAtop;
+    private lighter;
+    private copy;
+    private xor;
+    private multiply;
+    private screen;
+    private overlay;
+    private darken;
+    private lighten;
+    private colorDodge;
+    private difference;
+    private hue;
+    private premultiply;
+    private unpremultiply;
+    private rgbToHsl;
+    private hslToRgb;
+    private saturation;
+    private color;
+    private luminosity;
+    private colorBurn;
+    private hardLight;
+    private softLight;
+    private exclusion;
+}

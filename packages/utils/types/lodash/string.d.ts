@@ -29,6 +29,4 @@ import { default as unescape } from './unescape';
 import { default as upperCase } from './upperCase';
 import { default as upperFirst } from './upperFirst';
 import { default as words } from './words';
-
-
 export { default } from './string.default';

@@ -45,6 +45,4 @@ import { default as update } from './update';
 import { default as updateWith } from './updateWith';
 import { default as values } from './values';
 import { default as valuesIn } from './valuesIn';
-
-
 export { default } from './object.default';

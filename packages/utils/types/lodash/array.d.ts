@@ -63,6 +63,4 @@ import { default as zip } from './zip';
 import { default as zipObject } from './zipObject';
 import { default as zipObjectDeep } from './zipObjectDeep';
 import { default as zipWith } from './zipWith';
-
-
 export { default } from './array.default';

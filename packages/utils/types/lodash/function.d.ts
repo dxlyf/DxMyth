@@ -21,6 +21,4 @@ import { default as spread } from './spread';
 import { default as throttle } from './throttle';
 import { default as unary } from './unary';
 import { default as wrap } from './wrap';
-
-
 export { default } from './function.default';

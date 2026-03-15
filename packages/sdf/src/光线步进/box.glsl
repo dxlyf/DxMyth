@@ -1,4 +1,3 @@
-
 #include "base.glsl"
 #iChannel0 "file://../assets/images/football.jpg"
 #define MAX_STEPS 500 

@@ -1,0 +1,33 @@
+import { RGB } from './types';
+/**
+ * Blend two colors with the "hue" blend mode
+ *
+ * @param backdrop The background color channel as an { r,g,b } object with each channel represented as a fraction
+ * @param source   The foreground color channel as an { r,g,b } object with each channel represented as a fraction
+ * @return The blended color
+ */
+export declare function hue(backdrop: RGB, source: RGB): RGB;
+/**
+ * Blend two colors with the "saturation" blend mode
+ *
+ * @param backdrop The background color channel as an { r,g,b } object with each channel represented as a fraction
+ * @param source   The foreground color channel as an { r,g,b } object with each channel represented as a fraction
+ * @return The blended color
+ */
+export declare function saturation(backdrop: RGB, source: RGB): RGB;
+/**
+ * Blend two colors with the "color" blend mode
+ *
+ * @param backdrop The background color channel as an { r,g,b } object with each channel represented as a fraction
+ * @param source   The foreground color channel as an { r,g,b } object with each channel represented as a fraction
+ * @return The blended color
+ */
+export declare function color(backdrop: RGB, source: RGB): RGB;
+/**
+ * Blend two colors with the "luminosity" blend mode
+ *
+ * @param backdrop The background color channel as an { r,g,b } object with each channel represented as a fraction
+ * @param source   The foreground color channel as an { r,g,b } object with each channel represented as a fraction
+ * @return The blended color
+ */
+export declare function luminosity(backdrop: RGB, source: RGB): RGB;

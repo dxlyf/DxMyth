@@ -30,8 +30,6 @@ import { default as stubTrue } from './stubTrue';
 import { default as times } from './times';
 import { default as toPath } from './toPath';
 import { default as uniqueId } from './uniqueId';
-
-
 declare const defaultExport: {
     attempt: typeof attempt;
     bindAll: typeof bindAll;

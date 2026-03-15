@@ -14,7 +14,8 @@ packages:
   - 'packages/zrender'  
   - 'packages/fabric'  
   - 'packages/physics'  
-  - 'packages/dom'  
+  - 'packages/dom'
+  - 'packages/lyf'  
   # components/ 子目录中的所有包
   #- 'components/**'
   # 排除测试目录中的包

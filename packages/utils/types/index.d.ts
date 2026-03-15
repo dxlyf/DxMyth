@@ -36,3 +36,6 @@ export * from './Transaction';
 export * from './StackCursor';
 export * from './Pool';
 export * from './Disposable';
+export * as Scheduler from './scheduler';
+export * as StateMachine from './state/StateMachine';
+export * as StateMachinePlus from './state/StateMachinePlus';

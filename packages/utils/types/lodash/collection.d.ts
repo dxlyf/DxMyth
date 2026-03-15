@@ -26,6 +26,4 @@ import { default as shuffle } from './shuffle';
 import { default as size } from './size';
 import { default as some } from './some';
 import { default as sortBy } from './sortBy';
-
-
 export { default } from './collection.default';
