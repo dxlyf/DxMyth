@@ -1,38 +1,54 @@
-import { ILyf } from "src/interface/ILyf";
-import { IRenderer } from "src/interface/IRenderer";
-import { CanvasLayer, type CanvasLayerOptions } from "./CanvasLayer";
 
-export class CanvasRenderer implements IRenderer {
+import type { IRenderer } from "src/interface/IRenderer";
+import { CANVAS_RENDERER_EVENTS, CanvasRendererOptions, type CanvasRendererEventMap } from "src/interface/renderer/ICanvasRenderer";
+
+import { EventEmitter } from "src/utils/EventEmitter";
+import { useElementResize } from "src/utils/resize";
+
+
+export class CanvasRenderer extends EventEmitter<CanvasRendererEventMap> implements IRenderer {
     type = 'canvas'
-    owner: ILyf
-    layers: CanvasLayer[] = []
-    mainLayer: CanvasLayer
-    constructor(owner: ILyf) {
-        this.owner = owner
-        this.mainLayer=this.createLayer({
-            canvas: this.owner.config.canvas,
-        })
+    domElement: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+    options: CanvasRendererOptions
+    constructor(options: CanvasRendererOptions) {
+        super()
+        this.options = options
+        this.createDomElement()
+        this.domElement.style.display = 'block'
+        if (this.options.width && this.options.height) {
+            this.setSize(this.options.width, this.options.height)
+        } else {
+            this.on(CANVAS_RENDERER_EVENTS.DISPOSE, useElementResize({
+                element: this.domElement,
+                resizeTo: this.options.resizeTo,
+                onResize: (width, height) => {
+                    this.setSize(width, height)
+                }
+            }))
+        }
     }
-    createLayer(options: CanvasLayerOptions = {}) {
-        const layer = new CanvasLayer({
-            width: this.owner.config.width,
-            height: this.owner.config.height,
-            dpr: this.owner.config.dpr,
-            ...options
-        })
-        return layer
+    createDomElement() {
+        const container = this.options.canvas
+        if (container instanceof HTMLCanvasElement) {
+            this.domElement = container
+        } else {
+            this.domElement = document.createElement('canvas') as HTMLCanvasElement
+            (container as Element).appendChild(this.domElement)
+        }
     }
-    addLayer(layer: CanvasLayer) {
-        this.layers.push(layer)
+    setSize(width: number, height: number) {
+        const dpr = this.options.dpr
+        this.domElement.width = width * dpr >> 0
+        this.domElement.height = height * dpr >> 0
+        if (dpr > 1) {
+            this.domElement.style.width = `${width}px`
+            this.domElement.style.height = `${height}px`
+        }
+        this.emit(CANVAS_RENDERER_EVENTS.RESIZE, width, height)
+
     }
-    updateLyaerId() {
-        this.layers.forEach((layer, index) => {
-            layer.id = 'canvas_layer_' + index
-        })
-    }
-    appendTo(container: HTMLDivElement) {
-        this.layers.forEach(layer => {
-             container.appendChild(layer.canvas)
-        })
+    dispose() {
+        this.emit(CANVAS_RENDERER_EVENTS.DISPOSE)
     }
 }

@@ -1,6 +1,6 @@
 /*!
- * PixiJS - v8.14.0
- * Compiled Mon, 06 Oct 2025 21:31:20 UTC
+ * PixiJS - v8.17.1
+ * Compiled Sun, 22 Mar 2026 12:39:12 UTC
  *
  * PixiJS is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license
@@ -77,13 +77,15 @@ var unsafe_eval_js = (function (exports) {
       /** Destroys all buffer references. Do not use after calling this. */
       destroy() {
         this.rawBinaryData = null;
+        this.uint32View = null;
+        this.float32View = null;
+        this.uint16View = null;
         this._int8View = null;
         this._uint8View = null;
         this._int16View = null;
-        this.uint16View = null;
         this._int32View = null;
-        this.uint32View = null;
-        this.float32View = null;
+        this._float64Array = null;
+        this._bigUint64Array = null;
       }
       /**
        * Returns the size of the given type in bytes.

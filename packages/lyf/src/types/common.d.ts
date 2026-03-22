@@ -1,0 +1,1 @@
+declare type ResizeTo = 'element' |'parent'| 'window'

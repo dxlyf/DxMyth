@@ -1,7 +1,9 @@
+import { ExtensionType } from '../../../extensions/Extensions';
 import { Matrix } from '../../../maths/matrix/Matrix';
 import { UniformGroup } from '../../../rendering/renderers/shared/shader/UniformGroup';
 import { getAdjustedBlendModeBlend } from '../../../rendering/renderers/shared/state/getAdjustedBlendModeBlend';
 import { State } from '../../../rendering/renderers/shared/state/State';
+import { GCManagedHash } from '../../../utils/data/GCManagedHash';
 import { color32BitToUniform } from '../../graphics/gpu/colorToUniform';
 import { ParticleBuffer } from './ParticleBuffer';
 import { ParticleShader } from './shader/ParticleShader';
@@ -25,6 +27,14 @@ export interface ParticleContainerAdaptor
  */
 export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
 {
+    /** @ignore */
+    public static extension: { type: ExtensionType[]; name: 'particle' } = {
+        type: [
+            ExtensionType.CanvasPipes,
+        ],
+        name: 'particle',
+    } as const;
+
     /** The default shader that is used if a sprite doesn't have a more specific one. */
     public defaultShader: Shader;
 
@@ -34,6 +44,7 @@ export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
     public readonly state = State.for2d();
     /** @internal */
     public readonly renderer: Renderer;
+    private readonly _managedContainers: GCManagedHash<ParticleContainer>;
 
     /** Local uniforms that are used for rendering particles. */
     public readonly localUniforms = new UniformGroup({
@@ -56,6 +67,8 @@ export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
         this.defaultShader = new ParticleShader();
 
         this.state = State.for2d();
+
+        this._managedContainers = new GCManagedHash({ renderer, type: 'renderable', name: 'particleContainer' });
     }
 
     public validateRenderable(_renderable: ParticleContainer): boolean
@@ -82,13 +95,14 @@ export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
             properties: renderable._properties,
         });
 
+        this._managedContainers.add(renderable);
+
         return renderable._gpuData[this.renderer.uid];
     }
 
     public updateRenderable(_renderable: ParticleContainer)
     {
         // nothing to be done here!
-
     }
 
     public execute(container: ParticleContainer): void
@@ -118,9 +132,15 @@ export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
 
         container.worldTransform.copyTo(transformationMatrix);
 
-        transformationMatrix.prepend(renderer.globalUniforms.globalUniformData.projectionMatrix);
+        // Apply the global offset from filters (e.g., when using filterArea)
+        const globalUniformData = renderer.globalUniforms.globalUniformData;
 
-        uniforms.uResolution = renderer.globalUniforms.globalUniformData.resolution;
+        transformationMatrix.tx -= globalUniformData.offset.x;
+        transformationMatrix.ty -= globalUniformData.offset.y;
+
+        transformationMatrix.prepend(globalUniformData.projectionMatrix);
+
+        uniforms.uResolution = globalUniformData.resolution;
         uniforms.uRound = renderer._roundPixels | container._roundPixels;
 
         color32BitToUniform(
@@ -135,6 +155,7 @@ export class ParticleContainerPipe implements RenderPipe<ParticleContainer>
     /** Destroys the ParticleRenderer. */
     public destroy(): void
     {
+        this._managedContainers.destroy();
         (this.renderer as null) = null;
         if (this.defaultShader)
         {

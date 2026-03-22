@@ -1,8 +1,10 @@
 import { defineConfig, loadEnv } from 'vite'
 import dts from 'vite-plugin-dts'
-import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-const __dirname = dirname(fileURLToPath(import.meta.url))
+import path from 'node:path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export default defineConfig(({ mode }) => {
   // 根据当前工作目录中的 `mode` 加载 .env 文件
@@ -36,10 +38,10 @@ export default defineConfig(({ mode }) => {
     },
     resolve:{
         alias:{
-            'src':'/src',
-            'three':'/src/3d/index.core.ts',
-            'gl-matrix':'/src/gl-matrix',
-            'eventmitter3':'/src/eventemitter3'
+            'src':path.resolve(__dirname,'src'),
+            'three':path.resolve(__dirname,'src/3d/index.core.ts'),
+            'gl-matrix':path.resolve(__dirname,'src/gl-matrix'),
+            'eventmitter3':path.resolve(__dirname,'src/eventemitter3')
         }
     }
   }

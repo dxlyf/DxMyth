@@ -1,3 +1,5 @@
+import { type GCable } from '../../shared/GCSystem';
+
 import type { BindResource } from './BindResource';
 
 /**
@@ -93,11 +95,7 @@ export class BindGroup
 
         if (resource === currentResource) return;
 
-        if (currentResource)
-        {
-            resource.off?.('change', this.onResourceChange, this);
-        }
-
+        currentResource?.off?.('change', this.onResourceChange, this);
         resource.on?.('change', this.onResourceChange, this);
 
         this.resources[index] = resource;
@@ -117,15 +115,17 @@ export class BindGroup
     /**
      * Used internally to 'touch' each resource, to ensure that the GC
      * knows that all resources in this bind group are still being used.
+     * @param now - The current time in milliseconds.
      * @param tick - The current tick.
      * @internal
      */
-    public _touch(tick: number)
+    public _touch(now: number, tick: number): void
     {
         const resources = this.resources;
 
         for (const i in resources)
         {
+            (resources[i] as BindResource & GCable)._gcLastUsed = now;
             resources[i]._touched = tick;
         }
     }
@@ -153,16 +153,7 @@ export class BindGroup
         // using this bind group with a destroyed resource will cause the renderer to explode :)
         if (resource.destroyed)
         {
-            // free up the resource
-            const resources = this.resources;
-
-            for (const i in resources)
-            {
-                if (resources[i] === resource)
-                {
-                    resources[i] = null;
-                }
-            }
+            this.destroy();
         }
         else
         {

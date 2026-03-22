@@ -1,4 +1,4 @@
-import type { InteractiveEventMap,InteractiveHandle } from "src/core/InteractiveEvent";
+import type { InteractiveEventMap,InteractiveHandle } from "src/events/InteractiveEvent";
 
 export interface IInteractiveEventEmitter<Events extends InteractiveEventMap>{
     on<Type extends  Extract<keyof Events,string>>(type:Type,listener:InteractiveHandle<Events[Type]>): this;

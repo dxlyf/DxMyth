@@ -3,10 +3,10 @@ import { IRenderer } from "./IRenderer"
 import type {IPlugin} from './IPlugin'
 import { IEventEmitter } from "./IEventEmitter"
 
-export const LYF_EVENTS={
-    BEFORE_INIT:'beforeInit',
-    INIT:'init',
-    DISPOSE:'dispose'
+export enum LYF_EVENTS{
+    BEFORE_INIT='beforeInit',
+    INIT='init',
+    DISPOSE='dispose'
 }
 export type LyfEventMap={
     [LYF_EVENTS.BEFORE_INIT]:[instance:ILyf]
@@ -15,17 +15,20 @@ export type LyfEventMap={
 }
 
 export type LyfConfig={
-    canvas?:HTMLCanvasElement
+    canvas?:HTMLElement
     width?:number
     height?:number
     dpr?:number
+    resizeTo?:ResizeTo
     plugins?:IPlugin[]
     rendererType?:string
 }
 
 export interface ILyf extends IEventEmitter<LyfEventMap>{
     config:LyfConfig
-    setRenderer(type:string,renderer:IRenderer):void
+    domElement: Element
+    registerPlugin(...plugins: IPlugin[]):void
+    registerRenderer(type:string,renderer:IRenderer):void
     addInitTask(task:Promise<void>):void
     initialize:(config: LyfConfig)=>Promise<void>
     dispose:()=>void

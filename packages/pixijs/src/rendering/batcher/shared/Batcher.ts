@@ -62,6 +62,8 @@ export class Batch implements Instruction
     public bindGroup: BindGroup;
 
     public batcher: Batcher;
+    /** Elements contained in this batch. Used by the Canvas renderer. */
+    public elements: BatchableElement[];
 
     public destroy()
     {
@@ -69,6 +71,7 @@ export class Batch implements Instruction
         this.gpuBindGroup = null;
         this.bindGroup = null;
         this.batcher = null;
+        this.elements = null;
     }
 }
 
@@ -99,6 +102,7 @@ function getBatchFromPool()
 
 function returnBatchToPool(batch: Batch)
 {
+    batch.elements = null;
     batchPool[batchPoolIndex++] = batch;
 }
 
@@ -416,6 +420,7 @@ export abstract class Batcher
         }
 
         this.batchIndex = 0;
+
         this._batchIndexStart = 0;
         this._batchIndexSize = 0;
 
@@ -511,6 +516,7 @@ export abstract class Batcher
         let start = this._batchIndexStart;
 
         let action: BatchAction = 'startBatch';
+        let batchElements: BatchableElement[] = [];
 
         const maxTextures = this.maxTextures;
 
@@ -563,6 +569,7 @@ export abstract class Batcher
                 }
 
                 element._batch = batch;
+                batchElements.push(element);
 
                 continue;
             }
@@ -579,7 +586,8 @@ export abstract class Batcher
                     blendMode,
                     topology,
                     instructionSet,
-                    action
+                    action,
+                    batchElements
                 );
 
                 action = 'renderBatch';
@@ -591,6 +599,7 @@ export abstract class Batcher
                 batch = getBatchFromPool();
                 textureBatch = batch.textures;
                 textureBatch.clear();
+                batchElements = [];
 
                 ++BATCH_TICK;
             }
@@ -599,6 +608,7 @@ export abstract class Batcher
             textureBatch.ids[source.uid] = textureBatch.count;
             textureBatch.textures[textureBatch.count++] = source;
             element._batch = batch;
+            batchElements.push(element);
 
             size += element.indexSize;
 
@@ -641,7 +651,8 @@ export abstract class Batcher
                 blendMode,
                 topology,
                 instructionSet,
-                action
+                action,
+                batchElements
             );
 
             start = size;
@@ -661,7 +672,8 @@ export abstract class Batcher
         blendMode: BLEND_MODES,
         topology: Topology,
         instructionSet: InstructionSet,
-        action: BatchAction
+        action: BatchAction,
+        elements?: BatchableElement[]
     )
     {
         batch.gpuBindGroup = null;
@@ -674,6 +686,7 @@ export abstract class Batcher
         batch.topology = topology;
         batch.start = indexStart;
         batch.size = indexSize;
+        batch.elements = elements;
 
         ++BATCH_TICK;
 
@@ -744,7 +757,7 @@ export abstract class Batcher
         }
         else
         {
-            fastCopy(indexBuffer.buffer, newIndexBuffer.buffer);
+            fastCopy(indexBuffer.buffer as ArrayBuffer, newIndexBuffer.buffer);
         }
 
         this.indexBuffer = newIndexBuffer;
@@ -774,16 +787,29 @@ export abstract class Batcher
         }
     }
 
-    public destroy()
+    /**
+     * Destroys the batch and its resources.
+     * @param options - destruction options
+     * @param options.shader - whether to destroy the associated shader
+     */
+    public destroy(options: {shader?: boolean} = {})
     {
         if (this.batches === null) return;
 
-        for (let i = 0; i < this.batches.length; i++)
+        for (let i = 0; i < this.batchIndex; i++)
         {
             returnBatchToPool(this.batches[i]);
         }
 
         this.batches = null;
+        this.geometry.destroy(true);
+        this.geometry = null;
+
+        if (options.shader)
+        {
+            this.shader?.destroy();
+            this.shader = null;
+        }
 
         for (let i = 0; i < this._elements.length; i++)
         {
@@ -798,4 +824,3 @@ export abstract class Batcher
         this.attributeBuffer = null;
     }
 }
-

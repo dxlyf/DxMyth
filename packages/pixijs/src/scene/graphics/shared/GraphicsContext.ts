@@ -3,13 +3,16 @@ import EventEmitter from 'eventemitter3';
 import { Color, type ColorSource } from '../../../color/Color';
 import { Matrix } from '../../../maths/matrix/Matrix';
 import { Point } from '../../../maths/point/Point';
+import { type GCable, type GCData } from '../../../rendering/renderers/shared/GCSystem';
 import { Texture } from '../../../rendering/renderers/shared/texture/Texture';
 import { uid } from '../../../utils/data/uid';
 import { deprecation, v8_0_0 } from '../../../utils/logging/deprecation';
 import { Bounds } from '../../container/bounds/Bounds';
+import { type GpuGraphicsContext } from './GraphicsContextSystem';
 import { GraphicsPath } from './path/GraphicsPath';
 import { SVGParser } from './svg/SVGParser';
 import { toFillStyle, toStrokeStyle } from './utils/convertFillInputToFillStyle';
+import { getMaxMiterRatio } from './utils/getMaxMiterRatio';
 
 import type { PointData } from '../../../maths/point/PointData';
 import type { Shader } from '../../../rendering/renderers/shared/shader/Shader';
@@ -81,8 +84,18 @@ const tempMatrix = new Matrix();
 export class GraphicsContext extends EventEmitter<{
     update: GraphicsContext
     destroy: GraphicsContext
-}>
+    unload: GraphicsContext
+}> implements GCable
 {
+    /** @internal */
+    public _gpuData: Record<number | string, GpuGraphicsContext> = Object.create(null);
+    /** @internal */
+    public _gcData?: GCData;
+    /** If set to true, the resource will be garbage collected automatically when it is not used. */
+    public autoGarbageCollect = true;
+    /** @internal */
+    public _gcLastUsed = -1;
+
     /** The default fill style to use when none is provided. */
     public static defaultFillStyle: ConvertedFillStyle = {
         /** The color to use for the fill. */
@@ -146,6 +159,9 @@ export class GraphicsContext extends EventEmitter<{
      * @advanced
      */
     public customShader?: Shader;
+
+    /** Whether the graphics context has been destroyed. */
+    public destroyed = false;
 
     private _activePath: GraphicsPath = new GraphicsPath();
     private _transform: Matrix = new Matrix();
@@ -274,7 +290,7 @@ export class GraphicsContext extends EventEmitter<{
 
                 transform: this._transform.clone(),
                 alpha: this._fillStyle.alpha,
-                style: tint ? Color.shared.setValue(tint).toNumber() : 0xFFFFFF,
+                style: (tint || tint === 0) ? Color.shared.setValue(tint).toNumber() : 0xFFFFFF,
             }
         });
 
@@ -310,7 +326,7 @@ export class GraphicsContext extends EventEmitter<{
 
         const lastInstruction = this.instructions[this.instructions.length - 1];
 
-        if (this._tick === 0 && lastInstruction && lastInstruction.action === 'stroke')
+        if (this._tick === 0 && lastInstruction?.action === 'stroke')
         {
             path = lastInstruction.data.path;
         }
@@ -371,7 +387,7 @@ export class GraphicsContext extends EventEmitter<{
 
         const lastInstruction = this.instructions[this.instructions.length - 1];
 
-        if (this._tick === 0 && lastInstruction && lastInstruction.action === 'fill')
+        if (this._tick === 0 && lastInstruction?.action === 'fill')
         {
             path = lastInstruction.data.path;
         }
@@ -1063,15 +1079,9 @@ export class GraphicsContext extends EventEmitter<{
 
     protected onUpdate(): void
     {
-        // Every time the content is updated - we must invalidate bounds, regardless rendering `dirty` state.
-        // Bounds can be read multiple times per frame.
         this._boundsDirty = true;
-
-        // Visual updates happen only once per frame.
-        // There is no need to dispatch an `update` in if it was already dispatched this frame.
-        if (this.dirty) return;
-        this.emit('update', this, 0x10);
         this.dirty = true;
+        this.emit('update', this, 0x10);
     }
 
     /** The bounds of the graphic shape. */
@@ -1109,7 +1119,12 @@ export class GraphicsContext extends EventEmitter<{
 
                 const alignment = data.style.alignment;
 
-                const outerPadding = (data.style.width * (1 - alignment));
+                let outerPadding = (data.style.width * (1 - alignment));
+
+                if (data.style.join === 'miter')
+                {
+                    outerPadding *= getMaxMiterRatio(data.path, data.style.miterLimit);
+                }
 
                 const _bounds = data.path.bounds;
 
@@ -1120,6 +1135,11 @@ export class GraphicsContext extends EventEmitter<{
                     _bounds.maxY + outerPadding
                 );
             }
+        }
+
+        if (!bounds.isValid)
+        {
+            bounds.set(0, 0, 0, 0);
         }
 
         return bounds;
@@ -1199,6 +1219,17 @@ export class GraphicsContext extends EventEmitter<{
         return hasHit;
     }
 
+    /** Unloads the GPU data from the graphics context. */
+    public unload(): void
+    {
+        this.emit('unload', this);
+        for (const key in this._gpuData)
+        {
+            this._gpuData[key]?.destroy();
+        }
+        this._gpuData = Object.create(null);
+    }
+
     /**
      * Destroys the GraphicsData object.
      * @param options - Options parameter. A boolean will act as if all options
@@ -1210,9 +1241,12 @@ export class GraphicsContext extends EventEmitter<{
      */
     public destroy(options: TypeOrBool<TextureDestroyOptions> = false): void
     {
+        if (this.destroyed) return;
+        this.destroyed = true;
         this._stateStack.length = 0;
         this._transform = null;
 
+        this.unload();
         this.emit('destroy', this);
         this.removeAllListeners();
 

@@ -2,15 +2,18 @@ import { ExtensionType } from '../../extensions/Extensions';
 import { getAdjustedBlendModeBlend } from '../../rendering/renderers/shared/state/getAdjustedBlendModeBlend';
 import { State } from '../../rendering/renderers/shared/state/State';
 import { type Renderer, RendererType } from '../../rendering/renderers/types';
+import { GCManagedHash } from '../../utils/data/GCManagedHash';
 import { color32BitToUniform } from '../graphics/gpu/colorToUniform';
 import { BatchableMesh } from '../mesh/shared/BatchableMesh';
 import { MeshGeometry } from '../mesh/shared/MeshGeometry';
+import { type GPUData } from '../view/ViewContainer';
 import { TilingSpriteShader } from './shader/TilingSpriteShader';
 import { QuadGeometry } from './utils/QuadGeometry';
 import { setPositions } from './utils/setPositions';
 import { setUvs } from './utils/setUvs';
 
 import type { WebGLRenderer } from '../../rendering/renderers/gl/WebGLRenderer';
+import type { WebGPURenderer } from '../../rendering/renderers/gpu/WebGPURenderer';
 import type { InstructionSet } from '../../rendering/renderers/shared/instructions/InstructionSet';
 import type { RenderPipe } from '../../rendering/renderers/shared/instructions/RenderPipe';
 import type { TilingSprite } from './TilingSprite';
@@ -18,7 +21,7 @@ import type { TilingSprite } from './TilingSprite';
 const sharedQuad = new QuadGeometry();
 
 /** @internal */
-export class TilingSpriteGpuData
+export class TilingSpriteGpuData implements GPUData
 {
     public canBatch: boolean = true;
     public renderable: TilingSprite;
@@ -54,17 +57,18 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
         type: [
             ExtensionType.WebGLPipes,
             ExtensionType.WebGPUPipes,
-            ExtensionType.CanvasPipes,
         ],
         name: 'tilingSprite',
     } as const;
 
     private _renderer: Renderer;
     private readonly _state: State = State.default2d;
+    private readonly _managedTilingSprites: GCManagedHash<TilingSprite>;
 
     constructor(renderer: Renderer)
     {
         this._renderer = renderer;
+        this._managedTilingSprites = new GCManagedHash({ renderer, type: 'renderable', name: 'tilingSprite' });
     }
 
     public validateRenderable(renderable: TilingSprite): boolean
@@ -140,15 +144,16 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
 
     public execute(tilingSprite: TilingSprite)
     {
+        const renderer = this._renderer as WebGLRenderer | WebGPURenderer;
         const { shader } = this._getTilingSpriteData(tilingSprite);
 
-        shader.groups[0] = this._renderer.globalUniforms.bindGroup;
+        shader.groups[0] = renderer.globalUniforms.bindGroup;
 
         // deal with local uniforms...
         const localUniforms = shader.resources.localUniforms.uniforms;
 
         localUniforms.uTransformMatrix = tilingSprite.groupTransform;
-        localUniforms.uRound = this._renderer._roundPixels | tilingSprite._roundPixels;
+        localUniforms.uRound = renderer._roundPixels | tilingSprite._roundPixels;
 
         color32BitToUniform(
             tilingSprite.groupColorAlpha,
@@ -158,7 +163,7 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
 
         this._state.blendMode = getAdjustedBlendModeBlend(tilingSprite.groupBlendMode, tilingSprite.texture._source);
 
-        this._renderer.encoder.draw({
+        renderer.encoder.draw({
             geometry: sharedQuad,
             shader,
             state: this._state,
@@ -207,6 +212,8 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
         gpuData.renderable = tilingSprite;
         tilingSprite._gpuData[this._renderer.uid] = gpuData;
 
+        this._managedTilingSprites.add(tilingSprite);
+
         return gpuData;
     }
 
@@ -230,6 +237,7 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
 
     public destroy()
     {
+        this._managedTilingSprites.destroy();
         this._renderer = null;
     }
 
@@ -250,4 +258,3 @@ export class TilingSpritePipe implements RenderPipe<TilingSprite>
         return renderableData.canBatch;
     }
 }
-

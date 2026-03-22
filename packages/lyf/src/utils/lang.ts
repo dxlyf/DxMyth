@@ -89,6 +89,7 @@ const isFiniteNumber=(value:any)=>{
     return Number.isFinite(value)
 }
 
+
 export {
     isFiniteNumber,
     isBigInt,

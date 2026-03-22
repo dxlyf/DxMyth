@@ -1,6 +1,6 @@
 {
   "name": "@dxyl/utils",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "Collected many useful mathematical tools",
   "publishConfig": {
     "access": "public"

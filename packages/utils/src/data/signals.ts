@@ -1,3 +1,4 @@
+// 1.14.0
 // An named symbol/brand for detecting Signal instances even when they weren't
 // created using the same signals library version.
 const BRAND_SYMBOL = Symbol.for("preact-signals");
@@ -46,6 +47,7 @@ function endBatch() {
 
 	let error: unknown;
 	let hasError = false;
+	reconcileBatchSnapshots();
 
 	while (batchedEffect !== undefined) {
 		let effect: Effect | undefined = batchedEffect;
@@ -95,6 +97,7 @@ function batch<T>(fn: () => T): T {
 	if (batchDepth > 0) {
 		return fn();
 	}
+	currentBatchSnapshotVersion = ++batchSnapshotVersion;
 	/*@__INLINE__**/ startBatch();
 	try {
 		return fn();
@@ -128,9 +131,49 @@ let batchedEffect: Effect | undefined = undefined;
 let batchDepth = 0;
 let batchIteration = 0;
 
+type BatchSnapshot = {
+	_source: Signal;
+	_value: unknown;
+	_version: number;
+	_next?: BatchSnapshot;
+};
+
+let batchSnapshotVersion = 0;
+let currentBatchSnapshotVersion = 0;
+let batchSnapshots: BatchSnapshot | undefined = undefined;
+
 // A global version number for signals, used for fast-pathing repeated
 // computed.peek()/computed.value calls when nothing has changed globally.
 let globalVersion = 0;
+
+function recordBatchSnapshot(source: Signal) {
+	// Only capture writes during the user-visible batch callback, not during effect flush.
+	if (batchDepth === 0 || batchIteration !== 0) {
+		return;
+	}
+
+	if (source._batchSnapshotVersion !== currentBatchSnapshotVersion) {
+		source._batchSnapshotVersion = currentBatchSnapshotVersion;
+		batchSnapshots = {
+			_source: source,
+			_value: source._value,
+			_version: source._version,
+			_next: batchSnapshots,
+		};
+	}
+}
+
+function reconcileBatchSnapshots() {
+	let snapshots = batchSnapshots;
+	batchSnapshots = undefined;
+
+	while (snapshots !== undefined) {
+		if (snapshots._source._value === snapshots._value) {
+			snapshots._source._version = snapshots._version;
+		}
+		snapshots = snapshots._next;
+	}
+}
 
 function addDependency(signal: Signal): Node | undefined {
 	if (evalContext === undefined) {
@@ -212,6 +255,8 @@ function addDependency(signal: Signal): Node | undefined {
 	return undefined;
 }
 
+//#region Signal
+
 /**
  * The base class for plain and computed signals.
  */
@@ -238,6 +283,9 @@ declare class Signal<T = any> {
 
 	/** @internal */
 	_targets?: Node;
+
+	/** @internal */
+	_batchSnapshotVersion: number;
 
 	constructor(value?: T, options?: SignalOptions<T>);
 
@@ -292,6 +340,7 @@ function Signal(this: Signal, value?: unknown, options?: SignalOptions) {
 	this._version = 0;
 	this._node = undefined;
 	this._targets = undefined;
+	this._batchSnapshotVersion = 0;
 	this._watched = options?.watched;
 	this._unwatched = options?.unwatched;
 	this.name = options?.name;
@@ -397,6 +446,7 @@ Object.defineProperty(Signal.prototype, "value", {
 				throw new Error("Cycle detected");
 			}
 
+			recordBatchSnapshot(this);
 			this._value = value;
 			this._version++;
 			globalVersion++;
@@ -428,6 +478,10 @@ export function signal<T = undefined>(): Signal<T | undefined>;
 export function signal<T>(value?: T, options?: SignalOptions<T>): Signal<T> {
 	return new Signal(value, options);
 }
+
+//#endregion Signal
+
+//#region Computed
 
 function needsToRecompute(target: Computed | Effect): boolean {
 	// Check the dependencies for changed values. The dependency list is already
@@ -726,6 +780,10 @@ function computed<T>(
 	return new Computed(fn, options);
 }
 
+//#endregion Computed
+
+//#region Effect
+
 function cleanupEffect(effect: Effect) {
 	const cleanup = effect._cleanup;
 	effect._cleanup = undefined;
@@ -791,6 +849,7 @@ declare class Effect {
 	_sources?: Node;
 	_nextBatchedEffect?: Effect;
 	_flags: number;
+	_debugCallback?: () => void;
 	name?: string;
 
 	constructor(fn: EffectFn, options?: EffectOptions);
@@ -806,6 +865,8 @@ export interface EffectOptions {
 	name?: string;
 }
 
+let capturedEffects: Effect[] | undefined;
+
 /** @internal */
 function Effect(this: Effect, fn: EffectFn, options?: EffectOptions) {
 	this._fn = fn;
@@ -814,6 +875,10 @@ function Effect(this: Effect, fn: EffectFn, options?: EffectOptions) {
 	this._nextBatchedEffect = undefined;
 	this._flags = TRACKING;
 	this.name = options?.name;
+
+	if (capturedEffects) {
+		capturedEffects.push(this);
+	}
 }
 
 Effect.prototype._callback = function () {
@@ -893,11 +958,147 @@ function effect(fn: EffectFn, options?: EffectOptions): () => void {
 	return dispose as any;
 }
 
+//#endregion Effect
+
+//#region Action
+
+function action<TArgs extends unknown[], TReturn>(
+	fn: (...args: TArgs) => TReturn
+): (...args: TArgs) => TReturn {
+	return function actionWrapper(this: unknown, ...args: TArgs) {
+		return batch(() => untracked(() => fn.apply(this, args)));
+	};
+}
+
+//#endregion Action
+
+//#region createModel
+
+/** Models should only contain signals, actions, and nested objects containing only signals and actions. */
+type ValidateModel<TModel> = {
+	[Key in keyof TModel]: TModel[Key] extends ReadonlySignal<unknown>
+		? TModel[Key]
+		: TModel[Key] extends (...args: any[]) => any
+			? TModel[Key]
+			: TModel[Key] extends object
+				? ValidateModel<TModel[Key]>
+				: `Property ${Key extends string ? `'${Key}' ` : ""}is not a Signal, Action, or an object that contains only Signals and Actions.`;
+};
+
+export type Model<TModel> = ValidateModel<TModel> & Disposable;
+
+export type ModelFactory<TModel, TFactoryArgs extends any[] = []> = (
+	...args: TFactoryArgs
+) => ValidateModel<TModel>;
+export type ModelConstructor<TModel, TFactoryArgs extends any[] = []> = new (
+	...args: TFactoryArgs
+) => Model<TModel>;
+
+/**
+ * The public types for ModelConstructor require using `new` to help
+ * disambiguate the function passed into `createModel` and the returned
+ * constructor function. It is easier to say that `createModel` accepts
+ * a factory and returns a class, then to say it accepts a factory and
+ * returns a factory. In other words, this example:
+ *
+ * ```ts
+ * const PersonModel = createModel((name: string) => ({ ... }));
+ * const person = new PersonModel("John");
+ * ```
+ *
+ * is easier to understand than this example:
+ *
+ * ```ts
+ * const createPerson = createModel((name: string) => ({ ... }));
+ * const person = createPerson("John");
+ * ```
+ *
+ * However, internally we implement `createModel` to return a function
+ * that can be called without `new` for simplicity. To bridge the gap
+ * between the public types and the internal implementation, we define
+ * this internal interface that extends the public interface but also
+ * allows calling without `new`.
+ *
+ * This pattern is used by the Preact & React adapters to make instantiating
+ * a model or a function that returns a model easier.
+ *
+ * @internal
+ */
+interface InternalModelConstructor<
+	TModel,
+	TFactoryArgs extends any[],
+> extends ModelConstructor<TModel, TFactoryArgs> {
+	(...args: TFactoryArgs): Model<TModel>;
+}
+
+function startCapturingEffects(): () => Effect[] | undefined {
+	let prevCapturedEffects = capturedEffects;
+	capturedEffects = [];
+
+	return function stopCapturingEffects() {
+		let modelEffects = capturedEffects;
+		if (capturedEffects && prevCapturedEffects) {
+			prevCapturedEffects = prevCapturedEffects.concat(capturedEffects);
+		}
+
+		capturedEffects = prevCapturedEffects;
+
+		return modelEffects;
+	};
+}
+
+function createModel<TModel, TFactoryArgs extends any[] = []>(
+	modelFactory: ModelFactory<TModel, TFactoryArgs>
+): ModelConstructor<TModel, TFactoryArgs> {
+	return function SignalModel(...args: TFactoryArgs): Model<TModel> {
+		let modelEffects: Effect[] | undefined;
+		let model: Model<TModel>;
+
+		const stopCapturingEffects = startCapturingEffects();
+		try {
+			model = modelFactory(...args) as Model<TModel>;
+		} catch (err) {
+			// Drop any captured effects on error. Errors from nested models will bubble
+			// up here and recursively reset `capturedEffects` to `undefined` preventing
+			// any captured effects from leaking
+			capturedEffects = undefined;
+			throw err;
+		} finally {
+			modelEffects = stopCapturingEffects();
+		}
+
+		for (const key in model) {
+			// @ts-expect-error TypeScript can't infer that model[key] is a valid here
+			if (typeof model[key] === "function") {
+				// @ts-expect-error TypeScript can't infer that model[key] is a valid function
+				// to pass to action here
+				model[key] = action(model[key]);
+			}
+		}
+
+		model[Symbol.dispose] = action(function disposeModel() {
+			if (modelEffects) {
+				for (let i = 0; i < modelEffects.length; i++) {
+					modelEffects[i].dispose();
+				}
+			}
+
+			modelEffects = undefined;
+		});
+
+		return model;
+	} as InternalModelConstructor<TModel, TFactoryArgs>;
+}
+
+//#endregion createModel
+
 export {
 	computed,
 	effect,
 	batch,
 	untracked,
+	action,
+	createModel,
 	Signal,
 	ReadonlySignal,
 	Effect,

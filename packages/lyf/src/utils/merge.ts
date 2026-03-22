@@ -52,14 +52,13 @@ const handleDeepMerge=(context:MergeContext)=>{
     if(isUndefined(srcValue)){
         return
     }
-    if(isPrimitive(srcValue)){
-        context.target[context.key]=srcValue
-    }
-    else if(isArray(srcValue)){
+    if(isArray(srcValue)){
         context.target[context.key]=_mergeWith(isArray(objValue)?objValue:[] ,srcValue,context.merge,context)
     }
     else if(isPlainObject(srcValue)){
         context.target[context.key]=_mergeWith(isPlainObject(objValue)?objValue:{} ,srcValue,context.merge,context)
+    }else{
+         context.target[context.key]=srcValue
     }
 }
 const handleDeepMergeConfig=(context:MergeContext)=>{
@@ -68,15 +67,14 @@ const handleDeepMergeConfig=(context:MergeContext)=>{
     if(isUndefined(srcValue)){
         return
     }
-    if(isPrimitive(srcValue)){
-        context.target[context.key]=srcValue
-    }
-    else if(isArray(srcValue)){
+    if(isArray(srcValue)){
         context.target[context.key]=(isArray(objValue)?objValue:[]).concat(srcValue)
         //context.target[context.key]=_mergeWith(isArray(objValue)?objValue:[] ,srcValue,context.merge,context)
     }
     else if(isPlainObject(srcValue)){
         context.target[context.key]=_mergeWith(isPlainObject(objValue)?objValue:{} ,srcValue,context.merge,context)
+    }else{
+        context.target[context.key]=srcValue
     }
 }
 const handleDefault=(context:MergeContext)=>{
