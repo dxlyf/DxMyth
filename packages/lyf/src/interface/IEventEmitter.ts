@@ -1,4 +1,5 @@
 
+
 export type EventMap = Record<string,any[]>;
 
 export type EventHandle<T>=(...args:ParameterToArray<T>)=>void

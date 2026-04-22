@@ -3,10 +3,10 @@ import { IRenderer } from "./IRenderer"
 import type {IPlugin} from './IPlugin'
 import { IEventEmitter } from "./IEventEmitter"
 
-export enum LYF_EVENTS{
-    BEFORE_INIT='beforeInit',
-    INIT='init',
-    DISPOSE='dispose'
+export const LYF_EVENTS={
+    BEFORE_INIT:'beforeInit',
+    INIT:'init',
+    DISPOSE:'dispose'
 }
 export type LyfEventMap={
     [LYF_EVENTS.BEFORE_INIT]:[instance:ILyf]

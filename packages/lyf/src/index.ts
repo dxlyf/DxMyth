@@ -1,8 +1,8 @@
 export * from './lyf'
-import * as matrix2DUtil from './math/Matrix2D'
-import * as vector2DUtil from './math/Vector2D'
+import {Matrix2D} from './math/Matrix2D'
+import {Vector2D} from './math/Vector2D'
 
-export const math={
-    matrix2DUtil,
-    vector2DUtil
+export {
+    Matrix2D,
+    Vector2D
 }

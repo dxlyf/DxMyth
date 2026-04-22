@@ -153,8 +153,7 @@ export class Vector2D extends Float32Array implements IVector2D {
         return this
     }
     add(vector: Vector2DLike): IVector2D {
-        this[0] += vector[0]
-        this[1] += vector[1]
+        add(this, this, vector)
         return this
     }
     subtract(vector: Vector2DLike): IVector2D {

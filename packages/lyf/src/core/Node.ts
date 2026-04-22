@@ -15,10 +15,10 @@ export class Node<Props extends NodeProps,Events extends NodeEventMap> extends I
     constructor(props?:Props){
         super()
         this.uid=nodeUid++
-        this.props=mergeConfig({},...this.getDefaultProps(),props)
+        this.props=mergeConfig({},this.getDefaultProps(),props)
     }
-    getDefaultProps(): Props[] {
-        return [this.props]
+    getDefaultProps(): Partial<Props> {
+        return {}
     }
     add(child: INode<Props,Events>): void {
         if(child.parent){

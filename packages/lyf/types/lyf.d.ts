@@ -7,7 +7,6 @@ export declare class Lyf extends EventEmitter<LyfEventMap> implements ILyf {
     static registerPlugin(plugin: IPlugin): void;
     config: LyfConfig;
     renderer: IRenderer | null;
-    domElement: HTMLElement | null;
     private renderers;
     private promises;
     private plugins;
@@ -16,6 +15,7 @@ export declare class Lyf extends EventEmitter<LyfEventMap> implements ILyf {
     private installPlugins;
     registerRenderer(type: string, renderer: IRenderer): void;
     addInitTask(promise: Promise<void>): void;
+    get domElement(): Element;
     initialize(config: LyfConfig): Promise<void>;
     dispose(): void;
 }

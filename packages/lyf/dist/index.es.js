@@ -128,13 +128,6 @@ const isPlainObject = (value) => {
   }
   return proto === Object.prototype;
 };
-const isPrimitive = (value) => {
-  if (value === null) {
-    return true;
-  }
-  const type = typeof value;
-  return type !== "object" && type !== "function";
-};
 const _mergeWith = (target, source, merge2, parentContext = null) => {
   if (isArray(source)) {
     for (const [name, value] of source) {
@@ -170,12 +163,12 @@ const handleDeepMergeConfig = (context) => {
   if (isUndefined(srcValue)) {
     return;
   }
-  if (isPrimitive(srcValue)) {
-    context.target[context.key] = srcValue;
-  } else if (isArray(srcValue)) {
+  if (isArray(srcValue)) {
     context.target[context.key] = (isArray(objValue) ? objValue : []).concat(srcValue);
   } else if (isPlainObject(srcValue)) {
     context.target[context.key] = _mergeWith(isPlainObject(objValue) ? objValue : {}, srcValue, context.merge, context);
+  } else {
+    context.target[context.key] = srcValue;
   }
 };
 const mergeConfig = (target, ...sources) => {
@@ -191,28 +184,156 @@ const mergeConfig = (target, ...sources) => {
   }
   return target;
 };
-class CanvasRenderer {
+const CANVAS_RENDERER_EVENTS = {
+  RESIZE: "resize",
+  DISPOSE: "dispose"
+};
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay);
+  };
+}
+const useElementResize = (options) => {
+  const { element, resizeTo = "element", enableWindowResize = true, enableElementResize = true, debounceDelay = 10, onResize } = options;
+  const handleResize = debounce(() => {
+    const win = element.ownerDocument.defaultView || window;
+    if (resizeTo === "element") {
+      onResize(element.clientWidth, element.clientHeight);
+    } else if (resizeTo === "parent") {
+      const parent = element.parentElement;
+      if (!parent) {
+        return;
+      }
+      onResize(parent.clientWidth || 0, parent.clientHeight || 0);
+    } else {
+      onResize(win.innerWidth, win.innerHeight);
+    }
+  }, debounceDelay);
+  if (enableWindowResize) {
+    window.addEventListener("resize", handleResize);
+  }
+  let observer;
+  if (enableElementResize && resizeTo === "element") {
+    observer = new ResizeObserver(handleResize);
+    observer.observe(element);
+  }
+  handleResize();
+  return () => {
+    observer && observer.disconnect();
+    window.removeEventListener("resize", handleResize);
+  };
+};
+class CanvasRenderer extends EventEmitter {
   type = "canvas";
   domElement;
   ctx;
+  options;
   constructor(options) {
-    this.domElement = options.canvas;
-    this.ctx = this.domElement.getContext("2d");
+    super();
+    this.options = options;
+    this.createDomElement();
+    this.domElement.style.display = "block";
+    if (this.options.width && this.options.height) {
+      this.setSize(this.options.width, this.options.height);
+    } else {
+      this.on(CANVAS_RENDERER_EVENTS.DISPOSE, useElementResize({
+        element: this.domElement,
+        resizeTo: this.options.resizeTo,
+        onResize: (width, height) => {
+          this.setSize(width, height);
+        }
+      }));
+    }
+  }
+  createDomElement() {
+    const container = this.options.canvas;
+    if (container instanceof HTMLCanvasElement) {
+      this.domElement = container;
+    } else {
+      this.domElement = document.createElement("canvas");
+      container.appendChild(this.domElement);
+    }
+  }
+  setSize(width, height) {
+    const dpr = this.options.dpr;
+    this.domElement.width = width * dpr >> 0;
+    this.domElement.height = height * dpr >> 0;
+    if (dpr > 1) {
+      this.domElement.style.width = `${width}px`;
+      this.domElement.style.height = `${height}px`;
+    }
+    this.emit(CANVAS_RENDERER_EVENTS.RESIZE, width, height);
+  }
+  dispose() {
+    this.emit(CANVAS_RENDERER_EVENTS.DISPOSE);
   }
 }
 const CanvasPlugin = (lyf) => {
   lyf.on(LYF_EVENTS.BEFORE_INIT, (lyf2) => {
     const config = lyf2.config;
     if (config.rendererType === "canvas") {
-      const canvasRenderer = new CanvasRenderer(config);
+      const canvasRenderer = new CanvasRenderer({
+        canvas: config.canvas,
+        width: config.width,
+        height: config.height,
+        resizeTo: config.resizeTo,
+        dpr: config.dpr
+      });
       lyf2.registerRenderer("canvas", canvasRenderer);
     }
   });
 };
-class SvgRenderer {
-  type;
+const SVG_RENDERER_EVENTS = {
+  RESIZE: "resize",
+  DISPOSE: "dispose"
+};
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const createSvgElement = (tagName) => {
+  return document.createElementNS(SVG_NAMESPACE, tagName);
+};
+class SvgRenderer extends EventEmitter {
+  type = "svg";
+  domElement;
+  options;
   constructor(options) {
-    this.type = "svg";
+    super();
+    this.options = options;
+    this.createDomElement();
+    this.domElement.style.display = "block";
+    if (this.options.width && this.options.height) {
+      this.setSize(this.options.width, this.options.height);
+    } else {
+      this.on(SVG_RENDERER_EVENTS.DISPOSE, useElementResize({
+        element: this.domElement,
+        resizeTo: this.options.resizeTo,
+        onResize: (width, height) => {
+          this.setSize(width, height);
+        }
+      }));
+    }
+  }
+  createDomElement() {
+    const container = this.options.canvas;
+    if (container instanceof HTMLCanvasElement) {
+      this.domElement = container;
+    } else {
+      this.domElement = createSvgElement("svg");
+      container.appendChild(this.domElement);
+    }
+  }
+  setSize(width, height) {
+    this.domElement.style.width = `${width}px`;
+    this.domElement.style.height = `${height}px`;
+    this.emit(SVG_RENDERER_EVENTS.RESIZE, width, height);
+  }
+  dispose() {
+    this.emit(SVG_RENDERER_EVENTS.DISPOSE);
   }
 }
 const SvgPlugin = (lyf) => {
@@ -226,7 +347,10 @@ const SvgPlugin = (lyf) => {
 };
 class CanvasKitRenderer {
   type;
+  domElement;
   constructor(options) {
+  }
+  dispose() {
   }
 }
 let canvaskKitPromise;
@@ -279,13 +403,13 @@ class Lyf extends EventEmitter {
   }
   config;
   renderer = null;
-  domElement = null;
   renderers = {};
   promises = [];
   // 初始化任务，会在initialize时并行执行
   plugins = /* @__PURE__ */ new Set();
   constructor() {
     super();
+    this.registerPlugin(...Lyf.defaultPlugins);
   }
   registerPlugin(...plugins) {
     plugins.forEach((plugin) => {
@@ -305,13 +429,15 @@ class Lyf extends EventEmitter {
   addInitTask(promise) {
     this.promises.push(promise);
   }
+  get domElement() {
+    return this.renderer.domElement;
+  }
   async initialize(config) {
     try {
       this.config = mergeConfig({
         dpr: window.devicePixelRatio,
         plugins: []
       }, config);
-      this.domElement = this.config.canvas;
       if (this.config.plugins) {
         this.registerPlugin(...this.config.plugins);
       }

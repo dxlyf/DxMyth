@@ -1,4 +1,3 @@
-var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
@@ -3865,7 +3864,7 @@ function requireCanvaskit() {
           }
           if ("object" == typeof globalThis) return globalThis;
           if ("object" == typeof $$$embind_global$$$) return $$$embind_global$$$;
-          "object" == typeof commonjsGlobal && a(commonjsGlobal) ? $$$embind_global$$$ = commonjsGlobal : "object" == typeof self && a(self) && ($$$embind_global$$$ = self);
+          "object" == typeof globalThis && a(globalThis) ? $$$embind_global$$$ = globalThis : "object" == typeof self && a(self) && ($$$embind_global$$$ = self);
           if ("object" == typeof $$$embind_global$$$) return $$$embind_global$$$;
           throw Error("unable to get global object.");
         }

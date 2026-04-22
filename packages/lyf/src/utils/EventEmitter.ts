@@ -34,8 +34,6 @@ export class EventEmitter<Events extends EventMap> implements IEventEmitter<Even
       listener(...args);
       this.off(event, onceListener);
     };
-    // 保存原始监听器的引用，以便后续可以通过原始监听器移除
-    (onceListener as any)._originalListener = listener;
     return this.on(event, onceListener);
   }
 
@@ -51,7 +49,7 @@ export class EventEmitter<Events extends EventMap> implements IEventEmitter<Even
       // 移除监听器本身或其原始监听器（对于 once 注册的监听器）
       if(listener){
         listeners.forEach((l) => {
-          if (l === listener || (l as any)._originalListener === listener) {
+          if (l === listener) {
             listeners.delete(l);
           }
         });

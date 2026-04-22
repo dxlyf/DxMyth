@@ -8,16 +8,17 @@ export declare const LYF_EVENTS: {
 };
 export type LyfEventMap = {};
 export type LyfConfig = {
-    canvas: HTMLElement;
+    canvas?: HTMLElement;
     width?: number;
     height?: number;
     dpr?: number;
+    resizeTo?: ResizeTo;
     plugins?: IPlugin[];
     rendererType?: string;
 };
 export interface ILyf extends IEventEmitter<LyfEventMap> {
     config: LyfConfig;
-    domElement: HTMLElement;
+    domElement: Element;
     registerPlugin(...plugins: IPlugin[]): void;
     registerRenderer(type: string, renderer: IRenderer): void;
     addInitTask(task: Promise<void>): void;
