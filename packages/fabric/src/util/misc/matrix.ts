@@ -109,6 +109,22 @@ export const calcPlaneRotation = ([a, b]: TMat2D) =>
   Math.atan2(b, a) as TRadian;
 
 /**
+ * Returns the uniform scale (zoom) magnitude of a 2D affine matrix,
+ * computed as the length of the image of the unit X basis vector.
+ */
+export const calcPlaneZoom = ([a, b]: TMat2D) => Math.sqrt(a * a + b * b);
+
+/**
+ * Returns the Y-axis scale magnitude of a 2D affine matrix,
+ * computed as the length of the image of the unit Y basis vector.
+ * We do not support non uniform zooming on the viewport but to make things work
+ * we need to have a function that can return the value on Y axis.
+ * Bug reports and features will be planned with zoom being just a number
+ * that is the same for both axis
+ */
+export const calcPlaneScaleY = ([, , c, d]: TMat2D) => Math.sqrt(c * c + d * d);
+
+/**
  * Decomposes standard 2x3 matrix into transform components
  * @param  {TMat2D} a transformMatrix
  * @return {Object} Components of transform
@@ -124,7 +140,7 @@ export const qrDecompose = (a: TMat2D): TQrDecomposeOut => {
     scaleX,
     scaleY,
     skewX: radiansToDegrees(skewX),
-    skewY: 0 as TDegree,
+    skewY: 0,
     translateX: a[4] || 0,
     translateY: a[5] || 0,
   };
@@ -276,8 +292,8 @@ export const calcDimensionsMatrix = ({
   scaleY = 1,
   flipX = false,
   flipY = false,
-  skewX = 0 as TDegree,
-  skewY = 0 as TDegree,
+  skewX = 0,
+  skewY = 0,
 }: TScaleMatrixArgs) => {
   let matrix = createScaleMatrix(
     flipX ? -scaleX : scaleX,
@@ -310,7 +326,7 @@ export const calcDimensionsMatrix = ({
  * @return {Number[]} transform matrix
  */
 export const composeMatrix = (options: TComposeMatrixArgs): TMat2D => {
-  const { translateX = 0, translateY = 0, angle = 0 as TDegree } = options;
+  const { translateX = 0, translateY = 0, angle = 0 } = options;
   let matrix = createTranslateMatrix(translateX, translateY);
   if (angle) {
     matrix = multiplyTransformMatrices(matrix, createRotateMatrix({ angle }));

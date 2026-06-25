@@ -1,5 +1,17 @@
 import { cache } from '../../cache';
-import { DEFAULT_SVG_FONT_SIZE, FILL, STROKE } from '../../constants';
+import type { NORMAL } from '../../constants';
+import {
+  CENTER,
+  DEFAULT_SVG_FONT_SIZE,
+  FILL,
+  LEFT,
+  LTR,
+  RIGHT,
+  RTL,
+  BOTTOM,
+  STROKE,
+  TOP,
+} from '../../constants';
 import type { ObjectEvents } from '../../EventTypeDefs';
 import type {
   CompleteTextStyleDeclaration,
@@ -40,9 +52,10 @@ import {
   JUSTIFY_CENTER,
   JUSTIFY_LEFT,
   JUSTIFY_RIGHT,
+  TEXT_DECORATION_COLOR,
   TEXT_DECORATION_THICKNESS,
 } from './constants';
-import { CENTER, LEFT, RIGHT, TOP, BOTTOM } from '../../constants';
+
 import { isFiller } from '../../util/typeAssertions';
 import type { Gradient } from '../../gradient/Gradient';
 import type { Pattern } from '../../Pattern';
@@ -77,6 +90,17 @@ export type TextLinesInfo = {
   _unwrappedLines: string[][];
 };
 
+export type TextAlign =
+  | typeof LEFT
+  | typeof CENTER
+  | typeof RIGHT
+  | typeof JUSTIFY
+  | typeof JUSTIFY_LEFT
+  | typeof JUSTIFY_CENTER
+  | typeof JUSTIFY_RIGHT;
+
+export type FontStyle = '' | typeof NORMAL | 'italic' | 'oblique';
+
 /**
  * Measure and return the info of a single grapheme.
  * needs the the info of previous graphemes already filled
@@ -100,21 +124,21 @@ interface UniqueTextProps {
   fontSize: number;
   fontWeight: string | number;
   fontFamily: string;
-  fontStyle: string;
+  fontStyle: FontStyle;
   pathSide: TPathSide;
   pathAlign: TPathAlign;
   underline: boolean;
   overline: boolean;
   linethrough: boolean;
-  textAlign: string;
+  textAlign: TextAlign;
   direction: CanvasDirection;
   path?: Path;
   textDecorationThickness: number;
+  textDecorationColor?: string;
 }
 
 export interface SerializedTextProps
-  extends SerializedObjectProps,
-    UniqueTextProps {
+  extends SerializedObjectProps, UniqueTextProps {
   styles: TextStyleArray | TextStyle;
 }
 
@@ -127,10 +151,10 @@ export interface TextProps extends FabricObjectProps, UniqueTextProps {
  * @see {@link http://fabric5.fabricjs.com/fabric-intro-part-2#text}
  */
 export class FabricText<
-    Props extends TOptions<TextProps> = Partial<TextProps>,
-    SProps extends SerializedTextProps = SerializedTextProps,
-    EventSpec extends ObjectEvents = ObjectEvents,
-  >
+  Props extends TOptions<TextProps> = Partial<TextProps>,
+  SProps extends SerializedTextProps = SerializedTextProps,
+  EventSpec extends ObjectEvents = ObjectEvents,
+>
   extends StyledText<Props, SProps, EventSpec>
   implements UniqueTextProps
 {
@@ -208,15 +232,15 @@ export class FabricText<
   /**
    * Text alignment. Possible values: "left", "center", "right", "justify",
    * "justify-left", "justify-center" or "justify-right".
-   * @type String
+   * @type TextAlign
    */
-  declare textAlign: string;
+  declare textAlign: TextAlign;
 
   /**
    * Font style . Possible values: "", "normal", "italic" or "oblique".
-   * @type String
+   * @type FontStyle
    */
-  declare fontStyle: string;
+  declare fontStyle: FontStyle;
 
   /**
    * Line height
@@ -288,11 +312,11 @@ export class FabricText<
   declare path?: Path;
 
   /**
-   * The text decoration tickness for underline, overline and strikethrough
-   * The tickness is expressed in thousandths of fontSize ( em ).
+   * The text decoration thickness for underline, overline and strikethrough
+   * The thickness is expressed in thousandths of fontSize ( em ).
    * The original value was 1/15 that translates to 66.6667 thousandths.
    * The choice of unit of measure is to align with charSpacing.
-   * You can slim the tickness without issues, while large underline or overline may end up
+   * You can slim the thickness without issues, while large underline or overline may end up
    * outside the bounding box of the text. In order to fix that a bigger refactor of the code
    * is needed and is out of scope for now. If you need such large overline on the first line
    * of text or large underline on the last line of text, consider disabling caching as a
@@ -300,6 +324,14 @@ export class FabricText<
    * @default 66.667
    */
   declare textDecorationThickness: number;
+
+  /**
+   * Optional text decoration color for underline, overline and strikethrough.
+   * When undefined, decoration color falls back to the text fill color.
+   * This feature is not really supported by anything else than svg 2 specs with css3 support.
+   * Chrome does not support this, nor firefox apparently.
+   */
+  declare textDecorationColor?: string;
 
   /**
    * Offset amount for text path starting position
@@ -743,9 +775,11 @@ export class FabricText<
               bgHeight,
             );
           ctx.restore();
-        } else if (currentColor !== lastColor) {
+        } else if (currentColor === lastColor) {
+          boxWidth += charBox.kernedWidth;
+        } else {
           drawStart = leftOffset + lineLeftOffset + boxStart;
-          if (this.direction === 'rtl') {
+          if (this.direction === RTL) {
             drawStart = this.width - drawStart - boxWidth;
           }
           ctx.fillStyle = lastColor;
@@ -754,13 +788,11 @@ export class FabricText<
           boxStart = charBox.left;
           boxWidth = charBox.width;
           lastColor = currentColor;
-        } else {
-          boxWidth += charBox.kernedWidth;
         }
       }
       if (currentColor && !this.path) {
         drawStart = leftOffset + lineLeftOffset + boxStart;
-        if (this.direction === 'rtl') {
+        if (this.direction === RTL) {
           drawStart = this.width - drawStart - boxWidth;
         }
         ctx.fillStyle = currentColor;
@@ -792,7 +824,7 @@ export class FabricText<
   ) {
     const fontCache = cache.getFontCache(charStyle),
       fontDeclaration = this._getFontDeclaration(charStyle),
-      couple = previousChar + _char,
+      couple = previousChar ? previousChar + _char : _char,
       stylesAreEqual =
         previousChar &&
         fontDeclaration === this._getFontDeclaration(prevCharStyle),
@@ -900,7 +932,7 @@ export class FabricText<
       kernedWidth: 0,
       height: this.fontSize,
       deltaY: 0,
-    } as GraphemeBBox;
+    };
     if (path && path.segmentsInfo) {
       let positionInPath = 0;
       const totalPathLength =
@@ -1051,7 +1083,7 @@ export class FabricText<
    * @return {Number} Left offset
    */
   _getLeftOffset(): number {
-    return this.direction === 'ltr' ? -this.width / 2 : this.width / 2;
+    return this.direction === LTR ? -this.width / 2 : this.width / 2;
   }
 
   /**
@@ -1126,7 +1158,7 @@ export class FabricText<
    * @private
    * @param {String} method fillText or strokeText.
    * @param {CanvasRenderingContext2D} ctx Context to render on
-   * @param {Array} line Content of the line, splitted in an array by grapheme
+   * @param {Array} line Content of the line, split in an array by grapheme
    * @param {Number} left
    * @param {Number} top
    * @param {Number} lineIndex
@@ -1146,8 +1178,8 @@ export class FabricText<
         this.charSpacing === 0 &&
         this.isEmptyStyles(lineIndex) &&
         !path,
-      isLtr = this.direction === 'ltr',
-      sign = this.direction === 'ltr' ? 1 : -1,
+      isLtr = this.direction === LTR,
+      sign = this.direction === LTR ? 1 : -1,
       // this was changed in the PR #7674
       // currentDirection = ctx.canvas.getAttribute('dir');
       currentDirection = ctx.direction;
@@ -1162,8 +1194,8 @@ export class FabricText<
 
     ctx.save();
     if (currentDirection !== this.direction) {
-      ctx.canvas.setAttribute('dir', isLtr ? 'ltr' : 'rtl');
-      ctx.direction = isLtr ? 'ltr' : 'rtl';
+      ctx.canvas.setAttribute('dir', isLtr ? LTR : RTL);
+      ctx.direction = isLtr ? LTR : RTL;
       ctx.textAlign = isLtr ? LEFT : RIGHT;
     }
     top -= this.getHeightOfLineImpl(lineIndex) * this._fontSizeFraction;
@@ -1473,12 +1505,8 @@ export class FabricText<
     if (textAlign === JUSTIFY_RIGHT) {
       leftOffset = lineDiff;
     }
-    if (direction === 'rtl') {
-      if (
-        textAlign === RIGHT ||
-        textAlign === JUSTIFY ||
-        textAlign === JUSTIFY_RIGHT
-      ) {
+    if (direction === RTL) {
+      if (textAlign === RIGHT || textAlign === JUSTIFY_RIGHT) {
         leftOffset = 0;
       } else if (textAlign === LEFT || textAlign === JUSTIFY_LEFT) {
         leftOffset = -lineDiff;
@@ -1570,13 +1598,16 @@ export class FabricText<
       let boxWidth = 0;
       let lastDecoration = this.getValueOfPropertyAt(i, 0, type);
       let lastFill = this.getValueOfPropertyAt(i, 0, FILL);
+      let lastDecorationColor =
+        this.getValueOfPropertyAt(i, 0, TEXT_DECORATION_COLOR) || lastFill;
       let lastTickness = this.getValueOfPropertyAt(
         i,
         0,
         TEXT_DECORATION_THICKNESS,
       );
       let currentDecoration = lastDecoration;
-      let currentFill = lastFill;
+      let currentFill: typeof lastFill;
+      let currentDecorationColor = lastDecorationColor;
       let currentTickness = lastTickness;
       const top = topOffset + maxHeight * (1 - this._fontSizeFraction);
       let size = this.getHeightOfChar(i, 0);
@@ -1585,6 +1616,8 @@ export class FabricText<
         const charBox = this.__charBounds[i][j] as Required<GraphemeBBox>;
         currentDecoration = this.getValueOfPropertyAt(i, j, type);
         currentFill = this.getValueOfPropertyAt(i, j, FILL);
+        currentDecorationColor =
+          this.getValueOfPropertyAt(i, j, TEXT_DECORATION_COLOR) || currentFill;
         currentTickness = this.getValueOfPropertyAt(
           i,
           j,
@@ -1595,8 +1628,8 @@ export class FabricText<
         if (path && currentDecoration && currentFill) {
           const finalTickness = (this.fontSize * currentTickness) / 1000;
           ctx.save();
-          // bug? verify lastFill is a valid fill here.
-          ctx.fillStyle = lastFill as string;
+          // bug? verify currentDecorationColor is a valid fill here.
+          ctx.fillStyle = currentDecorationColor as string;
           ctx.translate(charBox.renderLeft, charBox.renderTop);
           ctx.rotate(charBox.angle);
           ctx.fillRect(
@@ -1609,6 +1642,7 @@ export class FabricText<
         } else if (
           (currentDecoration !== lastDecoration ||
             currentFill !== lastFill ||
+            currentDecorationColor !== lastDecorationColor ||
             currentSize !== size ||
             currentTickness !== lastTickness ||
             currentDy !== dy) &&
@@ -1616,12 +1650,12 @@ export class FabricText<
         ) {
           const finalTickness = (this.fontSize * lastTickness) / 1000;
           let drawStart = leftOffset + lineLeftOffset + boxStart;
-          if (this.direction === 'rtl') {
+          if (this.direction === RTL) {
             drawStart = this.width - drawStart - boxWidth;
           }
-          if (lastDecoration && lastFill && lastTickness) {
-            // bug? verify lastFill is a valid fill here.
-            ctx.fillStyle = lastFill as string;
+          if (lastDecoration && lastDecorationColor && lastTickness) {
+            // bug? verify lastDecorationColor is a valid fill here.
+            ctx.fillStyle = lastDecorationColor as string;
             ctx.fillRect(
               drawStart,
               top + offsetY * size + dy - offsetAligner * finalTickness,
@@ -1632,6 +1666,7 @@ export class FabricText<
           boxStart = charBox.left;
           boxWidth = charBox.width;
           lastDecoration = currentDecoration;
+          lastDecorationColor = currentDecorationColor;
           lastTickness = currentTickness;
           lastFill = currentFill;
           size = currentSize;
@@ -1641,13 +1676,13 @@ export class FabricText<
         }
       }
       let drawStart = leftOffset + lineLeftOffset + boxStart;
-      if (this.direction === 'rtl') {
+      if (this.direction === RTL) {
         drawStart = this.width - drawStart - boxWidth;
       }
-      ctx.fillStyle = currentFill as string;
+      ctx.fillStyle = currentDecorationColor as string;
       const finalTickness = (this.fontSize * currentTickness) / 1000;
       currentDecoration &&
-        currentFill &&
+        currentDecorationColor &&
         currentTickness &&
         ctx.fillRect(
           drawStart,
@@ -1841,6 +1876,8 @@ export class FabricText<
     'font-size',
     'letter-spacing',
     'text-decoration',
+    'text-decoration-thickness',
+    'text-decoration-color',
     'text-anchor',
   );
 

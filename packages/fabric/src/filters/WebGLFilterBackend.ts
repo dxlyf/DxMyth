@@ -104,7 +104,7 @@ export class WebGLFilterBackend {
    * omitted, caching will be skipped.
    */
   applyFilters(
-    filters: BaseFilter<string, Record<string, any>>[],
+    filters: BaseFilter<string>[],
     source: TexImageSource,
     width: number,
     height: number,
@@ -138,7 +138,7 @@ export class WebGLFilterBackend {
         gl,
         width,
         height,
-        !cachedTexture ? source : undefined,
+        cachedTexture ? undefined : source,
       ),
       targetTexture: this.createTexture(gl, width, height),
       originalTexture:
@@ -147,7 +147,7 @@ export class WebGLFilterBackend {
           gl,
           width,
           height,
-          !cachedTexture ? source : undefined,
+          cachedTexture ? undefined : source,
         ),
       passes: filters.length,
       webgl: true,

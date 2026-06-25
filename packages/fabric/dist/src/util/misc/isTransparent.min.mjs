@@ -1,0 +1,2 @@
+const e=(e,t,n,r)=>{r=Math.round(r);let i=r*2+1,{data:a}=e.getImageData(t-r,n-r,i,i);for(let e=3;e<a.length;e+=4)if(a[e]>0)return!1;return!0};export{e as isTransparent};
+//# sourceMappingURL=isTransparent.min.mjs.map

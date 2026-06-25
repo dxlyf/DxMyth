@@ -31,6 +31,7 @@ import type { CSSRules } from '../parser/typedefs';
 import type { Resize, ResizeSerializedProps } from '../filters/Resize';
 import type { TCachedFabricObject } from './Object/Object';
 import { log } from '../util/internals/console';
+import { escapeXml } from '../util/lang_string';
 
 // @todo Would be nice to have filtering code not imported directly.
 
@@ -56,7 +57,7 @@ interface UniqueImageProps {
   cropX: number;
   cropY: number;
   imageSmoothing: boolean;
-  filters: BaseFilter<string, Record<string, any>>[];
+  filters: BaseFilter<string>[];
   resizeFilter?: Resize;
 }
 
@@ -86,10 +87,10 @@ const IMAGE_PROPS = ['cropX', 'cropY'] as const;
  * @see {@link http://fabric5.fabricjs.com/fabric-intro-part-1#images}
  */
 export class FabricImage<
-    Props extends TOptions<ImageProps> = Partial<ImageProps>,
-    SProps extends SerializedImageProps = SerializedImageProps,
-    EventSpec extends ObjectEvents = ObjectEvents,
-  >
+  Props extends TOptions<ImageProps> = Partial<ImageProps>,
+  SProps extends SerializedImageProps = SerializedImageProps,
+  EventSpec extends ObjectEvents = ObjectEvents,
+>
   extends FabricObject<Props, SProps, EventSpec>
   implements ImageProps
 {
@@ -173,7 +174,7 @@ export class FabricImage<
 
   declare protected src: string;
 
-  declare filters: BaseFilter<string, Record<string, any>>[];
+  declare filters: BaseFilter<string>[];
   declare resizeFilter: Resize;
 
   declare _element: ImageSource;
@@ -389,9 +390,9 @@ export class FabricImage<
           '" y="' +
           y +
           '" width="' +
-          this.width +
+          escapeXml(this.width) +
           '" height="' +
-          this.height +
+          escapeXml(this.height) +
           '" />\n',
         '</clipPath>\n',
       );
@@ -403,7 +404,7 @@ export class FabricImage<
     imageMarkup.push(
       '\t<image ',
       'COMMON_PARTS',
-      `xlink:href="${this.getSvgSrc(true)}" x="${x - this.cropX}" y="${
+      `xlink:href="${escapeXml(this.getSrc(true))}" x="${x - this.cropX}" y="${
         y - this.cropY
         // we're essentially moving origin of transformation from top/left corner to the center of the shape
         // by wrapping it in container <g> element with actual transformation, then offsetting object to the top/left
@@ -419,16 +420,16 @@ export class FabricImage<
       const origFill = this.fill;
       this.fill = null;
       strokeSvg = [
-        `\t<rect x="${x}" y="${y}" width="${this.width}" height="${
-          this.height
-        }" style="${this.getSvgStyles()}" />\n`,
+        `\t<rect x="${x}" y="${y}" width="${escapeXml(this.width)}" height="${escapeXml(
+          this.height,
+        )}" style="${this.getSvgStyles()}" />\n`,
       ];
       this.fill = origFill;
     }
-    if (this.paintFirst !== FILL) {
-      svgString = svgString.concat(strokeSvg, imageMarkup);
-    } else {
+    if (this.paintFirst === FILL) {
       svgString = svgString.concat(imageMarkup, strokeSvg);
+    } else {
+      svgString = svgString.concat(strokeSvg, imageMarkup);
     }
     return svgString;
   }
@@ -470,7 +471,10 @@ export class FabricImage<
    * @param {String} src Source string (URL)
    * @param {LoadImageOptions} [options] Options object
    */
-  setSrc(src: string, { crossOrigin, signal }: LoadImageOptions = {}) {
+  setSrc(
+    src: string,
+    { crossOrigin, signal }: LoadImageOptions = {},
+  ): Promise<void> {
     return loadImage(src, { crossOrigin, signal }).then((img) => {
       typeof crossOrigin !== 'undefined' && this.set({ crossOrigin });
       this.setElement(img);
@@ -524,9 +528,7 @@ export class FabricImage<
    * @param {Array} filters to be applied
    * @param {Boolean} forResizing specify if the filter operation is a resize operation
    */
-  applyFilters(
-    filters: BaseFilter<string, Record<string, any>>[] = this.filters || [],
-  ) {
+  applyFilters(filters: BaseFilter<string>[] = this.filters || []) {
     filters = filters.filter((filter) => filter && !filter.isNeutralState());
     this.set('dirty', true);
 

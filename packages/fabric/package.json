@@ -2,8 +2,15 @@
   "name": "@dxyl/fabric",
   "description": "Object model for HTML5 canvas, and SVG-to-canvas parser. Backed by jsdom and node-canvas.",
   "homepage": "http://fabricjs.com/",
-  "version": "7.0.0-beta1",
+  "version": "7.4.0",
   "author": "Juriy Zaytsev <kangax@gmail.com>",
+   "files": [
+    "package.json",
+    "readme.md",
+    "dist",
+    "dist-extensions",
+    "lib"
+  ],
   "contributors": [
     {
       "name": "Andrea Bogazzi",
@@ -33,32 +40,126 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/fabricjs/fabric.js"
+    "url": "git+https://github.com/fabricjs/fabric.js.git"
   },
-  "publishConfig": {
-    "access": "public"
+  "bugs": {
+    "url": "https://github.com/fabricjs/fabric.js/issues"
   },
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
-  "type": "module",
-  "types": "./types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./types/export.d.ts",
-      "import": "./dist/index.es.js",
-      "default": "./dist/index.umd.js"
+  "license": "MIT",
+  "packageManager": "pnpm@10.29.1",
+  "scripts": {
+    "docs": "typedoc",
+    "cli": "node ./scripts/index.mjs",
+    "sandboxscript": "node ./scripts/sandbox.mjs",
+    "typecheck": "tsc -p ./tsconfig.build.json --noEmit && tsc -p ./tsconfig-extensions.json --noEmit",
+    "build": "node ./scripts/index.mjs build",
+    "build:fast": "node ./scripts/index.mjs build -f",
+    "dev": "node ./scripts/index.mjs dev",
+    "start": "node ./scripts/sandbox.mjs start",
+    "export": "node ./scripts/index.mjs website export",
+    "test:vitest": "vitest --run --project unit-node",
+    "test:vitest:chromium": "vitest --run --project unit-chromium",
+    "test:vitest:firefox": "vitest --run --project unit-firefox",
+    "test:vitest:all": "vitest --run",
+    "test:vitest:coverage": "vitest --run --coverage --project unit-node",
+    "test:vitest:coverage:watch": "pnpm run test:vitest --coverage=true",
+    "test:e2e": "pnpm run playwright:typecheck && pnpm exec playwright test --",
+    "playwright:typecheck": "tsc -p ./e2e/tsconfig.json --noEmit",
+    "sandbox": "node ./scripts/sandbox.mjs sandbox",
+    "local-server": "serve ./ -l tcp://localhost:8080",
+    "lint": "eslint src extensions --fix",
+    "prettier:check": "oxfmt --check .",
+    "prettier:write": "oxfmt .",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
+    "@types/jsdom": "^21.1.7",
+    "@types/micromatch": "^4.0.10",
+    "@types/node": "^24.7.0",
+    "@vitest/browser-playwright": "4.1.8",
+    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/ui": "4.1.8",
+    "commander": "^14.0.3",
+    "es-toolkit": "1.47.0",
+    "eslint": "^10.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "inquirer": "^13.4.3",
+    "lint-staged": "^17.0.5",
+    "micromatch": "^4.0.8",
+    "oxfmt": "^0.51.0",
+    "ps-list": "^9.0.0",
+    "rolldown": "^1.0.1",
+    "serve": "^14.2.6",
+    "tsc-files": "^1.1.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4",
+    "vitest": "4.1.8",
+    "westures": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "overrides": {
+    "canvas": {
+      "canvas": "3.2.0"
     }
   },
-  "files": [
-    "package.json",
-    "readme.md",
-    "dist",
-    "types",
-    "lib"
-  ],
-   "license": "MIT",
-  "scripts": {
-    "dev": "vite --port=8428",
-    "build": "vite build"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "canvas"
+    ]
+  },
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    ">=4.2": {
+      "*": [
+        "dist/index.d.ts"
+      ],
+      "node": [
+        "dist/index.node.d.ts"
+      ]
+    }
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.min.mjs",
+      "require": "./dist/index.min.js",
+      "default": "./dist/index.min.js"
+    },
+    "./es": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/fabric.min.mjs",
+      "require": null,
+      "default": null
+    },
+    "./node": {
+      "node": "./dist/index.node.cjs",
+      "types": "./dist/index.node.d.ts",
+      "import": "./dist/index.node.mjs",
+      "require": "./dist/index.node.cjs",
+      "default": "./dist/index.node.cjs"
+    },
+    "./extensions": {
+      "node": "./dist-extensions/index.mjs",
+      "types": "./dist-extensions/extensions/index.d.ts",
+      "import": "./dist-extensions/index.mjs",
+      "require": null,
+      "default": "./dist-extensions/fabric-extensions.min.js"
+    }
+  },
+  "optionalDependencies": {
+    "canvas": "^3.2.0",
+    "jsdom": "^26.1.0"
+  },
+  "lint-staged": {
+    "*.{js,md,css,ts,tsx,jsx,json}": "eslint --fix",
+    "*.{js,css,md,ts,tsx,jsx,json}": "oxfmt --no-error-on-unmatched-pattern",
+    "**/*.ts !(**/*.spec.ts) !(**/*.test.ts) !(vitest*.ts)": "tsc-files --noEmit"
   }
 }

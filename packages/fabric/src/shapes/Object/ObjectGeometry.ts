@@ -18,6 +18,8 @@ import {
   multiplyTransformMatrices,
   transformPoint,
   calcPlaneRotation,
+  calcPlaneZoom,
+  calcPlaneScaleY,
 } from '../../util/misc/matrix';
 import { radiansToDegrees } from '../../util/misc/radiansDegreesConversion';
 import type { Canvas } from '../../canvas/Canvas';
@@ -513,7 +515,7 @@ export class ObjectGeometry<EventSpec extends ObjectEvents = ObjectEvents>
   calcOwnMatrix(): TMat2D {
     const key = this.transformMatrixKey(true),
       cache = this.ownMatrixCache;
-    if (cache && cache.key === key) {
+    if (cache && cache.key.every((x, i) => x === key[i])) {
       return cache.value;
     }
     const center = this.getRelativeCenterPoint(),
@@ -553,9 +555,14 @@ export class ObjectGeometry<EventSpec extends ObjectEvents = ObjectEvents>
    * @returns {Point} dimensions
    */
   _calculateCurrentDimensions(options?: any): Point {
-    return this._getTransformedDimensions(options)
-      .transform(this.getViewportTransform(), true)
-      .scalarAdd(2 * this.padding);
+    const vpt = this.canvas?.viewportTransform;
+    const dim = this._getTransformedDimensions(options);
+    if (vpt) {
+      return dim
+        .multiply(new Point(calcPlaneZoom(vpt), calcPlaneScaleY(vpt)))
+        .scalarAdd(2 * this.padding);
+    }
+    return dim.scalarAdd(2 * this.padding);
   }
 
   // #region Origin
@@ -750,17 +757,26 @@ export class ObjectGeometry<EventSpec extends ObjectEvents = ObjectEvents>
   }
 
   /**
-   * Returns the position of the object as if it has a different origin.
+   * Alias of {@link getPositionByOrigin}
+   * @deprecated use {@link getPositionByOrigin} instead
+   */
+  getPointByOrigin(originX: TOriginX, originY: TOriginY): Point {
+    return this.getPositionByOrigin(originX, originY);
+  }
+
+  /**
+   * This function is the mirror of {@link setPositionByOrigin}
+   * Returns the position of the object based on specified origin.
    * Take an object that has left, top set to 100, 100 with origin 'left', 'top'.
    * Return the values of left top ( wrapped in a point ) that you would need to keep
-   * the same position if origin where different.
+   * the same position if origin where different ( ex: center, bottom )
    * Alternatively you can use this to also find which point in the parent plane is a specific origin
    * ( where is the bottom right corner of my object? )
    * @param {TOriginX} originX Horizontal origin: 'left', 'center' or 'right'
    * @param {TOriginY} originY Vertical origin: 'top', 'center' or 'bottom'
    * @return {Point}
    */
-  getPointByOrigin(originX: TOriginX, originY: TOriginY): Point {
+  getPositionByOrigin(originX: TOriginX, originY: TOriginY) {
     return this.translateToOriginPoint(
       this.getRelativeCenterPoint(),
       originX,
@@ -789,11 +805,7 @@ export class ObjectGeometry<EventSpec extends ObjectEvents = ObjectEvents>
    * @private
    */
   _getLeftTopCoords() {
-    return this.translateToOriginPoint(
-      this.getRelativeCenterPoint(),
-      LEFT,
-      TOP,
-    );
+    return this.getPositionByOrigin(LEFT, TOP);
   }
 
   /**
