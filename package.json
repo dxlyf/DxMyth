@@ -15,5 +15,10 @@
     "typescript": "^5.9.2",
     "vite": "^7.2.2",
     "vite-plugin-dts": "^4.5.4"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4",
+    "lil-gui": "^0.21.0",
+    "skia-path2d": "^1.7.6"
   }
 }
