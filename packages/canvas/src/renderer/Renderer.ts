@@ -220,4 +220,5 @@ export abstract class BaseRenderer<Options extends IRendererOptions> extends Eve
     abstract putImageData(imageData: ImageData, dx: number, dy: number): void;
     abstract putImageData(imageData: ImageData, dx: number, dy: number, dirtyX: number, dirtyY: number, dirtyWidth: number, dirtyHeight: number): void;
     abstract putImageData(imageData: unknown, dx: unknown, dy: unknown, dirtyX?: unknown, dirtyY?: unknown, dirtyWidth?: unknown, dirtyHeight?: unknown): void
+
 }

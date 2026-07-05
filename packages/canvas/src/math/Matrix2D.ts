@@ -149,6 +149,9 @@ export class Matrix2D {
     static equals(a: Matrix2DLike, b: Matrix2DLike): boolean {
         return a.a === b.a && a.b === b.b && a.c === b.c && a.d === b.d && a.tx === b.tx && a.ty === b.ty;
     }
+    static isIdentity(matrix:Matrix2DLike){
+        return !(matrix.a!==1||matrix.b!==0||matrix.c!==0||matrix.d!==1||matrix.tx!==0||matrix.ty!==0)
+    }
     a: number = 1;
     b: number = 0;
     c: number = 0;

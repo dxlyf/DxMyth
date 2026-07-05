@@ -9,12 +9,12 @@ const renderer=new CanvasRenderer({
     height:500,
     dpr:window.devicePixelRatio
 })
-renderer.setStyles({
-    fillStyle:'red',
-    font:'40px sans-serif',
-})
-renderer.fillText('Hell world',100,100)
-const count=3000;
+// renderer.setStyles({
+//     fillStyle:'red',
+//     font:'40px sans-serif',
+// })
+// renderer.fillText('Hell world',100,100)
+const count=10000;
 
 const random=(min:number,max:number)=>{
     return Math.floor(min+(max-min)*Math.random())
@@ -45,9 +45,10 @@ const test=(ctx:CanvasRenderer)=>{
         ctx.save()
         ctx.translate(d.x,d.y)
         ctx.beginPath()
-        ctx.setStyles({
-            fillStyle:d.fillStyle
-        })
+        // ctx.setStyles({
+        //     fillStyle:d.fillStyle
+        // })
+        ctx.fillStyle=d.fillStyle
         ctx.rect(0,0,d.w,d.h)
         ctx.fill()
         d.update()
@@ -57,7 +58,7 @@ const test=(ctx:CanvasRenderer)=>{
 const loop=()=>{
     p.update()
 
-   // test(renderer)
+    test(renderer.ctx)
     requestAnimationFrame(loop)
 }
 requestAnimationFrame(loop)

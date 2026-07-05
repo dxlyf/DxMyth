@@ -5,6 +5,7 @@ import { PathBuilder } from "src/math/PathBuilder";
 import { ConicGradient, Gradient, LinearGradient, RadialGradient } from "src/core/Gradient";
 import { Pattern } from "src/core/Pattern";
 import { INode, NodeProps } from "src/types/Node";
+import { Matrix2D } from "src/math/Matrix2D";
 
 export type CanvasRendererOptions = IRendererOptions & {
     canvas: HTMLCanvasElement
@@ -149,67 +150,69 @@ export class CanvasRenderer extends BaseRenderer<CanvasRendererOptions> {
 
 
     // ---- 变换：直接转发 ctx + 维护镜像 ----
-    translate(x: number, y: number): void {
-        this.ctx.translate(x, y)
-    }
-    rotate(angle: number): void {
-        this.ctx.rotate(angle)
-    }
-    scale(x: number, y: number): void {
-        this.ctx.scale(x, y)
-    }
-    transform(a: number, b: number, c: number, d: number, e: number, f: number): void {
-        this.ctx.transform(a, b, c, d, e, f)
-    }
-    setTransform(a: number, b: number, c: number, d: number, e: number, f: number): void {
-        this.ctx.setTransform(a, b, c, d, e, f)
-    }
-    resetTransform(): void {
-        this.ctx.resetTransform()
-    }
+    // translate(x: number, y: number): void {
+    //     this.ctx.translate(x, y)
+    // }
+    // rotate(angle: number): void {
+    //     this.ctx.rotate(angle)
+    // }
+    // scale(x: number, y: number): void {
+    //     this.ctx.scale(x, y)
+    // }
+    // transform(a: number, b: number, c: number, d: number, e: number, f: number): void {
+    //     this.ctx.transform(a, b, c, d, e, f)
+    // }
+    // setTransform(a: number, b: number, c: number, d: number, e: number, f: number): void {
+    //     this.ctx.setTransform(a, b, c, d, e, f)
+    // }
+    // resetTransform(): void {
+    //     this.ctx.resetTransform()
+    // }
 
     // ---- 路径：直接转发 ctx + 维护 currentPath（供显式 path 参数与读取） ----
-    beginPath(): void {
-        this.ctx.beginPath()
-    }
-    moveTo(x: number, y: number): void {
-        this.ctx.moveTo(x, y)
-    }
-    lineTo(x: number, y: number): void {
-        this.ctx.lineTo(x, y)
-    }
-    quadraticCurveTo(x1: number, y1: number, x2: number, y2: number): void {
-        this.ctx.quadraticCurveTo(x1, y1, x2, y2)
-    }
-    bezierCurveTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void {
-        this.ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3)
-    }
-    arc(x: number, y: number, r: number, startAngle: number, endAngle: number, ccw: boolean): void {
-        this.ctx.arc(x, y, r, startAngle, endAngle, !!ccw)
-    }
-    arcTo(x1: number, y1: number, x2: number, y2: number, r: number): void {
-        this.currentPath.arcTo(x1, y1, x2, y2, r)
-        this.ctx.arcTo(x1, y1, x2, y2, r)
-    }
-    ellipse(x: number, y: number, r: number, rotation: number, startAngle: number, endAngle: number, ccw: boolean): void {
-        this.ctx.ellipse(x, y, r, r, rotation, startAngle, endAngle, ccw)
-    }
-    rect(x: number, y: number, width: number, height: number): void {
-        this.currentPath.rect(x, y, width, height)
-        this.ctx.rect(x, y, width, height)
-    }
-    roundRect(x: number, y: number, width: number, height: number, r: number): void {
-        this.ctx.roundRect(x, y, width, height, r)
-    }
-    closePath(): void {
-        this.ctx.closePath()
-    }
+    // beginPath(): void {
+    //     this.ctx.beginPath()
+    // }
+    // moveTo(x: number, y: number): void {
+    //     this.ctx.moveTo(x, y)
+    // }
+    // lineTo(x: number, y: number): void {
+    //     this.ctx.lineTo(x, y)
+    // }
+    // quadraticCurveTo(x1: number, y1: number, x2: number, y2: number): void {
+    //     this.ctx.quadraticCurveTo(x1, y1, x2, y2)
+    // }
+    // bezierCurveTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void {
+    //     this.ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3)
+    // }
+    // arc(x: number, y: number, r: number, startAngle: number, endAngle: number, ccw: boolean): void {
+    //     this.ctx.arc(x, y, r, startAngle, endAngle, !!ccw)
+    // }
+    // arcTo(x1: number, y1: number, x2: number, y2: number, r: number): void {
+    //     this.currentPath.arcTo(x1, y1, x2, y2, r)
+    //     this.ctx.arcTo(x1, y1, x2, y2, r)
+    // }
+    // ellipse(x: number, y: number, r: number, rotation: number, startAngle: number, endAngle: number, ccw: boolean): void {
+    //     this.ctx.ellipse(x, y, r, r, rotation, startAngle, endAngle, ccw)
+    // }
+    // // rect(x: number, y: number, width: number, height: number): void {
+    // //     this.currentPath.rect(x, y, width, height)
+    // //     this.ctx.rect(x, y, width, height)
+    // // }
+    // roundRect(x: number, y: number, width: number, height: number, r: number): void {
+    //     this.ctx.roundRect(x, y, width, height, r)
+    // }
+    // closePath(): void {
+    //     this.ctx.closePath()
+    // }
 
     // ---- 状态栈：RenderState 栈 + ctx 栈 ----
     save(): void {
+        super.save()
         this.ctx.save()
     }
     restore(): void {
+        super.restore()
         this.ctx.restore()
     }
 
@@ -226,30 +229,31 @@ export class CanvasRenderer extends BaseRenderer<CanvasRendererOptions> {
         this.ctx.clearRect(x, y, width, height)
     }
     setStyles(styles: Partial<FillStrokeStyles>) {
-        const ctx = this.ctx
-        for (let key of Object.keys(styles)) {
-            if (CanvasContextProperties.has(key)) {
-                (ctx as any)[key] = (styles as any)[key]
-            }
-        }
+        super.setStyles(styles)
+        // const ctx = this.ctx
+        // for (let key of Object.keys(styles)) {
+        //     if (CanvasContextProperties.has(key)) {
+        //         (ctx as any)[key] = (styles as any)[key]
+        //     }
+        // }
     }
     isPointInPath(x: number, y: number, fillRule?: FillRule): boolean;
     isPointInPath(path: PathBuilder, x: number, y: number, fillRule?: FillRule): boolean;
     isPointInPath(path: unknown, x: unknown, y?: unknown, fillRule?: unknown): boolean {
         if (path instanceof PathBuilder) {
-            return this.ctx.isPointInPath(path.toCanvasPath2D() as Path2D, x as number, y as number,fillRule as FillRule)
+            return this.ctx.isPointInPath(path.toCanvasPath2D() as Path2D, x as number, y as number, fillRule as FillRule)
         } else {
             fillRule = y
             y = x
             x = path
-            return this.ctx.isPointInPath(x as number, y as number,fillRule as FillRule)
+            return this.ctx.isPointInPath(x as number, y as number, fillRule as FillRule)
         }
     }
     isPointInStroke(x: number, y: number): boolean;
     isPointInStroke(path: PathBuilder, x: number, y: number): boolean;
     isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
         if (path instanceof PathBuilder) {
-          return this.ctx.isPointInStroke(path.toCanvasPath2D() as Path2D, x as number, y as number)
+            return this.ctx.isPointInStroke(path.toCanvasPath2D() as Path2D, x as number, y as number)
         } else {
             y = x
             x = path
@@ -270,16 +274,41 @@ export class CanvasRenderer extends BaseRenderer<CanvasRendererOptions> {
             ctx.clip((path as FillRule) ?? 'nonzero')
         }
     }
+    applyCanvasTransform() {
+        const matrix = this.currentState.currentTransform
+        if (!Matrix2D.isIdentity(matrix)) {
+            this.ctx.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty)
+        }
+    }
+    applyCanvasStyle(ops: { fill?: boolean, stroke?: boolean, text?: boolean }) {
+        const ctx = this.ctx;
+        if (ops.fill) {
+            ctx.fillStyle = this.toCanvasPaint(this.currentState.fillStyle)
+        }
+        if (ops.stroke) {
+            ctx.lineWidth = this.currentState.lineWidth
+            ctx.lineCap = this.currentState.lineCap
+            ctx.strokeStyle = this.toCanvasPaint(this.currentState.strokeStyle)
+        }
+    }
     fill(fillRule?: FillRule): void;
     fill(path: PathBuilder, fillRule?: FillRule): void;
     fill(path?: unknown, fillRule?: unknown): void {
+        this.applyCanvasTransform()
+        this.applyCanvasStyle({ fill: true })
         const ctx = this.ctx
         if (path instanceof PathBuilder) {
             const p2d = new Path2D()
             path.toCanvasPath2D(p2d)
             ctx.fill(p2d, (fillRule as FillRule) ?? 'nonzero')
         } else {
-            ctx.fill((path as FillRule) ?? 'nonzero')
+            const p2d = new Path2D()
+
+            this.currentPath.toCanvasPath2D(p2d)
+
+            // ctx.fill((path as FillRule) ?? 'nonzero')
+            ctx.fill(p2d)
+
         }
     }
     stroke(): void;
@@ -347,8 +376,8 @@ export class CanvasRenderer extends BaseRenderer<CanvasRendererOptions> {
             this.ctx.putImageData(imageData as ImageData, dx as number, dy as number)
         }
     }
-    render(node:INode){
-        
+    render(node: INode) {
+
         node.render(this)
     }
 }

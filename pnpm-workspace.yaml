@@ -17,6 +17,7 @@ packages:
   - 'packages/dom'
   - 'packages/lyf'
   - 'packages/canvas'  
+  - 'packages/canvaskit2'  
   # components/ 子目录中的所有包
   #- 'components/**'
   # 排除测试目录中的包
