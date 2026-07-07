@@ -32,6 +32,9 @@ export type ElementEvents = {
     mousedown: NodeEvent<PointerEventName, PointerEventData>
     mousemove: NodeEvent<PointerEventName, PointerEventData>
     mouseup: NodeEvent<PointerEventName, PointerEventData>
+
+    // element
+    dispose:[instance:Element]
 }
 
 export type ElementProps = {
@@ -40,6 +43,10 @@ export type ElementProps = {
     visible?: boolean // 是否可见,不可见但响应事件
     ignore?: boolean // 是否忽略渲染
     zIndex?: number // 层级索引
+    // 是否精确命中
+   // hitBounds?: boolean // boolean // 是否命中边界框,对于填充元素有效
+    hitType?:'bounds'|'path'|'', // boolean // 启用是否命中路径,否则使用简单hit
+  //  hitShadow?: boolean // boolean // 是否命中阴影
     // 事件
     interactive?: boolean // 是否可交互,响应事件
     cursor?: string // 鼠标指针
@@ -96,7 +103,8 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
             ignore: false,
             zIndex: 0,
             interactive: true,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            hitBounds:true
 
         }] as Partial<Props>[]
     }
@@ -113,6 +121,13 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     }
     get ignore() {
         return this.props.ignore
+    }
+    get zIndex(){
+        return this.props.zIndex
+    }
+    set zIndex(value: number) {
+        this.props.zIndex = value
+        this.flags.add(ElementFlag.CHILDREN)
     }
     get position() {
         return this.transform.position
@@ -260,5 +275,9 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
             }
         }
         return true
+    }
+    dispose(){
+        this.removeAllListeners()
+        this.emit('dispose',this as any)
     }
 }

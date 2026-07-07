@@ -81,7 +81,6 @@ export class Container extends Element<ContainerProps> {
         const renderList: Shape[] = this.renderList
         // 如果子树有变化，或者可见性有变化，需要重新收集渲染列表
         if (this.flags.include(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)) {
-            console.log('collect')
             renderList.length = 0
             this.flags.remove(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)
             this.flags.removeSubtreeFlag(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)

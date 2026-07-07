@@ -141,6 +141,7 @@ export class Engine extends EventEmitter<EngineEvents> {
     destroy() {
         this.eventSystem.stop()
         this.animationSystem.stop()
+        this.pluginSystem.unregisterPlugins()
         this.emit('destroy', this)
     }
     add(child: Element) {
@@ -165,7 +166,6 @@ export class Engine extends EventEmitter<EngineEvents> {
         if (this.needRender||this.scene.flags.dirty) {
             this.needRender = false
             this.render()
-            console.log('render')
         }
     }
     public requestRender() {

@@ -1,7 +1,7 @@
 import { type CanvasKit, ck } from 'src/ck'
-import { LineCap, LineJoin } from 'src/core/Renderer';
+import { FillRule, LineCap, LineJoin } from 'src/core/Renderer';
 import { BoundingRect } from 'src/math/BoundingRect';
-
+import {toCKFillRule,toCKLineCap,toCKLineJoin} from './convert'
 
 function radiansToDegrees(rad: number) {
     return (rad / Math.PI) * 180;
@@ -85,34 +85,41 @@ function ellipse(skpath: CanvasKit.PathBuilder, x: number, y: number, radiusX: n
     _ellipseHelper(skpath, x, y, radiusX, radiusY, startAngle, endAngle);
     skpath.transform(rotated);
 }
-export type StrokeOptions={lineWith:number,lineJoin:LineJoin,lineCap:LineCap,miterLimit:number}
+export type StrokeOptions = {
+    lineWith: number,
+    lineJoin: LineJoin,
+    lineCap: LineCap,
+    miterLimit: number
+
+}
 export class CKPath2D {
     _pathBuilder: CanvasKit.PathBuilder
     _bounds: BoundingRect
-    _computeTightBounds:BoundingRect
-    _computeStrokeTightBounds:BoundingRect
+    _computeTightBounds: BoundingRect
+    _computeStrokeTightBounds: BoundingRect
     _path: CanvasKit.Path = null
     _strokePath: CanvasKit.Path = null
-    lineWith:number=1
-    lineJoin:LineJoin='miter'
-    lineCap:LineCap='butt'
-    miterLimit:number=10
+    lineWith: number = 1
+    lineJoin: LineJoin = 'miter'
+    lineCap: LineCap = 'butt'
+    miterLimit: number = 10
+    fillRule:FillRule='nonzero'
     constructor() {
         this._pathBuilder = new ck.PathBuilder()
     }
- 
+    
     markDirty() {
         if (this._path) {
             this._path.delete()
         }
         this._path = null
-        if(this._strokePath){
+        if (this._strokePath) {
             this._strokePath.delete()
         }
-        this._strokePath=null
-        this._bounds=null
-        this._computeTightBounds=null
-        this._computeStrokeTightBounds=null
+        this._strokePath = null
+        this._bounds = null
+        this._computeTightBounds = null
+        this._computeStrokeTightBounds = null
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arc) */
     arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void {
@@ -122,17 +129,17 @@ export class CKPath2D {
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arcTo) */
     arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void {
         this._pathBuilder.arcToTangent(x1, y1, x2, y2, radius)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/bezierCurveTo) */
     bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number): void {
         this._pathBuilder.cubicTo(cp1x, cp1y, cp2x, cp2y, x, y)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath) */
     closePath(): void {
         this._pathBuilder.close()
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/ellipse) */
     ellipse(x: number, y: number, radiusX: number, radiusY: number, rotation: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void {
@@ -142,22 +149,22 @@ export class CKPath2D {
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineTo) */
     lineTo(x: number, y: number): void {
         this._pathBuilder.lineTo(x, y)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/moveTo) */
     moveTo(x: number, y: number): void {
         this._pathBuilder.moveTo(x, y)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo) */
     quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
         this._pathBuilder.quadTo(cpx, cpy, x, y)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rect) */
     rect(x: number, y: number, w: number, h: number, isCCW?: boolean): void {
         this._pathBuilder.addRect(ck.XYWHRect(x, y, w, h), isCCW)
-          this.markDirty()
+        this.markDirty()
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/roundRect) */
     roundRect(x: number, y: number, w: number, h: number, radii?: number | DOMPointInit | (number | DOMPointInit)[]): void {
@@ -183,88 +190,94 @@ export class CKPath2D {
         rrect[8] = rrect[9] = corners[2]
         rrect[10] = rrect[11] = corners[3]
         this._pathBuilder.addRRect(rrect)
-          this.markDirty()
+        this.markDirty()
     }
-    beginPath(){
-        this._pathBuilder=new ck.PathBuilder()
-        this._path=null
+    beginPath() {
+        this._pathBuilder = new ck.PathBuilder()
+        this._path = null
     }
-    getPath(){
-        if(!this._path){
-            this._path=this._pathBuilder.detachAndDelete()
-            this._pathBuilder=null
+    getPath() {
+        if (!this._path) {
+            this._path = this._pathBuilder.detachAndDelete()
+            this._path.setFillType(toCKFillRule(this.fillRule))
+            this._pathBuilder = null
         }
         return this._path
     }
-    getStrokeCap(cap:LineCap){
-        switch(cap){
-            case 'butt':
-                return ck.StrokeCap.Butt
-            case 'round':
-                return  ck.StrokeCap.Round
-            case 'square':
-                return ck.StrokeCap.Square
-        }
+    
+    private isEquaLastStroke(options: StrokeOptions) {
+        return !(this.lineWith !== options.lineWith || this.lineJoin !== options.lineJoin || this.lineCap !== options.lineCap || this.miterLimit !== options.miterLimit)
     }
-    getStrokeJoin(join:LineJoin){
-        switch(join){
-            case 'round':
-                return ck.StrokeJoin.Round
-            case 'miter':
-                return ck.StrokeJoin.Miter
-            case 'bevel':
-                return ck.StrokeJoin.Bevel
-        }
-    }
-    private isEquaLastStroke(options:StrokeOptions){
-        return this.lineWith===options.lineWith&&this.lineJoin===options.lineJoin&&this.lineCap===options.lineCap&&this.miterLimit===options.miterLimit
-    }
-    getStrokePath(options:StrokeOptions){
- 
-        if(!this._strokePath||!this.isEquaLastStroke(options)){
-            this.lineWith=options.lineWith
-            this.lineJoin=options.lineJoin
-            this.lineCap=options.lineCap
-            this.miterLimit=options.miterLimit
-            this._strokePath=this.getPath().makeStroked({
-                width:options.lineWith,
-                cap:this.getStrokeCap(options.lineCap),
-                join:this.getStrokeJoin(options.lineJoin),
-                miter_limit:options.miterLimit,
+    getStrokePath(options: StrokeOptions) {
+
+        if (!this._strokePath || !this.isEquaLastStroke(options)) {
+            this.lineWith = options.lineWith
+            this.lineJoin = options.lineJoin
+            this.lineCap = options.lineCap
+            this.miterLimit = options.miterLimit
+            this._strokePath = this.getPath().makeStroked({
+                width: options.lineWith,
+                cap: toCKLineCap(options.lineCap),
+                join: toCKLineJoin(options.lineJoin),
+                miter_limit: options.miterLimit,
             })
         }
         return this._strokePath
     }
     isPointInPath(x: number, y: number): boolean {
-        return this.getPath().contains(x,y)
+        return this.getPath().contains(x, y)
     }
-    isPointInStrokePath(x: number, y: number,options:{lineWith:number,lineJoin:LineJoin,lineCap:LineCap,miterLimit:number}): boolean {  
-        return this.getStrokePath(options).contains(x,y)
+    isPointInStrokePath(x: number, y: number, options: StrokeOptions): boolean {
+        return this.getStrokePath(options).contains(x, y)
     }
     getBounds(): BoundingRect {
-        if(!this._bounds){
-            const bounds=this.getPath().getBounds()
-            this._bounds=BoundingRect.fromXYWH(bounds[0], bounds[1], bounds[2], bounds[3])
+        if (!this._bounds) {
+            const bounds = this.getPath().getBounds()
+            this._bounds = BoundingRect.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
         }
         return this._bounds
     }
-    computeTightBounds(){
-        if(!this._computeTightBounds){
-            const bounds=this.getPath().computeTightBounds()
-            this._computeTightBounds=BoundingRect.fromXYWH(bounds[0], bounds[1], bounds[2], bounds[3])
+    computeTightBounds() {
+        if (!this._computeTightBounds) {
+            const bounds = this.getPath().computeTightBounds()
+            this._computeTightBounds = BoundingRect.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
         }
         return this._computeTightBounds
     }
-    computeStrokeTightBounds(){
-        if(!this._computeStrokeTightBounds){
-            const bounds=this.getStrokePath(this).computeTightBounds()
-            this._computeStrokeTightBounds=BoundingRect.fromXYWH(bounds[0], bounds[1], bounds[2], bounds[3])
+    computeStrokeTightBounds() {
+        if (!this._computeStrokeTightBounds) {
+            const bounds = this.getStrokePath(this).computeTightBounds()
+            this._computeStrokeTightBounds = BoundingRect.fromLTRB(bounds[0], bounds[1], bounds[2], bounds[3])
         }
         return this._computeStrokeTightBounds
     }
     toPath(): CanvasKit.Path {
         return this._pathBuilder.detach()
     }
+    clear(){
+        if(this._pathBuilder&&!this._pathBuilder.isDeleted()){
+            this._pathBuilder.delete()
+        }
+         if(this._path&&!this._path.isDeleted()){
+            this._path.delete()
+        }
+         if(this._strokePath&&!this._strokePath.isDeleted()){
+            this._strokePath.delete()
+        }
+        this._pathBuilder=null
+        this._path=null
+        this._strokePath=null
+        this._bounds=null
+        this._computeTightBounds=null
+        this._computeStrokeTightBounds=null
+    }
+    dispose(){
+        this.clear()
+    }
+    reset(){
+        this.clear()
+        this._pathBuilder=new ck.PathBuilder()
 
+    }
 
 }

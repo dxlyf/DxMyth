@@ -32,7 +32,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.domElement.style.margin = '0'
         this.domElement.style.padding = '0'
         this.domElement.style.display = 'block'
-        this.ctx = this.domElement.getContext("2d",{alpha:false})!
+        this.ctx = this.domElement.getContext("2d", { alpha: true })!
         if (!this.domElement.parentNode) {
             this.engine.containerDom.appendChild(this.domElement)
         }
@@ -215,12 +215,12 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         if (!style) {
             return null
         }
-        const type=style.type
+        const type = style.type
         if (type === 'color') {
             return Color.toCSS_RGBA(style.value)
         } else if (type === 'gradient') {
             const stops = style.stops
-            const elementType=style.elementType
+            const elementType = style.elementType
             let gradient: CanvasGradient
             if (elementType === 'linear-gradient') {
                 let _gradient = style as LinearGradient
@@ -247,28 +247,27 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         const ctx = this.ctx
         const style = shape.style
         let fillStyle;
-        if(shape.flags.has(ElementFlag.STYLE)||!shape._cache._canvasFillStyle){
-             fillStyle=shape._cache._canvasFillStyle=this.toCanvasFillStyle(style.fillStyle)
-        }else{
-            fillStyle=shape._cache._canvasFillStyle
+        if (shape.flags.has(ElementFlag.STYLE) || !shape._cache._canvasFillStyle) {
+            fillStyle = shape._cache._canvasFillStyle = this.toCanvasFillStyle(style.fillStyle)
+        } else {
+            fillStyle = shape._cache._canvasFillStyle
         }
-        
+
         const strokeStyle = this.toCanvasFillStyle(style.strokeStyle)
 
-
+        const shadowColor = style.shadowColor
+        const shadowBlur = style.shadowBlur
+        if (shadowColor && shadowBlur > 0) {
+            ctx.shadowColor = shadowColor as unknown as string
+            ctx.shadowBlur = shadowBlur
+            ctx.shadowOffsetX = style.shadowOffsetX
+            ctx.shadowOffsetY = style.shadowOffsetY
+        }
         if (fillStyle) {
             ctx.fillStyle = fillStyle
-            const shadowColor=style.shadowColor
-            const shadowBlur=style.shadowBlur
-            if (shadowColor && shadowBlur > 0) {
-                ctx.shadowColor = shadowColor as unknown as string
-                ctx.shadowBlur = shadowBlur
-                ctx.shadowOffsetX = style.shadowOffsetX
-                ctx.shadowOffsetY = style.shadowOffsetY
-            }
         }
         if (strokeStyle) {
-            const lineDash=style.lineDash
+            const lineDash = style.lineDash
             ctx.strokeStyle = strokeStyle
             ctx.lineWidth = style.lineWidth
             ctx.lineCap = style.lineCap
@@ -286,121 +285,117 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
     renderText(shape: Shape): void {
         throw new Error("Method not implemented.")
     }
-    private renderShapeWithBlend(shape: Shape, blend: string): void {
-        const mainCtx = this.ctx
+    /**
+     * 核心绘制：transform → 样式 → 路径 → fill/stroke
+     * 被 renderShape 和 renderShapeWithBlend 共用
+     */
+    private _drawShape(shape: Shape): void {
+        const ctx = this.ctx
         const style = shape.style
         const matrix = shape.worldMatrix
 
-        const offCanvas = new OffscreenCanvas(this.width, this.height)
-        // offCanvas.width = this.width
-        // offCanvas.height = this.height
+        if (!matrix.isIdentity()) {
+            ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+        }
+        if (style.opacity < 1) {
+            ctx.globalAlpha = style.opacity
+        }
+        this.applyShapeStyle(shape)
+        shape.draw(this)
 
-        // offCanvas.style.width = `${this.viewport.width}px`
-        // offCanvas.style.height = `${this.viewport.height}px`
-        // document.body.appendChild(offCanvas)
+        if (style.closePath) ctx.closePath()
+
+        const hasFill = !!style.fillStyle
+        const hasStroke = !!style.strokeStyle
+        const needClipStroke = hasStroke && style.strokeAlign !== 'center'
+
+        if (!style.firstStroke) {
+            if (hasFill) ctx.fill(style.fillRule)
+            if (needClipStroke) this._strokeWithAlign(shape)
+            else if (hasStroke) ctx.stroke()
+        } else {
+            if (needClipStroke) this._strokeWithAlign(shape)
+            else if (hasStroke) ctx.stroke()
+            if (hasFill) ctx.fill(style.fillRule)
+        }
+    }
+
+    /** 通过 clip 实现 inner/outer 描边（从 style 读取参数，减少传参） */
+    private _strokeWithAlign(shape: Shape): void {
+        const ctx = this.ctx
+        const style = shape.style
+        const align = style.strokeAlign as 'inner' | 'outer'
+
+        ctx.save()
+        ctx.beginPath()
+        shape.draw(this)
+        if (style.closePath) ctx.closePath()
+
+        if (align === 'inner') {
+            ctx.clip() // 裁掉外部 → 只保留内部描边
+        } else {
+            ctx.rect(-1e8, -1e8, 2e8, 2e8)
+            ctx.clip('evenodd') // 路径内部作为洞 → 只保留外部描边
+
+              // outer: 擦除内部一半 → 只保留外部描边
+            // 用 destination-out 比 evenodd + 大矩形更高效
+           
+        }
+        ctx.lineWidth = style.lineWidth * 2 // 双倍线宽，clip 裁掉一半
+        ctx.stroke()
+        ctx.restore()
+    }
+
+    private renderShapeWithBlend(shape: Shape, blend: string): void {
+        const mainCtx = this.ctx
+        const offCanvas = new OffscreenCanvas(this.width, this.height)
         const offCtx = offCanvas.getContext('2d')!
 
         offCtx.save()
         offCtx.scale(this.dpr, this.dpr)
         offCtx.beginPath()
-        offCtx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
-        if (style.opacity < 1) offCtx.globalAlpha = style.opacity
-        offCtx.globalCompositeOperation = 'source-over';
+        offCtx.globalCompositeOperation = 'source-over'
 
-        (this as any).ctx = offCtx
-        this.applyShapeStyle(shape)
-        shape.draw(this)
-        if (style.closePath) offCtx.closePath()
-        if (!style.firstStroke) {
-            if (shape.hasFill()) offCtx.fill(style.fillRule)
-            if (shape.hasStroke()) offCtx.stroke()
-        } else {
-            if (shape.hasStroke()) offCtx.stroke()
-            if (shape.hasFill()) offCtx.fill(style.fillRule)
-        }
-        ; (this as any).ctx = mainCtx
+        // 临时切换 ctx 到离屏，复用 _drawShape 全部逻辑
+        ;(this as any).ctx = offCtx
+        this._drawShape(shape)
+        ;(this as any).ctx = mainCtx
 
         offCtx.restore()
 
         mainCtx.globalCompositeOperation = blend as any
         mainCtx.drawImage(offCanvas, 0, 0, this.viewport.width, this.viewport.height)
     }
-    private strokeShape(shape: Shape) {
-        const ctx = this.ctx
-        const style = shape.style
-        const align=style.strokeAlign
-        const lineWidth=style.lineWidth
-        if(align==='outer'){
-           ctx.lineWidth=lineWidth*2
-
-        }else if(align==='inner'){
-
-        }else{
-            ctx.stroke()
-        }
-    }
+  
     prevShape: Shape = null
-    renderShape(shape: Shape) {
-
+    renderShape(shape: Shape): void {
         const ctx = this.ctx
-        const style = shape.style
-        const matrix = shape.worldMatrix
         const prevShape = this.prevShape
-        const opacity=style.opacity
+
         ctx.save()
         ctx.beginPath()
-        if (prevShape && style.blend !== prevShape.style.blend) {
-            this.renderShapeWithBlend(shape, style.blend)
+
+        if (prevShape && shape.style.blend !== prevShape.style.blend) {
+            this.renderShapeWithBlend(shape, shape.style.blend)
         } else {
-            ctx.beginPath()
-            if(!matrix.isIdentity()){
-                ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
-            }
-            if (opacity < 1) {
-                ctx.globalAlpha = opacity
-            }
-            this.applyShapeStyle(shape)
-           // ctx.fillStyle='#'+Math.random().toString(16).slice(-6)
-            shape.draw(this)
-
-            if (style.closePath) {
-                ctx.closePath()
-            }
-            if (!style.firstStroke) {
-                if (style.fillStyle) {
-
-                    ctx.fill(style.fillRule)
-                }
-                if (style.strokeStyle) {
-                    this.strokeShape(shape)
-                }
-            } else {
-                if (style.strokeStyle) {
-                    this.strokeShape(shape)
-                }
-                if (style.fillStyle) {
-                   ctx.fill(style.fillRule)
-                }
-            }
+            this._drawShape(shape)
         }
-
 
         ctx.restore()
         this.prevShape = shape
-
     }
 
     renderBefore(ctx: CanvasRenderingContext2D) {
         const viewportMatrix = this.viewport.getWorldToScreenMatrix()
-        const vm=Matrix2D.pool.get()
-        const dpr=this.dpr
-      
+        const vm = Matrix2D.pool.get()
+        const dpr = this.dpr
+
         ctx.save()
         ctx.clearRect(0, 0, this.width, this.height)
-      //  ctx.scale(this.dpr, this.dpr)
+        //  ctx.scale(this.dpr, this.dpr)
         vm.fromScale(dpr, dpr)
         vm.multiply(viewportMatrix)
-        if(!vm.isIdentity()){
+        if (!vm.isIdentity()) {
             ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5])
         }
         Matrix2D.pool.release(vm)
@@ -411,7 +406,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
             ctx.fillStyle = this.props.backgroundColor as string
             ctx.globalCompositeOperation = 'destination-atop'
             ctx.fillRect(0, 0, this.width, this.height)
-            ctx.globalCompositeOperation='source-over'
+            ctx.globalCompositeOperation = 'source-over'
         }
     }
 

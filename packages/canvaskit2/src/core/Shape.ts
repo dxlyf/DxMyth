@@ -2,7 +2,7 @@
 import { BoundingRect } from 'src/math/BoundingRect'
 import { Element, type ElementProps } from './Element'
 import { Renderer, type RenderStyle } from 'src/core/Renderer'
-import type { Paintolor, Gradient, Pattern, ColorValue } from 'src/core/Renderer'
+import type { Paintolor, Gradient, Pattern, ColorValue, FillRule } from 'src/core/Renderer'
 import { ElementFlag } from './ElementFlags'
 import { Color } from 'src/math/Color'
 import { CKPath2D } from 'src/ck/CKPath2D'
@@ -26,12 +26,19 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
         super(props)
         this.setStyles(this.props.style || {})
         this.setShapes(this.props.shape || {})
+        this.path = new CKPath2D()
+        this.path.fillRule=this.props.style.fillRule
+        this.flags.add(ElementFlag.SHAPE)
     }
     get style(): RenderStyle {
         return this.props.style as RenderStyle
     }
     get shape(): Props['shape'] {
         return this.props.shape
+    }
+    setFillRule(fillRule:FillRule){
+        this.path.fillRule=fillRule
+        this.setStyle('fillRule',fillRule)
     }
 
     getDefaultProps(): Partial<Props>[] {
@@ -107,10 +114,13 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
     }
     hitTest(x:number,y:number):boolean{
         this.builtinBuildPath()
-        const bounds=this.path.getBounds()
-        // if(!bounds.contains(x,y)){
-        //     return false
-        // }
+        if(this.props.hitType==='bounds'){
+            const bounds=this.path.computeTightBounds()
+            if(bounds.contains(x,y)){
+                return true
+            }
+            return false
+        }
         if(this.hasFill()&&this.path.isPointInPath(x,y)){
             return true
         }
@@ -120,17 +130,23 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
                 lineWith:style.lineWidth,
                 lineJoin:style.lineJoin,
                 lineCap:style.lineCap,
-                miterLimit:style.miterLimit,
+                miterLimit:style.miterLimit
             })
         }
         return false
     }
     builtinBuildPath(){
-        if(!this.path||this.flags.has(ElementFlag.SHAPE)){
+        if(this.flags.has(ElementFlag.SHAPE)){
             this.flags.remove(ElementFlag.SHAPE)
-            this.path=new CKPath2D()
+            if(this.path){
+                this.path.reset()
+            }
             this.buildPath(this.path)
         }
+    }
+    dispose(): void {
+        super.dispose()
+        this.path.dispose()
     }
     abstract buildPath(path:CKPath2D):void
     abstract draw(renderer: Renderer):void 

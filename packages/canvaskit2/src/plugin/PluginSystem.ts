@@ -63,9 +63,9 @@ export class PluginSystem{
             this.registerPlugin(Plugin)
         })
     }
-    unregisterPlugins(plugins:PluginConstructor[]){
-        plugins.forEach(Plugin=>{
-            this.unregisterPlugin(Plugin.name)
+    unregisterPlugins(){
+        this.plugins.forEach(plugin=>{
+            this.unregisterPlugin(plugin.name)
         })
     }
 }
