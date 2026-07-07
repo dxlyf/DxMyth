@@ -211,6 +211,28 @@ export class Matrix2D extends Float32Array {
         return this.fromValues(1, 0, 0, 1, 0, 0)
     }
 
+    /** 重置为平移矩阵 */
+    fromTranslate(tx: number, ty: number): this {
+        return this.fromValues(1, 0, 0, 1, tx, ty)
+    }
+
+    /** 重置为缩放矩阵 */
+    fromScale(sx: number, sy: number): this {
+        return this.fromValues(sx, 0, 0, sy, 0, 0)
+    }
+
+    /** 重置为旋转矩阵 */
+    fromRotation(angle: number): this {
+        const c = Math.cos(angle)
+        const s = Math.sin(angle)
+        return this.fromValues(c, s, -s, c, 0, 0)
+    }
+
+    /** 重置为倾斜矩阵 */
+    fromSkew(sx: number, sy: number): this {
+        return this.fromValues(1, Math.tan(sy), Math.tan(sx), 1, 0, 0)
+    }
+
     copy(m: Matrix2D): this {
         this[0] = m[0]; this[1] = m[1]; this[2] = m[2]
         this[3] = m[3]; this[4] = m[4]; this[5] = m[5]
@@ -219,7 +241,7 @@ export class Matrix2D extends Float32Array {
 
     // ---- 自身变换（this = this * op） ----
     multiplyMatrices(a:Matrix2DLike,b:Matrix2DLike){
-             return Matrix2D.multiply(this, a, b) as unknown as this
+        return Matrix2D.multiply(this, a, b) as unknown as this
     }
     multiply(m: Matrix2D): this {
         return Matrix2D.multiply(this, this, m) as unknown as this
@@ -312,7 +334,7 @@ export class Matrix2D extends Float32Array {
     }
 
     isIdentity(): boolean {
-        return this[0] === 1 && this[1] === 0 && this[2] === 0 && this[3] === 1 && this[4] === 0 && this[5] === 0
+        return !(this[1]!==0||this[2]!==0||this[0]!==1||this[3]!==1||this[4]!==0||this[5]!==0)
     }
 
     isSingular(): boolean {

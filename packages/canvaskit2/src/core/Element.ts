@@ -4,13 +4,34 @@ import { ElementFlags, ElementFlag } from './ElementFlags'
 import { BoundingRect } from 'src/math/BoundingRect'
 import { merge } from 'src/utils/merge'
 import { Vector2Like } from 'src/math/Vector2'
+import type { PointerEventData, PointerEventName } from 'src/event/EventSystem'
+import { Engine } from './Engine'
 
 
 export type ElementEvents = {
-    click: NodeEvent
-    mousedown: NodeEvent
-    mousemove: NodeEvent
-    mouseup: NodeEvent
+    // pointer 统一事件（覆盖 mouse / touch）
+    pointerdown: NodeEvent<PointerEventName, PointerEventData>
+    pointermove: NodeEvent<PointerEventName, PointerEventData>
+    pointerup: NodeEvent<PointerEventName, PointerEventData>
+    pointerover: NodeEvent<PointerEventName, PointerEventData>
+    pointerout: NodeEvent<PointerEventName, PointerEventData>
+    pointerenter: NodeEvent<PointerEventName, PointerEventData>
+    pointerleave: NodeEvent<PointerEventName, PointerEventData>
+    click: NodeEvent<PointerEventName, PointerEventData>
+    dblclick: NodeEvent<PointerEventName, PointerEventData>
+    // drag 系列（源元素接收）
+    dragstart: NodeEvent<PointerEventName, PointerEventData>
+    drag: NodeEvent<PointerEventName, PointerEventData>
+    dragend: NodeEvent<PointerEventName, PointerEventData>
+    // drag-drop 系列（拖拽悬停的目标元素接收）
+    dragenter: NodeEvent<PointerEventName, PointerEventData>
+    dragleave: NodeEvent<PointerEventName, PointerEventData>
+    dragover: NodeEvent<PointerEventName, PointerEventData>
+    drop: NodeEvent<PointerEventName, PointerEventData>
+    // 兼容旧 mouse 事件别名
+    mousedown: NodeEvent<PointerEventName, PointerEventData>
+    mousemove: NodeEvent<PointerEventName, PointerEventData>
+    mouseup: NodeEvent<PointerEventName, PointerEventData>
 }
 
 export type ElementProps = {
@@ -30,9 +51,12 @@ export type ElementProps = {
     origin?: Vector2Like
 }
 
-export abstract class Element<Props extends ElementProps=ElementProps> extends EventTarget<ElementEvents> {
+export abstract class Element<Props extends ElementProps = ElementProps> extends EventTarget<ElementEvents> {
     type: string = 'Element'
     props: Props
+    data: any = {}
+    _cache: any = {}
+    owner: Engine | null = null
     // 节点关系
     declare parent: Element<Props> | null
     declare children: Element<Props>[] | null
@@ -47,33 +71,33 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
 
     constructor(props?: Partial<Props>) {
         super()
-    
-        this.props=merge({},...this.getDefaultProps(), props || {}) as Props
+
+        this.props = merge({}, ...this.getDefaultProps(), props || {}) as Props
         this.transform = new Transform()
         this.transform.setTransform(this.props.position, this.props.scale, this.props.rotation, this.props.skew, this.props.origin,)
         this.transform.onChange(() => {
             this.flags.add(ElementFlag.TRANSFORM | ElementFlag.LOCAL_BOUNDS)
         })
-   
+
     }
-        // 计算本地包围盒
+    // 计算本地包围盒
     abstract calcLocalBounds(out: BoundingRect): BoundingRect
-        // 判断点是否命中
+    // 判断点是否命中
     abstract hitTest(x: number, y: number): boolean
-    
-    
-    onUpdate(){
+
+
+    onUpdate() {
 
     }
 
     getDefaultProps(): Partial<Props>[] {
         return [{
-            visible:true,
-            ignore:false,
-            zIndex:0,
-            interactive:true,
-            cursor:'pointer'
-            
+            visible: true,
+            ignore: false,
+            zIndex: 0,
+            interactive: true,
+            cursor: 'pointer'
+
         }] as Partial<Props>[]
     }
     get visible() {
@@ -90,25 +114,34 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
     get ignore() {
         return this.props.ignore
     }
-    get position(){
+    get position() {
         return this.transform.position
     }
-    get rotation(){
+    get rotation() {
         return this.transform.rotation
     }
-    set rotation(v:number){
-        this.transform.rotation=v
+    set rotation(v: number) {
+        this.transform.rotation = v
     }
-    get scale(){
+    get scale() {
         return this.transform.scale
     }
-    get skew(){
+    get skew() {
         return this.transform.skew
     }
-    get origin(){
+    get origin() {
         return this.transform.origin
     }
-    /** 是否添加到渲染列表,包括不渲染，但响应事件的对象 */ 
+    dirtyStyle() {
+        this.flags.add(ElementFlag.STYLE)
+    }
+    dirtyShape() {
+        this.flags.add(ElementFlag.SHAPE)
+    }
+    dirty(){
+        this.flags.add(ElementFlag.VISIBILITY)
+    }
+    /** 是否添加到渲染列表,包括不渲染，但响应事件的对象 */
     shouldAddToRenderList() {
         return !this.props.ignore
     }
@@ -118,7 +151,7 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
     }
     // 是否可交互
     shouldInteractive() {
-        return this.props.interactive&&!this.props.ignore
+        return this.props.interactive && !this.props.ignore
     }
     get name() {
         return this.props.name
@@ -147,6 +180,31 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
     get worldMatrixInvert() {
         return this.transform.worldMatrixInvert
     }
+    // 添加owner到自身
+    setParent(parent: Element) {
+        if (parent) {
+            this.parent = parent as Element<Props>
+            this.flags.setParent(parent.flags)
+            this.transform.parent = parent.transform
+            if (parent.owner) {
+                this.addOwnerToSelf(parent.owner)
+            }
+        } else {
+            this.parent = null
+            this.transform.parent = null
+            this.flags.parent = null
+        }
+    }
+    addOwnerToSelf(owner: Engine) {
+        this.owner = owner
+        const children = this.children
+        if (children) {
+            for (let i = 0, len = children.length; i < len; i++) {
+                const child = children[i]
+                child.addOwnerToSelf(owner)
+            }
+        }
+    }
     // 
 
     get localBounds() {
@@ -161,7 +219,7 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
         if (!this._localBounds) {
             this._localBounds = BoundingRect.zero()
         }
-        if (this.flags.has(ElementFlag.LOCAL_BOUNDS)||this._localBounds.isZero()) {
+        if (this.flags.has(ElementFlag.LOCAL_BOUNDS) || this._localBounds.isZero()) {
             this.flags.remove(ElementFlag.LOCAL_BOUNDS)
             this.flags.add(ElementFlag.WORLD_BOUNDS)
             this.calcLocalBounds(this._localBounds)
@@ -172,7 +230,7 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
             this._worldBounds = BoundingRect.zero()
         }
         const localBounds = this.localBounds
-        if (this.flags.has(ElementFlag.WORLD_BOUNDS)||this._worldBounds.isZero()) {
+        if (this.flags.has(ElementFlag.WORLD_BOUNDS) || this._worldBounds.isZero()) {
             this.flags.remove(ElementFlag.WORLD_BOUNDS)
             this._worldBounds.copy(localBounds).applyMatrix2D(this.worldMatrix)
         }
@@ -188,7 +246,7 @@ export abstract class Element<Props extends ElementProps=ElementProps> extends E
         }
     }
     /** 遍历后代节点 */
-    traverseDescendant(callback: (element: Element<Props>) => (boolean|void)) {
+    traverseDescendant(callback: (element: Element<Props>) => (boolean | void)) {
         if (callback(this) === false) {
             return false
         }

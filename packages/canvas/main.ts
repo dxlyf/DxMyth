@@ -14,7 +14,7 @@ const renderer=new CanvasRenderer({
 //     font:'40px sans-serif',
 // })
 // renderer.fillText('Hell world',100,100)
-const count=10000;
+const count=5000;
 
 const random=(min:number,max:number)=>{
     return Math.floor(min+(max-min)*Math.random())

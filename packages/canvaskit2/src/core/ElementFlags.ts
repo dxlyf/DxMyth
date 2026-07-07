@@ -28,6 +28,13 @@ export class ElementFlags {
     constructor(){
         this.value=ElementFlag.NONE
     }
+    get allFlags(): ElementFlag {
+        return this.value | this.subtree
+    }
+    setParent(parent:ElementFlags){
+        this.parent=parent
+        parent.addSubtreeFlag(this.allFlags)
+    }
     addSubtreeFlag(flag: ElementFlag): void {
         this.subtree |= flag
         if(this.parent){
@@ -44,7 +51,7 @@ export class ElementFlags {
     add(flag: ElementFlag): void {
         this.value |= flag
         if(this.parent){
-            this.parent.addSubtreeFlag(this.value)
+            this.parent.addSubtreeFlag(this.value|this.subtree)
         }
     }
 

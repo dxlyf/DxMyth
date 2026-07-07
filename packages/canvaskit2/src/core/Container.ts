@@ -26,9 +26,7 @@ export class Container extends Element<ContainerProps> {
     remove(child: Element) {
         const index = this.children.indexOf(child)
         if (index > -1) {
-            child.parent = null
-            child.transform.parent=null
-            child.flags.parent = null
+            child.setParent(null)
             this.children.splice(index, 1)
             this.flags.add(ElementFlag.CHILDREN)
         }
@@ -37,19 +35,29 @@ export class Container extends Element<ContainerProps> {
         if (child.parent) {
             (child.parent as Container).remove(child)
         }
-        child.parent = this
-        child.flags.parent = this.flags
-        child.transform.parent=this.transform
+        child.setParent(this)
         this.children.splice(index, 0, child)
         this.flags.add(ElementFlag.CHILDREN)
     }
     hitTest(x: number, y: number): boolean {
-        for (let child of this.children) {
-            if (child.hitTest(x, y)) {
+        let children=this.children
+        for(let i=children.length-1;i>=0;i--){
+            if(children[i].shouldInteractive() && children[i].hitTest(x, y)){
                 return true
             }
         }
         return false
+    }
+    pick(x:number,y:number): Element {
+        const list=this.collectRenderElements()
+        for(let i=list.length-1;i>=0;i--){
+            const el=list[i]
+            const local=el.transform.worldToLocal({x,y},{x:0,y:0})
+            if(el.shouldInteractive() && el.hitTest(local.x,local.y)){
+                return el
+            }
+        }
+        return null
     }
     calcLocalBounds(out: BoundingRect): BoundingRect {
         let bounds = BoundingRect.pool.get()
@@ -73,9 +81,11 @@ export class Container extends Element<ContainerProps> {
         const renderList: Shape[] = this.renderList
         // 如果子树有变化，或者可见性有变化，需要重新收集渲染列表
         if (this.flags.include(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)) {
+            console.log('collect')
             renderList.length = 0
+            this.flags.remove(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)
+            this.flags.removeSubtreeFlag(ElementFlag.CHILDREN | ElementFlag.VISIBILITY)
             this.traverseDescendant((el) => {
-                el.onUpdate()
                 if (el.shouldAddToRenderList()) {
                     renderList.push(el as Shape)
                 }

@@ -43,6 +43,7 @@ export type RenderStyle = {
     fillStyle?: FillStyle
     fillRule?: FillRule
     strokeStyle?: StrokeStyle
+    strokeAlign?: StrokeAlign
     firstStroke?: boolean
     lineWidth?: number
     lineCap?: LineCap
@@ -75,6 +76,7 @@ export type RenderStyle = {
     textBaseline?: string
     wordSpacing?: string // 单词间距，数字或字符串
 }
+export type StrokeAlign='outer'|'inner'|'center'
 export type FillRule = "evenodd" | "nonzero"; // 填充规则，evenodd或nonzero
 export type FontKerning = "auto" | "none" | "normal"; // 字体间距，auto、none或normal
 // 字体拉伸
@@ -162,6 +164,10 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
     }
     abstract init(): void
     abstract updateViewSize(width: number, height: number): void
+    createPath(): Path2D{
+        return new Path2D()
+    }
+  //  abstract hitTest(x:number,y:number,shape:Shape):boolean
     abstract render(root:Container): void
     abstract renderShape(shape:Shape):void
     abstract renderImage(shape:Shape):void 
@@ -248,11 +254,11 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
     // abstract fill(fillRule?: FillRule): void;
     // abstract fill(path: Path2D, fillRule?: FillRule): void;
     // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInPath) */
-    // abstract isPointInPath(x: number, y: number, fillRule?: FillRule): boolean;
-    // abstract isPointInPath(path: Path2D, x: number, y: number, fillRule?: FillRule): boolean;
+     abstract isPointInPath(x: number, y: number, fillRule?: FillRule): boolean;
+     abstract isPointInPath(path: Path2D, x: number, y: number, fillRule?: FillRule): boolean;
     // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke) */
-    // abstract isPointInStroke(x: number, y: number): boolean;
-    // abstract isPointInStroke(path: Path2D, x: number, y: number): boolean;
+     abstract isPointInStroke(x: number, y: number): boolean;
+     abstract isPointInStroke(path: Path2D, x: number, y: number): boolean;
     // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke) */
     // abstract stroke(): void;
     // abstract stroke(path: Path2D): void;

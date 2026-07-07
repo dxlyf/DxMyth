@@ -37,7 +37,7 @@ const init = async () => {
         },
         zIndex: 100
     })
-    const count = 10000;
+    const count = 5000;
 
     const random = (min: number, max: number) => {
         return Math.floor(min + (max - min) * Math.random())
@@ -73,19 +73,25 @@ const init = async () => {
         rect.onUpdate=()=>{
             info.update()
             rect.position.set(info.x,info.y)
+            engine.refresh()
         }
-    //    group.add(rect)
+       // group.add(rect)
     })
-    group.add(rect)
-    group.add(rect2)
+     group.add(rect)
+     group.on('click',e=>{
+        console.log('e',e.data)
+     })
+     rect.on('pointerenter',e=>{
+        e.target.setStyle('fillStyle','#00ff00')
+     })
+     rect.on('pointerleave',e=>{
+        e.target.setStyle('fillStyle','#ff0000')
+     })
+    // group.add(rect2)
     engine.add(group)
-
-    const loop = () => {
+    engine.on('tick',()=>{
         stats.update()
-        engine.requestRender()
-        requestAnimationFrame(loop)
-    }
-    loop()
+    })
 }
 
 init()

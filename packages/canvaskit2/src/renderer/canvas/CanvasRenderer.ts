@@ -1,4 +1,6 @@
+
 import { Container } from "src/core/Container"
+import { ElementFlag } from "src/core/ElementFlags"
 import { ConicGradient, LinearGradient, RadialGradient } from "src/core/Gradient"
 import { ImagePattern } from "src/core/Pattern"
 import { FillRule, FillStyle, Renderer, RenderStyle, StrokeStyle, type RendererProps } from "src/core/Renderer"
@@ -30,7 +32,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.domElement.style.margin = '0'
         this.domElement.style.padding = '0'
         this.domElement.style.display = 'block'
-        this.ctx = this.domElement.getContext("2d")!
+        this.ctx = this.domElement.getContext("2d",{alpha:false})!
         if (!this.domElement.parentNode) {
             this.engine.containerDom.appendChild(this.domElement)
         }
@@ -41,6 +43,9 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.domElement.style.width = `${width}px`
         this.domElement.style.height = `${height}px`
 
+    }
+    createPath(): Path2D {
+        return new Path2D()
     }
     reset(): void {
         this.ctx.reset()
@@ -210,18 +215,20 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         if (!style) {
             return null
         }
-        if (style.type === 'color') {
+        const type=style.type
+        if (type === 'color') {
             return Color.toCSS_RGBA(style.value)
-        } else if (style.type === 'gradient') {
+        } else if (type === 'gradient') {
             const stops = style.stops
+            const elementType=style.elementType
             let gradient: CanvasGradient
-            if (style.elementType === 'linear-gradient') {
+            if (elementType === 'linear-gradient') {
                 let _gradient = style as LinearGradient
                 gradient = this.ctx.createLinearGradient(_gradient.x0, _gradient.y0, _gradient.x1, _gradient.y1)
-            } else if (style.elementType === 'radial-gradient') {
+            } else if (elementType === 'radial-gradient') {
                 let _gradient = style as RadialGradient
                 gradient = this.ctx.createRadialGradient(_gradient.x0, _gradient.y0, _gradient.r0, _gradient.x1, _gradient.y1, _gradient.r1)
-            } else if (style.elementType === 'conic-gradient') {
+            } else if (elementType === 'conic-gradient') {
                 let _gradient = style as ConicGradient
                 gradient = this.ctx.createConicGradient(_gradient.startAngle, _gradient.x, _gradient.y)
             }
@@ -229,7 +236,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
                 gradient.addColorStop(stop.offset, Color.toCSS_RGBA(stop.color))
             })
             return gradient
-        } else if (style.type === 'pattern' && style.source) {
+        } else if (type === 'pattern' && style.source) {
             const _pattern = style as ImagePattern
             return this.ctx.createPattern(_pattern.source, _pattern.repeat)
         }
@@ -239,27 +246,36 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
     private applyShapeStyle(shape: Shape) {
         const ctx = this.ctx
         const style = shape.style
-        const fillStyle = this.toCanvasFillStyle(style.fillStyle)
+        let fillStyle;
+        if(shape.flags.has(ElementFlag.STYLE)||!shape._cache._canvasFillStyle){
+             fillStyle=shape._cache._canvasFillStyle=this.toCanvasFillStyle(style.fillStyle)
+        }else{
+            fillStyle=shape._cache._canvasFillStyle
+        }
+        
         const strokeStyle = this.toCanvasFillStyle(style.strokeStyle)
 
 
         if (fillStyle) {
             ctx.fillStyle = fillStyle
-            if (style.shadowColor && style.shadowBlur > 0) {
-                ctx.shadowColor = Color.toCSS_RGBA(style.shadowColor)
-                ctx.shadowBlur = style.shadowBlur
+            const shadowColor=style.shadowColor
+            const shadowBlur=style.shadowBlur
+            if (shadowColor && shadowBlur > 0) {
+                ctx.shadowColor = shadowColor as unknown as string
+                ctx.shadowBlur = shadowBlur
                 ctx.shadowOffsetX = style.shadowOffsetX
                 ctx.shadowOffsetY = style.shadowOffsetY
             }
         }
         if (strokeStyle) {
+            const lineDash=style.lineDash
             ctx.strokeStyle = strokeStyle
             ctx.lineWidth = style.lineWidth
             ctx.lineCap = style.lineCap
             ctx.lineJoin = style.lineJoin
-            if (style.lineDash) {
+            if (lineDash) {
                 ctx.lineDashOffset = style.lineDashOffset
-                ctx.setLineDash(style.lineDash)
+                ctx.setLineDash(lineDash)
             }
         }
 
@@ -309,6 +325,20 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         mainCtx.globalCompositeOperation = blend as any
         mainCtx.drawImage(offCanvas, 0, 0, this.viewport.width, this.viewport.height)
     }
+    private strokeShape(shape: Shape) {
+        const ctx = this.ctx
+        const style = shape.style
+        const align=style.strokeAlign
+        const lineWidth=style.lineWidth
+        if(align==='outer'){
+           ctx.lineWidth=lineWidth*2
+
+        }else if(align==='inner'){
+
+        }else{
+            ctx.stroke()
+        }
+    }
     prevShape: Shape = null
     renderShape(shape: Shape) {
 
@@ -316,36 +346,40 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         const style = shape.style
         const matrix = shape.worldMatrix
         const prevShape = this.prevShape
+        const opacity=style.opacity
         ctx.save()
-        //   ctx.beginPath()
-        //   ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+        ctx.beginPath()
         if (prevShape && style.blend !== prevShape.style.blend) {
             this.renderShapeWithBlend(shape, style.blend)
         } else {
             ctx.beginPath()
-            ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
-            if (style.opacity < 1) {
-                ctx.globalAlpha = style.opacity
+            if(!matrix.isIdentity()){
+                ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+            }
+            if (opacity < 1) {
+                ctx.globalAlpha = opacity
             }
             this.applyShapeStyle(shape)
+           // ctx.fillStyle='#'+Math.random().toString(16).slice(-6)
             shape.draw(this)
 
             if (style.closePath) {
                 ctx.closePath()
             }
             if (!style.firstStroke) {
-                if (shape.hasFill()) {
+                if (style.fillStyle) {
+
                     ctx.fill(style.fillRule)
                 }
-                if (shape.hasStroke()) {
-                    ctx.stroke()
+                if (style.strokeStyle) {
+                    this.strokeShape(shape)
                 }
             } else {
-                if (shape.hasStroke()) {
-                    ctx.stroke()
+                if (style.strokeStyle) {
+                    this.strokeShape(shape)
                 }
-                if (shape.hasFill()) {
-                    ctx.fill(style.fillRule)
+                if (style.fillStyle) {
+                   ctx.fill(style.fillRule)
                 }
             }
         }
@@ -355,12 +389,21 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.prevShape = shape
 
     }
+
     renderBefore(ctx: CanvasRenderingContext2D) {
-        const vm = this.viewport.getWorldToScreenMatrix()
+        const viewportMatrix = this.viewport.getWorldToScreenMatrix()
+        const vm=Matrix2D.pool.get()
+        const dpr=this.dpr
+      
         ctx.save()
         ctx.clearRect(0, 0, this.width, this.height)
-        ctx.scale(this.dpr, this.dpr)
-        ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5])
+      //  ctx.scale(this.dpr, this.dpr)
+        vm.fromScale(dpr, dpr)
+        vm.multiply(viewportMatrix)
+        if(!vm.isIdentity()){
+            ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5])
+        }
+        Matrix2D.pool.release(vm)
     }
     renderAfter(ctx: CanvasRenderingContext2D) {
         ctx.restore()
@@ -381,8 +424,8 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         for (let i = 0, len = renderList.length; i < len; i++) {
             const shape = renderList[i]
             const shapeWorldBounds = shape.worldBounds
+            shape.onUpdate()
             if (shape.shouldRender() && viewport.isVisible(shapeWorldBounds)) {
-
                 shape.render(this)
             }
         }
