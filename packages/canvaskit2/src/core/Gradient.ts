@@ -1,10 +1,17 @@
 
 import type {ColorStop, Gradient as IGradient} from './Renderer'
-import { ColorValue,Color } from '@dxyl/math2'
+import { ColorValue,Color, Matrix2D, Matrix2DLike } from '@dxyl/math2'
 export  class Gradient implements IGradient{
     type:'gradient'='gradient'
     declare elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
     stops:ColorStop[]=[]
+    matrix:Matrix2D
+    transform(m:Matrix2DLike){
+        if(!this.matrix){
+            this.matrix= Matrix2D.identity()
+        }
+        this.matrix.fromArray(m)
+    }
     addColorStop(offset: number, color: ColorValue): void {
         this.stops.push({
             offset:offset,

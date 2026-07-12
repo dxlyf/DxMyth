@@ -75,7 +75,7 @@ class ConicExample extends BaseExample {
         const quadraticBeziers = conic.toQuadraticBeziers()
         ctx.save()
         ctx.beginPath()
-        ctx.strokeStyle='#ff0000'
+        ctx.strokeStyle = '#ff0000'
         console.log('quadraticBeziers', quadraticBeziers)
         p.moveTo(this.state.x0, this.state.y0)
         for (let i = 0; i < quadraticBeziers.length; i++) {
@@ -88,8 +88,23 @@ class ConicExample extends BaseExample {
 
         ctx.save()
         const p2 = new PathBuilder()
+        p2.conicTo = function (cpX: number, cpY: number, x: number, y: number, weight: number) {
+            if (weight <= 0) {
+                const lastPoint = this.lastPoint
+                const cp1X = (lastPoint.x + x) * 0.5
+                const cp1Y = (lastPoint.y + y) * 0.5
+                return this.quadraticCurveTo(cpX, cpY, x, y)
+            }
+            const k = (4 * weight) / (3 * (weight + 1))
+            const lastPoint = this.lastPoint
+            const cp1X = lastPoint.x + (cpX - lastPoint.x) * k
+            const cp1Y = lastPoint.y + (cpY - lastPoint.y) * k
+            const cp2X = x + (cpX - x) * k
+            const cp2Y = y + (cpY - y) * k
+            this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, x, y);
+        }
         ctx.beginPath()
-          ctx.strokeStyle='#0000ff'
+        ctx.strokeStyle = '#0000ff'
         p2.moveTo(this.state.x0, this.state.y0)
         p2.conicTo(this.state.x1, this.state.y1, this.state.x2, this.state.y2, this.state.w)
 
@@ -99,14 +114,14 @@ class ConicExample extends BaseExample {
 
 
 
-           const p3 = new CKPath2D()
-           ctx.save()
+        const p3 = new CKPath2D()
+        ctx.save()
         ctx.beginPath()
-          ctx.strokeStyle='#00ff00'
+        ctx.strokeStyle = '#00ff00'
         p3.moveTo(this.state.x0, this.state.y0)
         p3.conicTo(this.state.x1, this.state.y1, this.state.x2, this.state.y2, this.state.w)
 
-        console.log('p3',p3.fillPath.toSVGString())
+        console.log('p3', p3.fillPath.toSVGString())
         ctx.stroke(new Path2D(p3.fillPath.toSVGString()))
         ctx.restore()
     }

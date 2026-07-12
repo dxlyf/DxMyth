@@ -9,6 +9,7 @@ import { Matrix2DLike } from './Matrix2D'
 import { Matrix2D } from './Matrix2D'
 import { fromSvgPath } from './ParseSvgPath'
 import {PathStroke} from './PathStroke'
+import { Conic } from './Conic'
 
 export enum PathVerb {
     MoveTo = 1<<0,
@@ -245,6 +246,13 @@ export class PathBuilder {
         this.markDirty()
     }
     conicTo(cpX: number, cpY: number, x: number, y: number, weight: number) {
+        if(weight<=0){
+            // const lastPoint = this.lastPoint
+            // const cp1X =(lastPoint.x+x)*0.5
+            // const cp1Y = (lastPoint.y+y)*0.5
+            // return this.quadraticCurveTo(cp1X, cp1Y, x, y)
+            return this.quadraticCurveTo(cpX,cpY,x,y)
+        }
         const k = (4 * weight) / (3 * (weight + 1))
         const lastPoint = this.lastPoint
         const cp1X = lastPoint.x + (cpX - lastPoint.x) * k
@@ -252,6 +260,14 @@ export class PathBuilder {
         const cp2X = x + (cpX - x) * k
         const cp2Y = y + (cpY - y) * k
         this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, x, y);
+    }
+    conicToQuad(cpX: number, cpY: number, x: number, y: number, weight: number) {
+        const conic=new Conic([{x:this.lastPoint.x,y:this.lastPoint.y},{x:cpX,y:cpY},{x:x,y:y}],weight)
+        const ptsList=conic.toQuadraticBeziers()
+        for(let i=0;i<ptsList.length;i++){
+            const [p0,p1,p2]=ptsList[i]
+            this.quadraticCurveTo(p1.x,p1.y,p2.x,p2.y)
+        }
     }
     rect(x: number, y: number, width: number, height: number) {
         this.moveTo(x, y)

@@ -2,7 +2,7 @@ import { merge } from "src/utils/merge"
 import { Viewport } from "./Viewport"
 import { Engine } from "./Engine"
 import { EventEmitter } from "src/event/EventEmitter"
-import { type ColorValue, ColorLike } from '@dxyl/math2'
+import { type ColorValue, ColorLike, Matrix2D, Matrix2DLike } from '@dxyl/math2'
 import { ConicGradient, LinearGradient, RadialGradient } from "./Gradient"
 import { ImagePattern } from "./Pattern"
 import { Container } from "./Container"
@@ -24,6 +24,7 @@ export type Gradient = {
     type: 'gradient'
     elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
     stops: ColorStop[]
+    matrix?:Matrix2DLike
     clone(): Gradient
     copy(source: Gradient): void
 }
@@ -32,6 +33,7 @@ export type Pattern = {
     elementType: 'image'
     repeat?: 'repeat' | 'repeat-x' | 'repeat-y'
     source: CanvasImageSource
+    matrix?:Matrix2DLike
     clone(): Pattern
     copy(source: Pattern): void
 }

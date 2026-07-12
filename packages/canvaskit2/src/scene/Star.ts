@@ -1,4 +1,4 @@
-import { CKPath2D } from "src/ck/CKPath2D"
+import { CKPath2D } from "src/ck"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
 import { BoundingRect } from "@dxyl/math2"
@@ -63,6 +63,9 @@ export class Star extends Shape<StarProps> {
             const angle = rot + step * i
             renderer.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r)
         }
+        if(this.style.closePath){
+            renderer.closePath()
+        }
     }
 
     buildPath(path: CKPath2D): void {
@@ -84,6 +87,9 @@ export class Star extends Shape<StarProps> {
             const r = i % 2 === 0 ? outerR : innerR
             const angle = rot + step * i
             path.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r)
+        }
+        if(this.style.closePath){
+            path.closePath()
         }
     }
 

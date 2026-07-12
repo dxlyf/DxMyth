@@ -1,4 +1,4 @@
-import { Path2D } from "src/core/Path2D"
+import { CKPath2D } from "src/ck"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
 import { BoundingRect } from "@dxyl/math2"
@@ -44,39 +44,44 @@ export class GraphicPath extends Shape<GraphicPathProps> {
         }]
     }
 
+    beginPath(){
+        this.path.beginPath()
+    }
+    moveTo(x: number, y: number){
+        this.path.moveTo(x, y)
+    }
+    lineTo(x: number, y: number){
+        this.path.lineTo(x, y)
+    }
+    quadraticCurveTo(x1: number, y1: number, x2: number, y2: number){
+        this.path.quadraticCurveTo(x1, y1, x2, y2)
+    }
+    bezierCurveTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number){
+        this.path.bezierCurveTo(x1, y1, x2, y2, x3, y3)
+    }
+    arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterClockwise: boolean){
+        this.path.arc(x, y, radius, startAngle, endAngle, counterClockwise)
+    }
+    arcTo(x1: number, y1: number, x2: number, y2: number, radius: number){
+        this.path.arcTo(x1, y1, x2, y2, radius)
+    }
+    ellipse(x: number, y: number, rx: number, ry: number,rotation: number, startAngle: number, endAngle: number, counterClockwise: boolean){
+        this.path.ellipse(x, y, rx, ry, rotation, startAngle, endAngle, counterClockwise)
+    }
+    rect(x: number, y: number, width: number, height: number){
+        this.path.rect(x, y, width, height)
+    }
+    roundRect(x: number, y: number, width: number, height: number, radius?: number | DOMPointInit | (number | DOMPointInit)[]){
+        this.path.roundRect(x, y, width, height, radius)
+    }
+    closePath(){
+        this.path.closePath()
+    }
+
+    buildPath(path: CKPath2D): void {
+      
+    }
     draw(renderer: Renderer): void {
         renderer.drawPath(this.path)
-      
-    }
-
-    buildPath(path: Path2D): void {
-      
-    }
-
-    /** 将命令重放到目标 */
-    private _replayTo(target: any, d: number[]): void {
-        for (let i = 0; i < d.length;) {
-            const cmd = d[i++]
-            switch (cmd) {
-                case Cmd.MoveTo:
-                    target.moveTo(d[i++], d[i++]); break
-                case Cmd.LineTo:
-                    target.lineTo(d[i++], d[i++]); break
-                case Cmd.QuadraticCurveTo:
-                    target.quadraticCurveTo(d[i++], d[i++], d[i++], d[i++]); break
-                case Cmd.BezierCurveTo:
-                    target.bezierCurveTo(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++]); break
-                case Cmd.Arc:
-                    target.arc(d[i++], d[i++], d[i++], d[i++], d[i++], !!d[i++]); break
-                case Cmd.ArcTo:
-                    target.arcTo(d[i++], d[i++], d[i++], d[i++], d[i++]); break
-                case Cmd.Ellipse:
-                    target.ellipse(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], !!d[i++]); break
-                case Cmd.Rect:
-                    target.rect(d[i++], d[i++], d[i++], d[i++]); break
-                case Cmd.RoundRect:
-                    target.roundRect(d[i++], d[i++], d[i++], d[i++], d[i++]); break
-            }
-        }
     }
 }

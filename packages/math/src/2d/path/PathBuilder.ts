@@ -200,6 +200,14 @@ export class PathBuilder {
         return this.addPoint(x, y)
     }
     conicTo(cpX: number, cpY: number, x: number, y: number, weight: number) {
+
+        if(weight<=0){
+            // const lastPoint = this.lastPoint
+            // const cp1X =(lastPoint.x+x)*0.5
+            // const cp1Y = (lastPoint.y+y)*0.5
+            // return this.quadraticCurveTo(cp1X, cp1Y, x, y)
+            return this.quadraticCurveTo(cpX,cpY,x,y)
+        }
         const k = (4 * weight) / (3 * (weight + 1))
         const lastPoint = this.lastPoint
         const cp1X = lastPoint.x + (cpX - lastPoint.x) * k

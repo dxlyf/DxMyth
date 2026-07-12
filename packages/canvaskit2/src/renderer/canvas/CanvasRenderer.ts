@@ -302,9 +302,6 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         }
         this.applyShapeStyle(shape)
         shape.draw(this)
-
-        if (style.closePath) ctx.closePath()
-
         const hasFill = !!style.fillStyle
         const hasStroke = !!style.strokeStyle
         const needClipStroke = hasStroke && style.strokeAlign !== 'center'
@@ -368,7 +365,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         mainCtx.drawImage(offCanvas, 0, 0, this.viewport.width, this.viewport.height)
     }
     drawPath(path: CKPath2D): void {
-        
+        path.applyFillPath(this.ctx)
     }
     prevShape: Shape = null
     renderShape(shape: Shape): void {

@@ -1,9 +1,9 @@
 
 import { ck, type CanvasKit } from './lib'
 import { CKPathBuilder } from './CKPathBuilder'
-import { FillRule, LineCap, LineJoin ,StrokeAlign} from 'src/core/Renderer'
+import { FillRule, LineCap, LineJoin, StrokeAlign } from 'src/core/Renderer'
 import { toCKLineJoin, toCKLineCap, toCKFillRule } from './convert'
-import { BoundingRect } from '@dxyl/math2'
+import { BoundingRect, Conic, Point } from '@dxyl/math2'
 
 export type StrokeOptions = {
     lineWith: number,
@@ -12,6 +12,14 @@ export type StrokeOptions = {
     strokeAlign: StrokeAlign,// 边框对齐
     miterLimit: number
 
+}
+export const CKPathCMD = {
+    MOVE: 0,
+    LINE: 1,
+    QUAD: 2,
+    CONIC: 3,
+    CUBIC: 4,
+    CLOSE: 5,
 }
 
 export class CKPath2D extends CKPathBuilder {
@@ -78,22 +86,22 @@ export class CKPath2D extends CKPathBuilder {
                 })
             }
             else if (strokeAlign === 'outside') {
-                const path0= this.fillPath.makeStroked({
-                    width: strokeOptions.lineWith*2,
+                const path0 = this.fillPath.makeStroked({
+                    width: strokeOptions.lineWith * 2,
                     join: toCKLineJoin(strokeOptions.lineJoin),
                     cap: toCKLineCap(strokeOptions.lineCap),
                     miter_limit: strokeOptions.miterLimit,
                 })
-                this._strokePath =ck.Path.MakeFromOp(path0,this.fillPath,ck.PathOp.Difference)
+                this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Difference)
                 path0.delete()
             } else if (strokeAlign === 'inside') {
-                 const path0= this.fillPath.makeStroked({
-                    width: strokeOptions.lineWith*2,
+                const path0 = this.fillPath.makeStroked({
+                    width: strokeOptions.lineWith * 2,
                     join: toCKLineJoin(strokeOptions.lineJoin),
                     cap: toCKLineCap(strokeOptions.lineCap),
                     miter_limit: strokeOptions.miterLimit,
                 })
-                this._strokePath =ck.Path.MakeFromOp(path0,this.fillPath,ck.PathOp.Intersect)
+                this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Intersect)
                 path0.delete()
             }
         }
@@ -148,8 +156,42 @@ export class CKPath2D extends CKPathBuilder {
         this._fillPath && this._fillPath.deleteLater()
         this._strokePath && this._strokePath.deleteLater()
     }
-    applyFillPath(ctx:CanvasRenderingContext2D|globalThis.Path2D){
-       this.pathBuilder.conicTo()
-  
+    applyCmds(ctx: CanvasRenderingContext2D | globalThis.Path2D,cmds:Float32Array) {
+        for (let i = 0; i < cmds.length;) {
+            const cmd = cmds[i++]
+            switch (cmd) {
+                case CKPathCMD.MOVE:
+                    ctx.moveTo(cmds[i++], cmds[i++]); break
+
+                case CKPathCMD.LINE:
+                    ctx.lineTo(cmds[i++], cmds[i++]); break
+                case CKPathCMD.QUAD:
+                    ctx.quadraticCurveTo(cmds[i++], cmds[i++], cmds[i++], cmds[i++]); break
+                case CKPathCMD.CUBIC:
+                    ctx.bezierCurveTo(cmds[i++], cmds[i++], cmds[i++], cmds[i++], cmds[i++], cmds[i++]); break
+                case CKPathCMD.CONIC:
+                    const conic = new Conic([Point.create(cmds[i - 2], cmds[i - 1]), Point.create(cmds[i++], cmds[i++]), Point.create(cmds[i++], cmds[i++])], cmds[i])
+                    const pts = conic.toQuadraticBeziers()
+                    for (let i = 0, len = pts.length; i < len; i++) {
+                        const c = pts[0]
+                        ctx.quadraticCurveTo(c[1].x, c[1].y, c[2].x, c[2].y)
+                    }
+                    break;
+                case CKPathCMD.CLOSE:
+                    ctx.closePath(); break
+            }
+        }
+    }
+    applyPath(path:CanvasKit.Path,ctx: CanvasRenderingContext2D | globalThis.Path2D) {
+        const cmds = path.toCmds()
+        this.applyCmds(ctx, cmds)
+    }
+    applyFillPath(ctx: CanvasRenderingContext2D | globalThis.Path2D) {
+        const cmds = this.fillPath.toCmds()
+        this.applyCmds(ctx, cmds)
+    }
+    applyStrokePath(ctx: CanvasRenderingContext2D | globalThis.Path2D) {
+        const cmds = this.strokePath.toCmds()
+        this.applyCmds(ctx, cmds)
     }
 }

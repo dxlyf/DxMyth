@@ -1,4 +1,4 @@
-import { CKPath2D } from "src/ck/CKPath2D"
+import { CKPath2D } from "src/ck"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
 import { BoundingRect } from "@dxyl/math2"

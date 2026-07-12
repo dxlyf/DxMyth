@@ -83,6 +83,7 @@ export declare class PathBuilder {
     quadraticCurveTo(cpX: number, cpY: number, x: number, y: number): void;
     bezierCurveTo(cpX1: number, cpY1: number, cpX2: number, cpY2: number, x: number, y: number): void;
     conicTo(cpX: number, cpY: number, x: number, y: number, weight: number): void;
+    conicToQuad(cpX: number, cpY: number, x: number, y: number, weight: number): void;
     rect(x: number, y: number, width: number, height: number): void;
     /**
      * 添加圆弧路径

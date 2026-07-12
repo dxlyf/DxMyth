@@ -1,7 +1,8 @@
-import { Path2D } from "src/core/Path2D"
+
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
 import { BoundingRect } from "@dxyl/math2"
+import { CKPath2D } from "src/ck"
 
 export type PolygonProps = ShapeProps<{
     /** 顶点数组 [x0, y0, x1, y1, ...] */
@@ -44,15 +45,22 @@ export class Polygon extends Shape<PolygonProps> {
         for (let i = 2; i < pts.length; i += 2) {
             renderer.lineTo(pts[i], pts[i + 1])
         }
+         if(this.style.closePath){
+            renderer.closePath()
+        }
     }
 
-    buildPath(path: Path2D): void {
+    buildPath(path: CKPath2D): void {
         const pts = this.props.shape.points
         if (pts.length < 4) return
         path.moveTo(pts[0], pts[1])
         for (let i = 2; i < pts.length; i += 2) {
             path.lineTo(pts[i], pts[i + 1])
         }
+        if(this.style.closePath){
+            path.closePath()
+        }
+        
     }
 
     render(renderer: Renderer) {

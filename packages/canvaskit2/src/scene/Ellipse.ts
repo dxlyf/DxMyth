@@ -41,6 +41,9 @@ export class Ellipse extends Shape<EllipseProps> {
             s.x, s.y, s.radiusX, s.radiusY,
             s.rotation, s.startAngle, s.endAngle, s.counterclockwise
         )
+        if(this.style.closePath){
+            renderer.closePath()
+        }
     }
 
     buildPath(path: CKPath2D): void {
@@ -49,6 +52,9 @@ export class Ellipse extends Shape<EllipseProps> {
             s.x, s.y, s.radiusX, s.radiusY,
             s.rotation, s.startAngle, s.endAngle, s.counterclockwise
         )
+        if(this.style.closePath){
+            path.closePath()
+        }
     }
 
 }

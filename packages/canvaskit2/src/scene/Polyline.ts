@@ -1,4 +1,4 @@
-import { CKPath2D } from "src/ck/CKPath2D"
+import { CKPath2D } from "src/ck"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
 import { BoundingRect } from "@dxyl/math2"
@@ -46,6 +46,9 @@ export class Polyline extends Shape<PolylineProps> {
         for (let i = 2; i < pts.length; i += 2) {
             renderer.lineTo(pts[i], pts[i + 1])
         }
+        if(this.style.closePath){
+            renderer.closePath()
+        }
     }
 
     buildPath(path: CKPath2D): void {
@@ -54,6 +57,9 @@ export class Polyline extends Shape<PolylineProps> {
         path.moveTo(pts[0], pts[1])
         for (let i = 2; i < pts.length; i += 2) {
             path.lineTo(pts[i], pts[i + 1])
+        }
+        if(this.style.closePath){
+            path.closePath()
         }
     }
 
