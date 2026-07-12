@@ -1,9 +1,7 @@
-import { Transform } from '../math/Transform'
+import { Transform, Vector2Like, BoundingRect } from '@dxyl/math2'
 import { EventTarget, NodeEvent } from './EventTarget'
 import { ElementFlags, ElementFlag } from './ElementFlags'
-import { BoundingRect } from 'src/math/BoundingRect'
 import { merge } from 'src/utils/merge'
-import { Vector2Like } from 'src/math/Vector2'
 import type { PointerEventData, PointerEventName } from 'src/event/EventSystem'
 import { Engine } from './Engine'
 
@@ -34,7 +32,7 @@ export type ElementEvents = {
     mouseup: NodeEvent<PointerEventName, PointerEventData>
 
     // element
-    dispose:[instance:Element]
+    dispose: [instance: Element]
 }
 
 export type ElementProps = {
@@ -43,10 +41,6 @@ export type ElementProps = {
     visible?: boolean // 是否可见,不可见但响应事件
     ignore?: boolean // 是否忽略渲染
     zIndex?: number // 层级索引
-    // 是否精确命中
-   // hitBounds?: boolean // boolean // 是否命中边界框,对于填充元素有效
-    hitType?:'bounds'|'path'|'', // boolean // 启用是否命中路径,否则使用简单hit
-  //  hitShadow?: boolean // boolean // 是否命中阴影
     // 事件
     interactive?: boolean // 是否可交互,响应事件
     cursor?: string // 鼠标指针
@@ -72,7 +66,13 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
 
     // 包围盒
     _localBounds: BoundingRect // 本地边界框
+    _localBoundsVersion: number = 0 // 本地边界框版本号
     _worldBounds: BoundingRect // 世界边界框
+    _worldBoundsVersion: number = 0 // 世界边界框版本号
+    _localStrokeBounds: BoundingRect // 本地边框边界框
+    _localStrokeBoundsVersion: number = -1 // 本地边框边界框版本号
+    _worldStrokeBounds: BoundingRect // 世界边框边界框
+    _worldStrokeBoundsVersion: number = -1 // 世界边框边界框版本号
     /** 更新标记管理器 */
     flags: ElementFlags = new ElementFlags()
 
@@ -83,12 +83,14 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         this.transform = new Transform()
         this.transform.setTransform(this.props.position, this.props.scale, this.props.rotation, this.props.skew, this.props.origin,)
         this.transform.onChange(() => {
-            this.flags.add(ElementFlag.TRANSFORM | ElementFlag.LOCAL_BOUNDS)
+            this.flags.add(ElementFlag.TRANSFORM | ElementFlag.BOUNDS)
         })
 
     }
     // 计算本地包围盒
     abstract calcLocalBounds(out: BoundingRect): BoundingRect
+    // 计算本地边框包围盒
+    abstract calcLocalStrokeBounds(out: BoundingRect): BoundingRect
     // 判断点是否命中
     abstract hitTest(x: number, y: number): boolean
 
@@ -103,8 +105,7 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
             ignore: false,
             zIndex: 0,
             interactive: true,
-            cursor: 'pointer',
-            hitBounds:true
+            cursor: 'pointer'
 
         }] as Partial<Props>[]
     }
@@ -122,7 +123,7 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     get ignore() {
         return this.props.ignore
     }
-    get zIndex(){
+    get zIndex() {
         return this.props.zIndex
     }
     set zIndex(value: number) {
@@ -151,9 +152,9 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         this.flags.add(ElementFlag.STYLE)
     }
     dirtyShape() {
-        this.flags.add(ElementFlag.SHAPE)
+        this.flags.add(ElementFlag.SHAPE|ElementFlag.BOUNDS)
     }
-    dirty(){
+    dirty() {
         this.flags.add(ElementFlag.VISIBILITY)
     }
     /** 是否添加到渲染列表,包括不渲染，但响应事件的对象 */
@@ -230,24 +231,55 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         this.updateWorldBounds()
         return this._worldBounds
     }
-    updateLocalBounds() {
+    get localStrokeBounds() {
+        this.updateLocalStrokeBounds()
+        return this._localStrokeBounds
+    }
+    get worldStrokeBounds() {
+        this.updateWorldStrokeBounds()
+        return this._worldStrokeBounds
+    }
+    updateLocalBounds(forceUpdate: boolean = false) {
         if (!this._localBounds) {
             this._localBounds = BoundingRect.zero()
+            forceUpdate = true
         }
-        if (this.flags.has(ElementFlag.LOCAL_BOUNDS) || this._localBounds.isZero()) {
-            this.flags.remove(ElementFlag.LOCAL_BOUNDS)
-            this.flags.add(ElementFlag.WORLD_BOUNDS)
+        if (this.flags.has(ElementFlag.BOUNDS) || forceUpdate) {
+            this.flags.remove(ElementFlag.BOUNDS)
+            this._localBoundsVersion++
             this.calcLocalBounds(this._localBounds)
         }
     }
-    updateWorldBounds() {
+    updateWorldBounds(forceUpdate: boolean = false) {
         if (!this._worldBounds) {
             this._worldBounds = BoundingRect.zero()
+            forceUpdate = true
         }
         const localBounds = this.localBounds
-        if (this.flags.has(ElementFlag.WORLD_BOUNDS) || this._worldBounds.isZero()) {
-            this.flags.remove(ElementFlag.WORLD_BOUNDS)
+        if (this._worldBoundsVersion !== this._localBoundsVersion || forceUpdate) {
+            this._worldBoundsVersion = this._localBoundsVersion
             this._worldBounds.copy(localBounds).applyMatrix2D(this.worldMatrix)
+        }
+    }
+    updateLocalStrokeBounds(forceUpdate: boolean = false) {
+        if (!this._localStrokeBounds) {
+            this._localStrokeBounds = BoundingRect.zero()
+            forceUpdate = true
+        }
+        if (this._localStrokeBoundsVersion !== this._localBoundsVersion || forceUpdate) {
+            this._localStrokeBoundsVersion = this._localBoundsVersion
+            this.calcLocalStrokeBounds(this._localStrokeBounds)
+        }
+    }
+    updateWorldStrokeBounds(forceUpdate: boolean = false) {
+        if (!this._worldStrokeBounds) {
+            this._worldStrokeBounds = BoundingRect.zero()
+            forceUpdate = true
+        }
+        const localStrokeBounds = this.localStrokeBounds
+        if (this._worldStrokeBoundsVersion !== this._localStrokeBoundsVersion || forceUpdate) {
+            this._worldStrokeBoundsVersion = this._localStrokeBoundsVersion
+            this._worldStrokeBounds.copy(localStrokeBounds).applyMatrix2D(this.worldMatrix)
         }
     }
 
@@ -276,8 +308,8 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         }
         return true
     }
-    dispose(){
+    dispose() {
         this.removeAllListeners()
-        this.emit('dispose',this as any)
+        this.emit('dispose', this as any)
     }
 }

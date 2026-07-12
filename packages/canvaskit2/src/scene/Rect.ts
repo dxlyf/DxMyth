@@ -1,7 +1,7 @@
 import { CKPath2D } from "src/ck/CKPath2D"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
-import { BoundingRect } from "src/math/BoundingRect"
+import { BoundingRect } from "@dxyl/math2"
 
 export type RectProps = ShapeProps<{
     x?: number

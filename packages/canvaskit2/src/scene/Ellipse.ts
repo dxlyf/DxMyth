@@ -1,7 +1,7 @@
 import { CKPath2D } from "src/ck/CKPath2D"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
-import { BoundingRect } from "src/math/BoundingRect"
+import { BoundingRect } from "@dxyl/math2"
 
 export type EllipseProps = ShapeProps<{
     x?: number
@@ -35,15 +35,7 @@ export class Ellipse extends Shape<EllipseProps> {
             }
         }]
     }
-
-    calcLocalBounds(out: BoundingRect): BoundingRect {
-        const s = this.props.shape
-        out.fromXYWH(s.x - s.radiusX, s.y - s.radiusY, s.radiusX * 2, s.radiusY * 2)
-        return out
-    }
-
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const s = this.props.shape
         renderer.ellipse(
             s.x, s.y, s.radiusX, s.radiusY,
@@ -59,7 +51,4 @@ export class Ellipse extends Shape<EllipseProps> {
         )
     }
 
-    render(renderer: Renderer) {
-        renderer.renderShape(this)
-    }
 }

@@ -9,10 +9,9 @@ export const enum ElementFlag {
     STYLE           = 1 << 3,    // 样式变化（颜色、透明度等）
     CHILDREN        = 1 << 4,    // 子元素变化（增删改）
     VISIBILITY      = 1 << 5,    // 可见性变化
-    LOCAL_BOUNDS    = 1 << 6,    // 局部包围盒需要更新
-    WORLD_BOUNDS    = 1 << 7,   // 世界包围盒需要更新
-    RENDER_DATA     = 1 << 8,   // 渲染数据需要更新
-    ALL             = (1 << 9)-1,        // 全部标记
+    BOUNDS    = 1 << 6,    // 局部包围盒需要更新
+    RENDER_DATA     = 1 << 7,   // 渲染数据需要更新
+    ALL             = (1 << 8)-1,        // 全部标记
 }
 
 /**

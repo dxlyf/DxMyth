@@ -1,9 +1,6 @@
 // ============ Viewport 核心定义 ============
 
-import { Matrix2D } from "src/math/Matrix2D";
-import { BoundingRect } from "src/math/BoundingRect";
-import { Point } from "src/math/Point";
-import { type Vector2Like } from "src/math/Vector2";
+import { Matrix2D,BoundingRect,type Vector2Like,Point } from "@dxyl/math2";
 import { Element } from "./Element";
 
 /**

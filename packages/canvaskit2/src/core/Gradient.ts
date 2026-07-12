@@ -1,6 +1,6 @@
 
 import type {ColorStop, Gradient as IGradient} from './Renderer'
-import { ColorValue,Color } from 'src/math/Color'
+import { ColorValue,Color } from '@dxyl/math2'
 export  class Gradient implements IGradient{
     type:'gradient'='gradient'
     declare elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'

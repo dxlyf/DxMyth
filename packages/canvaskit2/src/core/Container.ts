@@ -1,5 +1,5 @@
 
-import { BoundingRect } from 'src/math/BoundingRect'
+import { BoundingRect } from '@dxyl/math2'
 import { Element, type ElementProps } from './Element'
 import { ElementFlag } from './ElementFlags'
 import { Shape } from './Shape'
@@ -40,20 +40,20 @@ export class Container extends Element<ContainerProps> {
         this.flags.add(ElementFlag.CHILDREN)
     }
     hitTest(x: number, y: number): boolean {
-        let children=this.children
-        for(let i=children.length-1;i>=0;i--){
-            if(children[i].shouldInteractive() && children[i].hitTest(x, y)){
+        let children = this.children
+        for (let i = children.length - 1; i >= 0; i--) {
+            if (children[i].shouldInteractive() && children[i].hitTest(x, y)) {
                 return true
             }
         }
         return false
     }
-    pick(x:number,y:number): Element {
-        const list=this.collectRenderElements()
-        for(let i=list.length-1;i>=0;i--){
-            const el=list[i]
-            const local=el.transform.worldToLocal({x,y},{x:0,y:0})
-            if(el.shouldInteractive() && el.hitTest(local.x,local.y)){
+    pick(x: number, y: number): Element {
+        const list = this.collectRenderElements()
+        for (let i = list.length - 1; i >= 0; i--) {
+            const el = list[i]
+            const local = el.transform.worldToLocal({ x, y }, { x: 0, y: 0 })
+            if (el.shouldInteractive() && el.hitTest(local.x, local.y)) {
                 return el
             }
         }
@@ -62,12 +62,30 @@ export class Container extends Element<ContainerProps> {
     calcLocalBounds(out: BoundingRect): BoundingRect {
         let bounds = BoundingRect.pool.get()
         for (let child of this.children) {
-            let childBounds = BoundingRect.pool.get()
             if (child.shouldRender()) {
+                let childBounds = BoundingRect.pool.get()
                 child.calcLocalBounds(childBounds)
                 bounds.union(childBounds)
+                BoundingRect.pool.release(childBounds)
             }
-            BoundingRect.pool.release(childBounds)
+
+            //   bounds.union(child.calcLocalBounds(new BoundingRect()))
+        }
+        out.copy(bounds)
+        BoundingRect.pool.release(bounds)
+        return out
+    }
+    calcLocalStrokeBounds(out: BoundingRect): BoundingRect {
+        let bounds = BoundingRect.pool.get()
+        for (let child of this.children) {
+
+            if (child.shouldRender()) {
+                let childBounds = BoundingRect.pool.get()
+                child.calcLocalStrokeBounds(childBounds)
+                bounds.union(childBounds)
+                BoundingRect.pool.release(childBounds)
+            }
+
             //   bounds.union(child.calcLocalBounds(new BoundingRect()))
         }
         out.copy(bounds)

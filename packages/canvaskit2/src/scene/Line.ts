@@ -1,7 +1,7 @@
-import { CKPath2D } from "src/ck/CKPath2D"
+import { Path2D } from "src/core/Path2D"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
-import { BoundingRect } from "src/math/BoundingRect"
+import { BoundingRect } from "@dxyl/math2"
 
 export type LineProps = ShapeProps<{
     x1?: number
@@ -43,7 +43,7 @@ export class Line extends Shape<LineProps> {
         renderer.lineTo(s.x2, s.y2)
     }
 
-    buildPath(path: CKPath2D): void {
+    buildPath(path: Path2D): void {
         const s = this.props.shape
         path.moveTo(s.x1, s.y1)
         path.lineTo(s.x2, s.y2)

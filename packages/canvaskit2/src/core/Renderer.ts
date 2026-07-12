@@ -2,12 +2,12 @@ import { merge } from "src/utils/merge"
 import { Viewport } from "./Viewport"
 import { Engine } from "./Engine"
 import { EventEmitter } from "src/event/EventEmitter"
-import { type ColorValue, ColorLike } from 'src/math/Color'
+import { type ColorValue, ColorLike } from '@dxyl/math2'
 import { ConicGradient, LinearGradient, RadialGradient } from "./Gradient"
 import { ImagePattern } from "./Pattern"
-import { Matrix2D } from "src/math/Matrix2D"
 import { Container } from "./Container"
 import { Shape } from "./Shape"
+import { CKPath2D } from "src/ck"
 
 export type {
     ColorValue
@@ -76,7 +76,7 @@ export type RenderStyle = {
     textBaseline?: string
     wordSpacing?: string // 单词间距，数字或字符串
 }
-export type StrokeAlign='outer'|'inner'|'center'
+export type StrokeAlign='center'|'outside'|'inside'
 export type FillRule = "evenodd" | "nonzero"; // 填充规则，evenodd或nonzero
 export type FontKerning = "auto" | "none" | "normal"; // 字体间距，auto、none或normal
 // 字体拉伸
@@ -172,6 +172,7 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
     abstract renderShape(shape:Shape):void
     abstract renderImage(shape:Shape):void 
     abstract renderText(shape:Shape):void 
+    abstract drawPath(path:CKPath2D):void
 
     // 绘制
     createLinearGradient(x0: number, y0: number, x1: number, y1: number) {

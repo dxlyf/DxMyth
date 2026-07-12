@@ -41,6 +41,9 @@ importers:
 
   packages/canvaskit:
     dependencies:
+      '@dxyl/math2':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/stats.js':
         specifier: ^0.17.4
         version: 0.17.4
@@ -62,6 +65,9 @@ importers:
 
   packages/canvaskit2:
     dependencies:
+      '@dxyl/math2':
+        specifier: workspace:*
+        version: link:../math2
       '@types/stats.js':
         specifier: ^0.17.4
         version: 0.17.4
@@ -178,6 +184,8 @@ importers:
 
   packages/math: {}
 
+  packages/math2: {}
+
   packages/myth:
     dependencies:
       '@dxyl/math':
@@ -282,6 +290,9 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
+
+  '@dxyl/math2@1.0.0':
+    resolution: {integrity: sha512-YRd+oin6lpGugDQk+QByLFtZmOIguWUYkgugfsHXsIiaQwwuwFgNh7XL+i3bc65i5Lc9QFR20vT9dGPQ4ADhEQ==}
 
   '@dxyl/math@1.0.10':
     resolution: {integrity: sha512-ZnbhfLamuuqMY9I7usKucKMM2sGOOqumE1Kd2L5pQe16uu5vuL8uSSKK4Mdd5V/XUIiKucgfSg+xJSwHEuN4ow==}
@@ -2746,6 +2757,8 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4':
     optional: true
+
+  '@dxyl/math2@1.0.0': {}
 
   '@dxyl/math@1.0.10': {}
 

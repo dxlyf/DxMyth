@@ -5,8 +5,8 @@ import { ConicGradient, LinearGradient, RadialGradient } from "src/core/Gradient
 import { ImagePattern } from "src/core/Pattern"
 import { FillRule, FillStyle, Renderer, RenderStyle, StrokeStyle, type RendererProps } from "src/core/Renderer"
 import { Shape } from "src/core/Shape"
-import { Color, ColorLike, ColorValue } from "src/math/Color"
-import { Matrix2D } from "src/math/Matrix2D"
+import { Color, ColorLike, ColorValue,Matrix2D } from "@dxyl/math2"
+import { CKPath2D } from "src/ck"
 
 
 export type CanvasRendererProps = RendererProps & {
@@ -324,8 +324,11 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
     private _strokeWithAlign(shape: Shape): void {
         const ctx = this.ctx
         const style = shape.style
-        const align = style.strokeAlign as 'inner' | 'outer'
-
+        const align = style.strokeAlign as 'inner' | 'outer'|'center'
+        if (align === 'center') {
+            ctx.stroke()
+            return
+        }
         ctx.save()
         ctx.beginPath()
         shape.draw(this)
@@ -336,10 +339,8 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         } else {
             ctx.rect(-1e8, -1e8, 2e8, 2e8)
             ctx.clip('evenodd') // 路径内部作为洞 → 只保留外部描边
-
               // outer: 擦除内部一半 → 只保留外部描边
-            // 用 destination-out 比 evenodd + 大矩形更高效
-           
+            // 用 destination-out 比 evenodd + 大矩形更高效     
         }
         ctx.lineWidth = style.lineWidth * 2 // 双倍线宽，clip 裁掉一半
         ctx.stroke()
@@ -366,7 +367,9 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         mainCtx.globalCompositeOperation = blend as any
         mainCtx.drawImage(offCanvas, 0, 0, this.viewport.width, this.viewport.height)
     }
-  
+    drawPath(path: CKPath2D): void {
+        
+    }
     prevShape: Shape = null
     renderShape(shape: Shape): void {
         const ctx = this.ctx

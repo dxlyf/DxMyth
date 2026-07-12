@@ -1,7 +1,7 @@
-import { CKPath2D } from "src/ck/CKPath2D"
+import { Path2D } from "src/core/Path2D"
 import { Renderer } from "src/core/Renderer"
 import { Shape, type ShapeProps } from "src/core/Shape"
-import { BoundingRect } from "src/math/BoundingRect"
+import { BoundingRect } from "@dxyl/math2"
 
 /**
  * 路径命令编码（与 ProxyPath2D.Cmd 保持一致，避免跨模块依赖）
@@ -31,8 +31,7 @@ const CMD_ARG_COUNT: Record<number, number> = {
 }
 
 export type GraphicPathProps = ShapeProps<{
-    /** 扁平路径命令数组 [cmd, ...args, cmd, ...args] */
-    commands?: number[]
+    
 }>
 
 export class GraphicPath extends Shape<GraphicPathProps> {
@@ -41,35 +40,17 @@ export class GraphicPath extends Shape<GraphicPathProps> {
     getDefaultProps(): Partial<GraphicPathProps>[] {
         return [...super.getDefaultProps(), {
             shape: {
-                commands: [],
             }
         }]
     }
 
-    calcLocalBounds(out: BoundingRect): BoundingRect {
-        // 使用 CKPath2D 的内置紧边界
-        this.builtinBuildPath()
-        const bounds = this.path.computeTightBounds()
-        out.copy(bounds)
-        return out
-    }
-
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
-        // 通过 renderer 原样重放命令
-        const cmds = this.props.shape.commands
-        if (!cmds || cmds.length === 0) return
-        this._replayTo(renderer as any, cmds)
+        renderer.drawPath(this.path)
+      
     }
 
-    buildPath(path: CKPath2D): void {
-        const cmds = this.props.shape.commands
-        if (!cmds || cmds.length === 0) return
-        this._replayTo(path, cmds)
-    }
-
-    render(renderer: Renderer) {
-        renderer.renderShape(this)
+    buildPath(path: Path2D): void {
+      
     }
 
     /** 将命令重放到目标 */

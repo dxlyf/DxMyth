@@ -1,11 +1,10 @@
 
-import { BoundingRect } from 'src/math/BoundingRect'
+import { BoundingRect, Color } from '@dxyl/math2'
 import { Element, type ElementProps } from './Element'
 import { Renderer, type RenderStyle } from 'src/core/Renderer'
 import type { Paintolor, Gradient, Pattern, ColorValue, FillRule } from 'src/core/Renderer'
 import { ElementFlag } from './ElementFlags'
-import { Color } from 'src/math/Color'
-import { CKPath2D } from 'src/ck/CKPath2D'
+import { CKPath2D } from 'src/ck'
 
 type FillStyle = ColorValue | Gradient | Pattern
 type StrokeStyle = ColorValue | Gradient | Pattern
@@ -18,16 +17,17 @@ export type ShapeProps<ShapeExtraProps extends Record<string, any> = {}> = Eleme
     shape?: ShapeExtraProps
     style?: ShapeStyle
 }
-
+const STROKE_STATE_PROPERTIES = new Set(['lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'strokeAlign'])
 export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Element<Props> {
     type = "DisplayObject"
-    path:CKPath2D
+    path: CKPath2D
     constructor(props: Props) {
         super(props)
         this.setStyles(this.props.style || {})
         this.setShapes(this.props.shape || {})
         this.path = new CKPath2D()
-        this.path.fillRule=this.props.style.fillRule
+        this.path.setFillRule(this.props.style.fillRule)
+
         this.flags.add(ElementFlag.SHAPE)
     }
     get style(): RenderStyle {
@@ -36,9 +36,9 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
     get shape(): Props['shape'] {
         return this.props.shape
     }
-    setFillRule(fillRule:FillRule){
-        this.path.fillRule=fillRule
-        this.setStyle('fillRule',fillRule)
+    setFillRule(fillRule: FillRule) {
+        this.path.setFillRule(fillRule)
+        this.setStyle('fillRule', fillRule)
     }
 
     getDefaultProps(): Partial<Props>[] {
@@ -48,7 +48,7 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
                 style: {
                     fillStyle: '#000',
                     strokeStyle: 'none',
-                    strokeAlign:'center',
+                    strokeAlign: 'center',
                     firstStroke: false,
                     lineWidth: 1,
                     lineCap: 'butt',
@@ -56,21 +56,21 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
                     miterLimit: 10,
                     fillRule: 'nonzero',
                     lineDashOffset: 0,
-                    closePath:false,
+                    closePath: false,
                     // shadow
                     shadowBlur: 0,
                     shadowOffsetX: 0,
                     shadowOffsetY: 0,
-                    blend:'source-over',
-                    opacity:1
+                    blend: 'source-over',
+                    opacity: 1
                 }
             }
         ] as Partial<Props>[]
     }
-    setStyle<K extends keyof ShapeStyle>(name: K, value: ShapeStyle[K],forceUpdate=false) {
+    setStyle<K extends keyof ShapeStyle>(name: K, value: ShapeStyle[K], forceUpdate = false) {
         const oldValue = (this.props.style as any)[name]
         let newValue: any = value
-        if (name === 'fillStyle' || name === 'strokeStyle' || name === 'shadowColor') {     
+        if (name === 'fillStyle' || name === 'strokeStyle' || name === 'shadowColor') {
             if (value === 'none') {
                 newValue = null
             }
@@ -81,74 +81,83 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
                 } as Paintolor
             }
         }
-        if (forceUpdate||oldValue !== newValue) {
+        if (forceUpdate || oldValue !== newValue) {
             (this.props.style as any)[name] = newValue
             this.dirtyStyle()
         }
-    }
-    setStyles(styles: Props['style'],forceUpdate=false) {
-        Object.keys(styles).forEach((key:any) => {
-            this.setStyle(key, (styles as any)[key],forceUpdate)
-        })
-    }
-    setShape<K extends keyof Props['shape']>(name: K, value: Props['shape'][K],forceUpdate=false) {
-        const oldValue = (this.props.shape as any)[name]
-        if (forceUpdate||oldValue !== value) {
-            (this.props.shape as any)[name] = value
-            this.dirtyShape()
+        if (name == 'fillRule') {
+            this.path.setFillRule(this.style.fillRule)
+        }
+        if (STROKE_STATE_PROPERTIES.has(name)) {
+            this.path.setStroke({
+                lineWith: this.style.lineWidth,
+                lineCap: this.style.lineCap,
+                lineJoin: this.style.lineJoin,
+                miterLimit: this.style.miterLimit,
+                strokeAlign: this.style.strokeAlign,
+            })
+            this._localStrokeBoundsVersion=-1
         }
     }
-    setShapes(shape: Props['shape'],forceUpdate=false) {
-        Object.keys(shape).forEach((key:any) => {
-            this.setShape(key, (shape as any)[key],forceUpdate)
+    setStyles(styles: Props['style'], forceUpdate = false) {
+        Object.keys(styles).forEach((key: any) => {
+            this.setStyle(key, (styles as any)[key], forceUpdate)
+        })
+    }
+    setShape<K extends keyof Props['shape']>(name: K, value: Props['shape'][K], forceUpdate = false) {
+        const oldValue = (this.props.shape as any)[name]
+        if (forceUpdate || oldValue !== value) {
+            (this.props.shape as any)[name] = value
+            this.flags.add(ElementFlag.BOUNDS)
+        }
+    }
+    setShapes(shape: Props['shape'], forceUpdate = false) {
+        Object.keys(shape).forEach((key: any) => {
+            this.setShape(key, (shape as any)[key], forceUpdate)
         })
     }
     shouldRender(): boolean {
-        return super.shouldRender()&&this.style.opacity>0
+        return super.shouldRender() && this.style.opacity > 0
     }
-    hasFill(){
+    hasFill() {
         return !!this.style.fillStyle
     }
-    hasStroke(){
+    hasStroke() {
         return !!this.style.strokeStyle
     }
-    hitTest(x:number,y:number):boolean{
+    hitTest(x: number, y: number): boolean {
         this.builtinBuildPath()
-        if(this.props.hitType==='bounds'){
-            const bounds=this.path.computeTightBounds()
-            if(bounds.contains(x,y)){
-                return true
-            }
-            return false
-        }
-        if(this.hasFill()&&this.path.isPointInPath(x,y)){
+        if (this.hasFill() && this.path.isPointInPath(x, y)) {
             return true
         }
-        if(this.hasStroke()){
-            const style=this.style
-            return this.path.isPointInStrokePath(x,y,{
-                lineWith:style.lineWidth,
-                lineJoin:style.lineJoin,
-                lineCap:style.lineCap,
-                miterLimit:style.miterLimit
-            })
+        if (this.hasStroke()) {
+            return this.path.isPointInStrokePath(x, y)
         }
         return false
     }
-    builtinBuildPath(){
-        if(this.flags.has(ElementFlag.SHAPE)){
+    calcLocalBounds(out: BoundingRect): BoundingRect {
+         out.copy(this.path.computeTightBounds())
+        return out
+    }
+    calcLocalStrokeBounds(out: BoundingRect): BoundingRect {
+        out.copy(this.path.computeStrokeTightBounds())
+        return out
+    }
+    builtinBuildPath(forceUpdate = false) {
+        if (this.flags.has(ElementFlag.SHAPE) || forceUpdate) {
             this.flags.remove(ElementFlag.SHAPE)
-            if(this.path){
-                this.path.reset()
-            }
+            this.path.reset()
             this.buildPath(this.path)
         }
     }
     dispose(): void {
         super.dispose()
-        this.path.dispose()
+        this.path.delete()
     }
-    abstract buildPath(path:CKPath2D):void
-    abstract draw(renderer: Renderer):void 
-    abstract render(renderer: Renderer): void
+    abstract buildPath(path: CKPath2D): void
+    abstract draw(renderer: Renderer): void
+    render(renderer: Renderer): void {
+        this.builtinBuildPath()
+        renderer.renderShape(this)
+    }
 }
