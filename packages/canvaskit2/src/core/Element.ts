@@ -83,7 +83,7 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         this.transform = new Transform()
         this.transform.setTransform(this.props.position, this.props.scale, this.props.rotation, this.props.skew, this.props.origin,)
         this.transform.onChange(() => {
-            this.flags.add(ElementFlag.TRANSFORM | ElementFlag.BOUNDS)
+            this.flags.add(ElementFlag.TRANSFORM)
         })
 
     }
@@ -113,12 +113,10 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         return this.props.visible
     }
     set visible(value: boolean) {
-        this.props.visible = value
-        this.flags.add(ElementFlag.VISIBILITY)
+        this.setProp('visible', value)
     }
     set ignore(value: boolean) {
         this.props.ignore = value
-        this.flags.add(ElementFlag.VISIBILITY)
     }
     get ignore() {
         return this.props.ignore
@@ -128,7 +126,6 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     }
     set zIndex(value: number) {
         this.props.zIndex = value
-        this.flags.add(ElementFlag.CHILDREN)
     }
     get position() {
         return this.transform.position
@@ -148,15 +145,6 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     get origin() {
         return this.transform.origin
     }
-    dirtyStyle() {
-        this.flags.add(ElementFlag.STYLE)
-    }
-    dirtyShape() {
-        this.flags.add(ElementFlag.SHAPE|ElementFlag.BOUNDS)
-    }
-    dirty() {
-        this.flags.add(ElementFlag.VISIBILITY)
-    }
     /** 是否添加到渲染列表,包括不渲染，但响应事件的对象 */
     shouldAddToRenderList() {
         return !this.props.ignore
@@ -172,7 +160,8 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     get name() {
         return this.props.name
     }
-    setProp(name: keyof Props, value: any) {
+    setProp<K extends keyof Props>(name: K, value: Props[K]) {
+  
         const oldValue = this.props[name]
         if (oldValue !== value) {
             this.props[name] = value
@@ -200,7 +189,6 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     setParent(parent: Element) {
         if (parent) {
             this.parent = parent as Element<Props>
-            this.flags.setParent(parent.flags)
             this.transform.parent = parent.transform
             if (parent.owner) {
                 this.addOwnerToSelf(parent.owner)
@@ -208,7 +196,6 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
         } else {
             this.parent = null
             this.transform.parent = null
-            this.flags.parent = null
         }
     }
     addOwnerToSelf(owner: Engine) {
@@ -224,65 +211,17 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     // 
 
     get localBounds() {
-        this.updateLocalBounds()
         return this._localBounds
     }
     get worldBounds() {
-        this.updateWorldBounds()
         return this._worldBounds
     }
     get localStrokeBounds() {
-        this.updateLocalStrokeBounds()
         return this._localStrokeBounds
     }
     get worldStrokeBounds() {
-        this.updateWorldStrokeBounds()
         return this._worldStrokeBounds
     }
-    updateLocalBounds(forceUpdate: boolean = false) {
-        if (!this._localBounds) {
-            this._localBounds = BoundingRect.zero()
-            forceUpdate = true
-        }
-        if (this.flags.has(ElementFlag.BOUNDS) || forceUpdate) {
-            this.flags.remove(ElementFlag.BOUNDS)
-            this._localBoundsVersion++
-            this.calcLocalBounds(this._localBounds)
-        }
-    }
-    updateWorldBounds(forceUpdate: boolean = false) {
-        if (!this._worldBounds) {
-            this._worldBounds = BoundingRect.zero()
-            forceUpdate = true
-        }
-        const localBounds = this.localBounds
-        if (this._worldBoundsVersion !== this._localBoundsVersion || forceUpdate) {
-            this._worldBoundsVersion = this._localBoundsVersion
-            this._worldBounds.copy(localBounds).applyMatrix2D(this.worldMatrix)
-        }
-    }
-    updateLocalStrokeBounds(forceUpdate: boolean = false) {
-        if (!this._localStrokeBounds) {
-            this._localStrokeBounds = BoundingRect.zero()
-            forceUpdate = true
-        }
-        if (this._localStrokeBoundsVersion !== this._localBoundsVersion || forceUpdate) {
-            this._localStrokeBoundsVersion = this._localBoundsVersion
-            this.calcLocalStrokeBounds(this._localStrokeBounds)
-        }
-    }
-    updateWorldStrokeBounds(forceUpdate: boolean = false) {
-        if (!this._worldStrokeBounds) {
-            this._worldStrokeBounds = BoundingRect.zero()
-            forceUpdate = true
-        }
-        const localStrokeBounds = this.localStrokeBounds
-        if (this._worldStrokeBoundsVersion !== this._localStrokeBoundsVersion || forceUpdate) {
-            this._worldStrokeBoundsVersion = this._localStrokeBoundsVersion
-            this._worldStrokeBounds.copy(localStrokeBounds).applyMatrix2D(this.worldMatrix)
-        }
-    }
-
     /** 遍历祖先节点 */
     traverseAncestor(callback: (element: Element<Props>) => boolean) {
         if (callback(this) === false) {

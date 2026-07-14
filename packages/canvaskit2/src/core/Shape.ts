@@ -23,11 +23,11 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
     path: CKPath2D
     constructor(props: Props) {
         super(props)
-        this.setStyles(this.props.style || {})
-        this.setShapes(this.props.shape || {})
+
         this.path = new CKPath2D()
         this.path.setFillRule(this.props.style.fillRule)
-
+        this.setStyles(this.props.style || {})
+        this.setShapes(this.props.shape || {})
         this.flags.add(ElementFlag.SHAPE)
     }
     get style(): RenderStyle {
@@ -83,7 +83,6 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
         }
         if (forceUpdate || oldValue !== newValue) {
             (this.props.style as any)[name] = newValue
-            this.dirtyStyle()
         }
         if (name == 'fillRule') {
             this.path.setFillRule(this.style.fillRule)
@@ -108,7 +107,6 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
         const oldValue = (this.props.shape as any)[name]
         if (forceUpdate || oldValue !== value) {
             (this.props.shape as any)[name] = value
-            this.flags.add(ElementFlag.BOUNDS)
         }
     }
     setShapes(shape: Props['shape'], forceUpdate = false) {
@@ -123,7 +121,7 @@ export abstract class Shape<Props extends ShapeProps = ShapeProps> extends Eleme
         return !!this.style.fillStyle
     }
     hasStroke() {
-        return !!this.style.strokeStyle
+        return !!this.style.strokeStyle&&this.style.lineWidth>0
     }
     hitTest(x: number, y: number): boolean {
         this.builtinBuildPath()

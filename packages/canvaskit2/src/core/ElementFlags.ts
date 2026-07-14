@@ -3,15 +3,15 @@
 // ============================================================
 
 export const enum ElementFlag {
-    NONE            = 0,
-    TRANSFORM       = 1 << 1,    // 变换矩阵变化（组合）
-    SHAPE           = 1 << 2,    // 形状变化（顶点数据）
-    STYLE           = 1 << 3,    // 样式变化（颜色、透明度等）
-    CHILDREN        = 1 << 4,    // 子元素变化（增删改）
-    VISIBILITY      = 1 << 5,    // 可见性变化
-    BOUNDS    = 1 << 6,    // 局部包围盒需要更新
-    RENDER_DATA     = 1 << 7,   // 渲染数据需要更新
-    ALL             = (1 << 8)-1,        // 全部标记
+    NONE = 0,
+    TRANSFORM = 1 << 1,    // 变换矩阵变化（组合）
+    SHAPE = 1 << 2,    // 形状变化（顶点数据）
+    STYLE = 1 << 3,    // 样式变化（颜色、透明度等）
+    CHILDREN = 1 << 4,    // 子元素变化（增删改）
+    BOUNDS = 1 << 6,    // 局部包围盒需要更新
+    REPAINT = 1 << 7,   // 需要重新绘制REDRAW
+    REFLOW = 1 << 8,   // 需要重新布局
+    ALL = (1 << 9) - 1,        // 全部标记
 }
 
 /**
@@ -23,25 +23,11 @@ export class ElementFlags {
     value: ElementFlag = ElementFlag.NONE
     /** 子树中累积的标记（归并自所有子节点） */
     subtree: ElementFlag = ElementFlag.NONE
-    parent?:ElementFlags|null
-    constructor(){
-        this.value=ElementFlag.NONE
+    constructor() {
+        this.value = ElementFlag.NONE
     }
     get allFlags(): ElementFlag {
         return this.value | this.subtree
-    }
-    setParent(parent:ElementFlags){
-        this.parent=parent
-        parent.addSubtreeFlag(this.allFlags)
-    }
-    addSubtreeFlag(flag: ElementFlag): void {
-        this.subtree |= flag
-        if(this.parent){
-            this.parent.addSubtreeFlag(this.subtree)
-        }
-    }
-    removeSubtreeFlag(flag: ElementFlag): void {
-        this.subtree &= ~flag
     }
     hasSubtreeFlag(flag: ElementFlag): boolean {
         return (this.subtree & flag) !== 0
@@ -49,9 +35,6 @@ export class ElementFlags {
     /** 标记指定 flag */
     add(flag: ElementFlag): void {
         this.value |= flag
-        if(this.parent){
-            this.parent.addSubtreeFlag(this.value|this.subtree)
-        }
     }
 
     /** 是否包含指定标记 */

@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+      "allowSyntheticDefaultImports": true,
+       "baseUrl": "./",
+      "target": "ES2022",
+      "useDefineForClassFields": true,
+      "module": "ESNext",
+      "lib": ["ES2022", "DOM", "DOM.Iterable"],
+      "skipLibCheck": true,
+      "allowJs": true,
+      "types":["vite/client"],
+
+  
+      /* Bundler mode */
+      "moduleResolution": "bundler",
+      "allowImportingTsExtensions": true,
+      "moduleDetection": "force",
+      "noEmit": true,
+  
+      /* Linting */
+      "importsNotUsedAsValues":"remove",
+      "isolatedModules":true,
+      "verbatimModuleSyntax":false,
+      "strict": true,
+      "strictNullChecks":false,
+      "noUnusedLocals": false,
+      "noUnusedParameters": false,
+      "erasableSyntaxOnly": false,
+      "noFallthroughCasesInSwitch": true,
+      "noUncheckedSideEffectImports": true,
+      "paths": {
+        "src/*":["./src/*"]
+      }
+    },
+    "include": ["src","examples","main.ts"]
+  }

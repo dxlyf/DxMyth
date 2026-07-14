@@ -178,18 +178,18 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
     strokeText(text: string, x: number, y: number, maxWidth?: number): void {
         this.ctx.strokeText(text, x, y, maxWidth)
     }
-    // drawImage(image: CanvasImageSource, dx: number, dy: number): void
-    // drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void
-    // drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void
-    // drawImage(image: unknown, sx: unknown, sy: unknown, sw?: unknown, sh?: unknown, dx?: unknown, dy?: unknown, dw?: unknown, dh?: unknown): void {
-    //     if (sw === undefined) {
-    //         this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number)
-    //     } else if (dx === undefined) {
-    //         this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number, sw as number, sh as number)
-    //     } else {
-    //         this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number, sw as number, sh as number, dx as number, dy as number, dw as number, dh as number)
-    //     }
-    // }
+    drawImage(image: CanvasImageSource, dx: number, dy: number): void
+    drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void
+    drawImage(image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void
+    drawImage(image: unknown, sx: unknown, sy: unknown, sw?: unknown, sh?: unknown, dx?: unknown, dy?: unknown, dw?: unknown, dh?: unknown): void {
+        if (sw === undefined) {
+            this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number)
+        } else if (dx === undefined) {
+            this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number, sw as number, sh as number)
+        } else {
+            this.ctx.drawImage(image as CanvasImageSource, sx as number, sy as number, sw as number, sh as number, dx as number, dy as number, dw as number, dh as number)
+        }
+    }
     createImageData(sw: number, sh: number, settings?: ImageDataSettings): ImageData
     createImageData(imageData: ImageData): ImageData
     createImageData(sw: unknown, sh?: unknown, settings?: unknown): ImageData {
@@ -303,7 +303,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.applyShapeStyle(shape)
         shape.draw(this)
         const hasFill = !!style.fillStyle
-        const hasStroke = !!style.strokeStyle
+        const hasStroke = !!style.strokeStyle&&style.lineWidth>0
         const needClipStroke = hasStroke && style.strokeAlign !== 'center'
 
         if (!style.firstStroke) {
@@ -382,7 +382,6 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         }
 
         ctx.restore()
-        this.prevShape = shape
     }
 
     renderBefore(ctx: CanvasRenderingContext2D) {
@@ -390,8 +389,8 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         const vm = Matrix2D.pool.get()
         const dpr = this.dpr
 
-        ctx.save()
         ctx.clearRect(0, 0, this.width, this.height)
+        ctx.save()
         //  ctx.scale(this.dpr, this.dpr)
         vm.fromScale(dpr, dpr)
         vm.multiply(viewportMatrix)
@@ -408,6 +407,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
             ctx.fillRect(0, 0, this.width, this.height)
             ctx.globalCompositeOperation = 'source-over'
         }
+        this.prevShape=null
     }
 
     render(scene: Container): void {
@@ -416,15 +416,149 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         const ctx = this.ctx
         this.renderBefore(ctx)
 
+        // ---- 合批渲染 ----
+        const viewportMatrix = this.viewport.getWorldToScreenMatrix()
+        const dpr = this.dpr
+        let batch: Shape[] = []
+        let batchKey: string | null = null
+
+        const flushBatch = () => {
+            if (batch.length === 0) return
+            if (batch.length === 1) {
+                batch[0].render(this)
+            } else {
+                this._renderBatch(batch, viewportMatrix, dpr)
+            }
+            batch = []
+            batchKey = null
+        }
+
         for (let i = 0, len = renderList.length; i < len; i++) {
             const shape = renderList[i]
-            const shapeWorldBounds = shape.worldBounds
             shape.onUpdate()
-            if (shape.shouldRender() && viewport.isVisible(shapeWorldBounds)) {
+            if (!shape.shouldRender() || !viewport.isVisible(shape.worldBounds)) continue
+
+            const currentKey = this._getBatchKey(shape)
+
+            if (currentKey === null) {
+                // 不可合批：先刷掉已有批次，再单独渲染
+                flushBatch()
                 shape.render(this)
+                this.prevShape = shape
+            } else if (currentKey === batchKey) {
+                // 同批次：加入
+                batch.push(shape)
+                this.prevShape = shape
+            } else {
+                // 不同批次：先刷掉旧批次，再开启新批次
+                flushBatch()
+                batchKey = currentKey
+                batch.push(shape)
+                this.prevShape = shape
             }
         }
+        flushBatch()
+
         this.renderAfter(ctx)
+    }
+
+    /**
+     * 生成合批键，相同键的 shape 可合并渲染
+     * 返回 null 表示不可合批
+     */
+    private _getBatchKey(shape: Shape): string | null {
+        const s = shape.style
+
+        // 阴影活跃时不可合批（每次 fill/stroke 都需要独立 shadow）
+        if (s.shadowBlur > 0) return null
+
+        // 非居中描边需要 clip，不可合批
+        if (s.strokeAlign !== 'center' && s.strokeStyle) return null
+
+        // lineDash 存在时不可合批（dashOffset 可能不同）
+        if (s.lineDash && s.lineDash.length > 0) return null
+
+        // 渐变/图案不可合批（参考语义复杂）
+        if (s.fillStyle && s.fillStyle.type !== 'color') return null
+        if (s.strokeStyle && s.strokeStyle.type !== 'color') return null
+
+        // 序列化纯色填充样式
+        const fillKey = s.fillStyle
+            ? Color.toCSS_RGBA((s.fillStyle as any).value)
+            : 'none'
+
+        // 序列化纯色描边样式
+        const strokeKey = s.strokeStyle
+            ? Color.toCSS_RGBA((s.strokeStyle as any).value)
+            : 'none'
+
+        return [
+            fillKey,
+            strokeKey,
+            s.opacity ?? 1,
+            s.blend ?? 'source-over',
+            s.fillRule ?? 'nonzero',
+            s.lineWidth ?? 0,
+            s.lineCap ?? 'butt',
+            s.lineJoin ?? 'miter',
+            s.miterLimit ?? 10,
+            s.firstStroke ? '1' : '0',
+            s.closePath ? '1' : '0',
+        ].join('|')
+    }
+
+    /**
+     * 合批渲染一组 shape（共享样式，各自独立变换）
+     */
+    private _renderBatch(shapes: Shape[], viewportMatrix: Matrix2D, dpr: number): void {
+        const ctx = this.ctx
+        const first = shapes[0]
+        const style = first.style
+
+        ctx.save()
+        if ((style.opacity ?? 1) < 1) {
+            ctx.globalAlpha = style.opacity
+        }
+
+        // 样式只设置一次
+        this.applyShapeStyle(first)
+
+        const hasFill = !!style.fillStyle
+        const hasStroke = !!style.strokeStyle && (style.lineWidth ?? 1) > 0
+        const m = Matrix2D.pool.get()
+
+        /**
+         * 辅助：将批次内所有 shape 的路径绘制到 ctx
+         */
+        const drawBatchPaths = () => {
+            ctx.beginPath()
+            for (const shape of shapes) {
+                m.fromScale(dpr, dpr).multiply(viewportMatrix).multiply(shape.worldMatrix)
+                ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5])
+                shape.draw(this)
+            }
+        }
+
+        if (hasFill && hasStroke) {
+            // 同时有填充和描边：一次构建路径，依次 fill/stroke
+            drawBatchPaths()
+            if (!style.firstStroke) {
+                ctx.fill(style.fillRule)
+                ctx.stroke()
+            } else {
+                ctx.stroke()
+                ctx.fill(style.fillRule)
+            }
+        } else if (hasFill) {
+            drawBatchPaths()
+            ctx.fill(style.fillRule)
+        } else if (hasStroke) {
+            drawBatchPaths()
+            ctx.stroke()
+        }
+
+        Matrix2D.pool.release(m)
+        ctx.restore()
     }
 
 }
