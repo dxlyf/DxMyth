@@ -1,6 +1,6 @@
 {
   "name": "@dxyl/math2",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "math2d utils",
   "publishConfig": {
     "access": "public"

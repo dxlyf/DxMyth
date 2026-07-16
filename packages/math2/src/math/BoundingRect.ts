@@ -119,6 +119,12 @@ export class BoundingRect {
     contains(x: number, y: number) {
         return !(x < this.left || x > this.right || y < this.top || y > this.bottom)
     }
+    containsPoint(p:Vector2Like){
+        return this.contains(p.x,p.y)
+    }
+    intersectionBox(box:BoundingRect) {
+        return !(this.left > box.right || this.right < box.left || this.top > box.bottom || this.bottom < box.top)
+    }
     /** 是否与另一个包围盒相交 */
     intersects(other: BoundingRect): boolean {
         return !(
@@ -135,6 +141,16 @@ export class BoundingRect {
         this.max.set(-Infinity, -Infinity)
         return this
     }
+    makeEmpty() {
+        this.min.x = this.min.y = + Infinity;
+        this.max.x = this.max.y = - Infinity;
+        return this;
+    }
+    makeZero() {
+        this.min.x = this.min.y = 0;
+        this.max.x = this.max.y = 0;
+        return this;
+    }
     isInfinity(): boolean {
         return this.min.x === Infinity || this.min.y === Infinity || this.max.x === -Infinity || this.max.y === -Infinity
     }
@@ -148,14 +164,47 @@ export class BoundingRect {
 
     /** 扩展包围盒以包含指定点 */
     add(x: number, y: number): this {
-        if (x < this.min.x) this.min.x = x
-        if (y < this.min.y) this.min.y = y
-        if (x > this.max.x) this.max.x = x
-        if (y > this.max.y) this.max.y = y
+        this.expandPoint({ x, y })
+        return this
+    }
+    fromCircle(cx: number, cy: number, radius: number) {
+        this.min.set(cx - radius, cy - radius)
+        this.max.set(cx + radius, cy + radius)
+        return this
+    }
+    fromLine(x0: number, y0: number, x1: number, y1: number, strokeWidth: number) {
+        // 计算线段方向向量
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+
+        // 计算长度和单位向量
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (length === 0) {
+            this.makeZero()
+            return
+        }
+        const ux = dx / length;
+        const uy = dy / length;
+
+        // 计算法向量 (垂直于线段方向)
+        const nx = -uy;
+        const ny = ux;
+
+        // 偏移量 (法向量 * 半宽度)
+        const offsetX = nx * strokeWidth / 2;
+        const offsetY = ny * strokeWidth / 2;
+
+        // 计算包围盒的四个顶点
+        const points = [
+            { x: x0 - offsetX, y: y0 - offsetY }, // 起点左侧
+            { x: x0 + offsetX, y: y0 + offsetY }, // 起点右侧
+            { x: x1 - offsetX, y: y1 - offsetY }, // 终点左侧
+            { x: x1 + offsetX, y: y1 + offsetY }, // 终点右侧
+        ];
+        this.fromPoints(points)
         return this
     }
     fromXYWH(x: number, y: number, w: number, h: number) {
-        this.setEmpty()
         this.min.set(x, y)
         this.max.set(x + w, y + h)
     }
@@ -171,9 +220,9 @@ export class BoundingRect {
         return this
     }
     expandPoints(points: Vector2Like[]): this {
-        for (const p of points) {
-            this.add(p.x, p.y)
-        }
+        points.forEach(p => {
+            this.expandPoint(p)
+        })
         return this
     }
 
@@ -254,7 +303,13 @@ export class BoundingRect {
         r.max.copy(this.max)
         return r
     }
+    equals(box:BoundingRect) {
+        return box.min.equals(this.min) && box.max.equals(this.max);
 
+    }
+    isValid() {
+        return this.left <= this.right && this.top <= this.bottom
+    }
     toString(): string {
         return `BoundingRect(min=(${this.min.x},${this.min.y}), max=(${this.max.x},${this.max.y}))`
     }

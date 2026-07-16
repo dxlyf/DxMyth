@@ -7,6 +7,7 @@ type StateConfig={
     max?:number
     step?:number
     value?:any
+    
     options?:any[]
 }
 interface IExample{

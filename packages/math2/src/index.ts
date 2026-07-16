@@ -32,6 +32,8 @@ export * from './math/Viewport'
 export * from './math/LRU'
 export * from './math/curve'
 export * from './math/Conic'
+export {default as RBush} from './math/rbush'
+export * as Color2 from './math2/Color'
 
 export * as polybool from './math/polybool/polybool'
 export * as clipper from './math/clipperts/clipper'

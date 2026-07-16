@@ -1,5 +1,5 @@
 
-import { Container } from "src/core/Container"
+import { Scene } from "src/core/Scene"
 import { ElementFlag } from "src/core/ElementFlags"
 import { ConicGradient, LinearGradient, RadialGradient } from "src/core/Gradient"
 import { ImagePattern } from "src/core/Pattern"
@@ -410,9 +410,9 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.prevShape=null
     }
 
-    render(scene: Container): void {
+    render(scene: Scene): void {
         const viewport = this.viewport
-        const renderList = scene.collectRenderElements()
+        const renderList = scene.getRenderElements(viewport,true) as Shape[]
         const ctx = this.ctx
         this.renderBefore(ctx)
 
@@ -436,9 +436,9 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         for (let i = 0, len = renderList.length; i < len; i++) {
             const shape = renderList[i]
             shape.onUpdate()
-            if (!shape.shouldRender() || !viewport.isVisible(shape.worldBounds)) continue
+            if (!shape.shouldRender()) continue
 
-            const currentKey = this._getBatchKey(shape)
+            const currentKey = shape._getBatchKey()
 
             if (currentKey === null) {
                 // 不可合批：先刷掉已有批次，再单独渲染
@@ -462,50 +462,7 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         this.renderAfter(ctx)
     }
 
-    /**
-     * 生成合批键，相同键的 shape 可合并渲染
-     * 返回 null 表示不可合批
-     */
-    private _getBatchKey(shape: Shape): string | null {
-        const s = shape.style
-
-        // 阴影活跃时不可合批（每次 fill/stroke 都需要独立 shadow）
-        if (s.shadowBlur > 0) return null
-
-        // 非居中描边需要 clip，不可合批
-        if (s.strokeAlign !== 'center' && s.strokeStyle) return null
-
-        // lineDash 存在时不可合批（dashOffset 可能不同）
-        if (s.lineDash && s.lineDash.length > 0) return null
-
-        // 渐变/图案不可合批（参考语义复杂）
-        if (s.fillStyle && s.fillStyle.type !== 'color') return null
-        if (s.strokeStyle && s.strokeStyle.type !== 'color') return null
-
-        // 序列化纯色填充样式
-        const fillKey = s.fillStyle
-            ? Color.toCSS_RGBA((s.fillStyle as any).value)
-            : 'none'
-
-        // 序列化纯色描边样式
-        const strokeKey = s.strokeStyle
-            ? Color.toCSS_RGBA((s.strokeStyle as any).value)
-            : 'none'
-
-        return [
-            fillKey,
-            strokeKey,
-            s.opacity ?? 1,
-            s.blend ?? 'source-over',
-            s.fillRule ?? 'nonzero',
-            s.lineWidth ?? 0,
-            s.lineCap ?? 'butt',
-            s.lineJoin ?? 'miter',
-            s.miterLimit ?? 10,
-            s.firstStroke ? '1' : '0',
-            s.closePath ? '1' : '0',
-        ].join('|')
-    }
+    
 
     /**
      * 合批渲染一组 shape（共享样式，各自独立变换）

@@ -1,12 +1,21 @@
 import { Matrix2D, Matrix2DLike } from './Matrix2D';
 import { Vector2Like } from './Vector2';
 import { Point } from './Point';
+export type TransformProps = {
+    position?: Vector2Like;
+    rotation?: number;
+    scale?: Vector2Like;
+    skew?: Vector2Like;
+    origin?: Vector2Like;
+    pivot?: Vector2Like;
+};
 export declare class Transform {
     position: Point;
     scale: Point;
     private _rotation;
     skew: Point;
     origin: Point;
+    pivot: Point;
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
     private _parent;
     private _matrix;
@@ -24,9 +33,11 @@ export declare class Transform {
     private _lastInvertLocalVersion;
     /** 变化回调 */
     private _onChange;
-    constructor();
+    constructor(options?: TransformProps);
     get rotation(): number;
     set rotation(v: number);
+    get angle(): number;
+    set angle(v: number);
     /**
      * 注册变化回调。当任一变换属性发生变化时触发。
      * 与 Point.onChange 模式一致，返回 this 便于链式调用。
@@ -71,7 +82,7 @@ export declare class Transform {
      * 强制标记为脏，下次访问 matrix/worldMatrix 时会重算。
      * 适用于批量设置多个属性后仅触发一次重算的场景。
      */
-    invalidate(): void;
+    updateTransform(): void;
     /** 重置所有变换为默认值 */
     reset(): void;
     /**
@@ -84,21 +95,9 @@ export declare class Transform {
      * result = M_world · point
      */
     localToWorld<T extends Vector2Like>(point: Vector2Like, out: T): T;
-    /**
-     * 从矩阵反解变换属性写入自身。
-     *
-     * 分解顺序与 compose 一致，假定原点 (0, 0)。
-     * 分解结果经 round-trip（分解后再 compose）与原矩阵等价。
-     *
-     * 步骤:
-     *   1. 提取 scaleX 与 rotation（列向量模与方向）
-     *   2. 移除旋转得 Sk·S 矩阵
-     *   3. 提取 scaleY 与 skew
-     *   4. 平移直接取 tx/ty
-     */
-    decomposeMatrix2D(matrix: Matrix2DLike): void;
+    decompose(matrix: Matrix2DLike): void;
     /** 批量设置变换属性 */
-    setTransform(position?: Vector2Like, scale?: Vector2Like, rotation?: number, skew?: Vector2Like, origin?: Vector2Like): this;
+    setTransform(options: TransformProps): this;
     /** 从另一个 Transform 拷贝变换属性 */
     copyFrom(other: Transform): this;
     /** 清除世界矩阵缓存版本，强制下次 get 时重算（即使 local 未变） */

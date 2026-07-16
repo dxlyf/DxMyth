@@ -1,7 +1,7 @@
 type ChangeCallbackParamter={ path: string,parent:string,field: string, newValue: any, oldValue: any }
 type ChangeCallback = (change: ChangeCallbackParamter) => void;
 
-class ObservableObject {
+export class ObservableObject {
   private proxy: any;
   private listeners: ChangeCallback[] = [];
   private rawToProxy = new WeakMap<object, object>();

@@ -39,14 +39,20 @@ export declare class BoundingRect {
     isZero(): boolean;
     /** 点是否在包围盒内（含边界） */
     contains(x: number, y: number): boolean;
+    containsPoint(p: Vector2Like): boolean;
+    intersectionBox(box: BoundingRect): boolean;
     /** 是否与另一个包围盒相交 */
     intersects(other: BoundingRect): boolean;
     /** 重置为空 */
     setEmpty(): this;
+    makeEmpty(): this;
+    makeZero(): this;
     isInfinity(): boolean;
     copy(other: BoundingRect): this;
     /** 扩展包围盒以包含指定点 */
     add(x: number, y: number): this;
+    fromCircle(cx: number, cy: number, radius: number): this;
+    fromLine(x0: number, y0: number, x1: number, y1: number, strokeWidth: number): this;
     fromXYWH(x: number, y: number, w: number, h: number): void;
     fromLTRB(left: number, top: number, right: number, bottom: number): void;
     fromPoints(points: Vector2Like[]): this;
@@ -72,5 +78,7 @@ export declare class BoundingRect {
      */
     applyMatrix2D(m: Matrix2DLike): this;
     clone(): BoundingRect;
+    equals(box: BoundingRect): boolean;
+    isValid(): boolean;
     toString(): string;
 }

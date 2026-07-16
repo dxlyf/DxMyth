@@ -1,5 +1,5 @@
 import { CachePool } from './CachePool'
-import {type Vector2Like } from './Vector2'
+import { Vector2, type Vector2Like } from './Vector2'
 // ============================================================
 // Matrix2D — 基于 Float32Array 的 2D 仿射变换矩阵
 // 内存布局: [0]=a, [1]=b, [2]=c, [3]=d, [4]=tx, [5]=ty
@@ -19,20 +19,30 @@ export const enum MatrixIndex {
     TY = 5, // translateY
 }
 
-export type Matrix2DLike = number[]|Float32Array
+export type Matrix2DLike = number[] | Float32Array
+
+/** decomposeTransform 输出的分量结构 */
+export interface DecomposedTransform {
+    position: Vector2Like
+    scale: Vector2Like
+    skew: Vector2Like
+    rotation: number
+    origin: Vector2Like
+    pivot: Vector2Like
+}
 
 /**
  * 基于 Float32Array 的 2D 仿射变换矩阵。
  * 直接继承 Float32Array，与 WebGL / Skia / CanvasKit 的底层数据格式兼容。
  */
 export class Matrix2D extends Float32Array {
-    static pool=CachePool.create({
-            initSize:20,
-            create:()=>Matrix2D.identity(),
-            init(item:Matrix2D){
-                item.identity()
-            }
-        })
+    static pool = CachePool.create({
+        initSize: 20,
+        create: () => Matrix2D.identity(),
+        init(item: Matrix2D) {
+            item.identity()
+        }
+    })
     // ---- 静态工厂 ----
 
     static identity(): Matrix2D {
@@ -81,47 +91,80 @@ export class Matrix2D extends Float32Array {
         scale: Vector2Like = { x: 1, y: 1 },
         origin: Vector2Like = { x: 0, y: 0 },
     ) {
-        const px = position.x, py = position.y
-        const sx = scale.x, sy = scale.y
-        const skx = skew.x, sky = skew.y
-        const ox = origin.x, oy = origin.y
+       
+        const x = position.x, y = position.y
+        let ox = origin.x, oy = origin.y
+        const sx = scale.x, sy = scale.y;
+        const cos = rotation === 0 ? 1 : Math.cos(rotation);
+        const sin = rotation === 0 ? 0 : Math.sin(rotation);
+        const tanx = skew.x === 0 ? 0 : Math.tan(skew.x)
+        const tany = skew.y === 0 ? 0 : Math.tan(skew.y)
 
-        const cos = rotation === 0 ? 1 : Math.cos(rotation)
-        const sin = rotation === 0 ? 0 : Math.sin(rotation)
-        const tanX = skx === 0 ? 0 : Math.tan(skx)
-        const tanY = sky === 0 ? 0 : Math.tan(sky)
+        // t*o*r*skew*s*-o*-p
 
-        // R · T(-origin)
-        const rt_ox = -cos * ox + sin * oy
-        const rt_oy = -sin * ox - cos * oy
+        // t*o
+        let tx = x + ox;
+        let ty = y + oy;
 
-        // S · R · T
-        const s_a = sx * cos
-        const s_b = sy * sin
-        const s_c = sx * -sin
-        const s_d = sy * cos
-        const s_tx = sx * rt_ox
-        const s_ty = sy * rt_oy
+        // r*skew
+        let a = cos - sin * tany
+        let b = sin + cos * tany
+        let c = cos*tanx - sin
+        let d = sin*tanx + cos 
 
-        // Sk · S · R · T
-        const sk_a = s_a + tanX * s_b
-        const sk_b = tanY * s_a + s_b
-        const sk_c = s_c + tanX * s_d
-        const sk_d = tanY * s_c + s_d
-        const sk_tx = s_tx + tanX * s_ty
-        const sk_ty = tanY * s_tx + s_ty
+        // m*s
+        a*=sx
+        b*=sx
+        c*=sy
+        d*=sy
 
-        // T(position) · Sk · S · R · T
-        out[0] = sk_a
-        out[1] = sk_b
-        out[2] = sk_c
-        out[3] = sk_d
-        out[4] = sk_a * px + sk_c * py + sk_tx
-        out[5] = sk_b * px + sk_d * py + sk_ty
-
-        return out
+        out[0] = a
+        out[1] = b
+        out[2] = c
+        out[3] = d
+        out[4] = tx-(a*ox+c*oy)
+        out[5] = ty-(b*ox+d*oy)
+        return this;
     }
+    static fromTranslationRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
+        const x = position.x, y = position.y
+        let ox = origin.x, oy = origin.y
+        const px = pivot.x, py = pivot.y
+        const sx = scale.x, sy = scale.y;
+        const cos = rotation === 0 ? 1 : Math.cos(rotation);
+        const sin = rotation === 0 ? 0 : Math.sin(rotation);
+        const tanx = skew.x === 0 ? 0 : Math.tan(skew.x)
+        const tany = skew.y === 0 ? 0 : Math.tan(skew.y)
 
+        // t*o*r*skew*s*-o*-p
+
+        // t*o
+        let tx = x + ox;
+        let ty = y + oy;
+
+        // r*skew
+        let a = cos - sin * tany
+        let b = sin + cos * tany
+        let c = cos*tanx - sin
+        let d = sin*tanx + cos 
+
+        // m*s
+        a*=sx
+        b*=sx
+        c*=sy
+        d*=sy
+
+        ox+=px
+        oy+=py
+
+        out[0] = a
+        out[1] = b
+        out[2] = c
+        out[3] = d
+        out[4] = tx-(a*ox+c*oy)
+        out[5] = ty-(b*ox+d*oy)
+        return this;
+    }
     // ---- 静态工具 ----
 
     /** out = a * b */
@@ -157,15 +200,15 @@ export class Matrix2D extends Float32Array {
         return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && a[5] === b[5]
     }
 
-    static mapPoint(out:Vector2Like,matrix:Matrix2DLike,v:Vector2Like){
+    static mapPoint(out: Vector2Like, matrix: Matrix2DLike, v: Vector2Like) {
         const x = v.x, y = v.y
         out.x = matrix[0] * x + matrix[2] * y + matrix[4]
         out.y = matrix[1] * x + matrix[3] * y + matrix[5]
         return out
     }
-   static mapPoints(out:Vector2Like[],matrix:Matrix2DLike,points:Vector2Like[]){
-        for(let i=0;i<points.length;i++){
-            out[i]=Matrix2D.mapPoint(out[i]||{x:0,y:0},matrix,points[i])
+    static mapPoints(out: Vector2Like[], matrix: Matrix2DLike, points: Vector2Like[]) {
+        for (let i = 0; i < points.length; i++) {
+            out[i] = Matrix2D.mapPoint(out[i] || { x: 0, y: 0 }, matrix, points[i])
         }
         return out
     }
@@ -210,8 +253,8 @@ export class Matrix2D extends Float32Array {
     identity(): this {
         return this.fromValues(1, 0, 0, 1, 0, 0)
     }
-    fromArray(m:Matrix2DLike){
-        this.fromValues(m[0],m[1],m[2],m[3],m[4],m[5])
+    fromArray(m: Matrix2DLike) {
+        this.fromValues(m[0], m[1], m[2], m[3], m[4], m[5])
     }
 
     /** 重置为平移矩阵 */
@@ -243,7 +286,7 @@ export class Matrix2D extends Float32Array {
     }
 
     // ---- 自身变换（this = this * op） ----
-    multiplyMatrices(a:Matrix2DLike,b:Matrix2DLike){
+    multiplyMatrices(a: Matrix2DLike, b: Matrix2DLike) {
         return Matrix2D.multiply(this, a, b) as unknown as this
     }
     multiply(m: Matrix2DLike): this {
@@ -286,12 +329,163 @@ export class Matrix2D extends Float32Array {
         this[3] = b * tanSx + d
         return this
     }
-
+    fromTranslationRotationScale(position: Vector2Like, angleInRad: number, scale: Vector2Like) {
+        this.fromTranslationRotationScalePivot(position, angleInRad, scale, { x: 0, y: 0 })
+        return this;
+    }
+    fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like) {
+        const cos = Math.cos(angleInRad);
+        const sin = Math.sin(angleInRad);
+        const a = scale.x * cos;
+        const b = scale.x * sin;
+        const c = -scale.y * sin;
+        const d = scale.y * cos;
+        const tx = position.x - (pivot.x * a - pivot.y * c);
+        const ty = position.y - (pivot.x * b + pivot.y * d);
+        this.fromValues(a, b, c, d, tx, ty)
+        return this;
+    }
+    fromTranslationRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
+        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(this,position,rotation,skew,scale,origin,pivot)
+        return this;
+    }
     /**
-     * 通过变换参数组合构建仿射矩阵（实例，写入 this）。
-     * 等价于 `Matrix2D.fromTranslateRotationSkewScaleOrigin(this, ...)`
+     * 从组合矩阵逆解所有变换分量。
+     *
+     * 与 fromTranslationRotationSkewScaleOriginPivot 互为逆运算，
+     * M = T(pos+origin) · R · Sk · S · T(-origin-pivot) 的矩阵可无损还原。
+     *
+     * 分解策略:
+     *   - 线性部分 L = [a c; b d] 用 QR 分解提取 rotation / scale / skew
+     *   - skewY 约定为 0（QR 唯一分解），若原矩阵 skewY ≠ 0 则信息并入 rotation
+     *   - origin / pivot 无法从单矩阵唯一确定，约定 origin = (0,0), pivot = (0,0)
+     *
+     * @returns out 对象（含 position/scale/skew/rotation/origin/pivot）
      */
-    composeFromTransform(
+    static decomposeTransform(
+        matrix: Matrix2DLike,
+        out: DecomposedTransform = {} as DecomposedTransform
+    ): DecomposedTransform {
+        const a = matrix[0], b = matrix[1], c = matrix[2], d = matrix[3]
+         const tx = matrix[4], ty = matrix[5]
+
+         const position = out.position ?? (out.position = { x: 0, y: 0 })
+         const scale = out.scale ?? (out.scale = { x: 1, y: 1 })
+
+         // ---- 1. 提取 position ----
+         // 约定 origin=(0,0), pivot=(0,0) 时 position = (tx, ty)
+         position.x = tx
+         position.y = ty
+
+         // ---- 2. QR 分解线性部分 [a c; b d] ----
+
+         // rotation: 第一列方向
+         const scaleX = Math.sqrt(a * a + b * b)
+      
+         const cosR = a / scaleX
+         const sinR = b / scaleX
+         const rotation = Math.atan2(sinR, cosR)
+
+         // 移除旋转: K = R^T * L
+         // K = [k11 k12; k21 k22] = [sx, tanx*sy; tany*sx, sy]
+         const k11 =  a * cosR + b * sinR   // sx
+         const k12 =  c * cosR + d * sinR   // tanx * sy
+         const k22 = -c * sinR + d * cosR   // sy
+
+         // ---- 3. 提取 scale ----
+         scale.x = k11
+         scale.y = k22
+
+         // ---- 4. 提取 skew ----
+         // QR 约定 skewY = 0
+         const tanx = k12 / k22
+         const skew = out.skew ?? (out.skew = { x: 0, y: 0 })
+         skew.x = Math.atan(tanx)
+         skew.y = 0
+
+         // ---- 5. 提取 rotation ----
+         out.rotation = rotation
+
+         // ---- 6. origin / pivot 为默认值 ----
+         const origin = out.origin ?? (out.origin = { x: 0, y: 0 })
+         origin.x = 0
+         origin.y = 0
+
+         const pivot = out.pivot ?? (out.pivot = { x: 0, y: 0 })
+         pivot.x = 0
+         pivot.y = 0
+
+         out.position = position
+         out.scale = scale
+         out.rotation = rotation
+
+         return out
+    }
+    decomposeTRSP(
+        matrix: Matrix2D,
+        out: {
+            position?: Vector2Like,
+            scale?: Vector2Like,
+            rotation?: number,
+            pivot?: Vector2Like
+        } = {}
+    ) {
+        const position = out.position ?? { x: 0, y: 0 };
+        const scale = out.scale ?? {x:1,y:1};
+        const pivot = out.pivot ?? {x:0,y:0};
+
+        // 1️⃣ 提取 position
+        position.x = matrix[4];
+        position.y = matrix[5];
+
+        // 2️⃣ 提取 scale
+        scale.x = Math.sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
+        scale.y = Math.sqrt(matrix[2] * matrix[2] + matrix[3] * matrix[3]);
+
+        if (scale.x === 0 || scale.y === 0) {
+            throw new Error('Cannot decompose matrix with zero scale');
+        }
+
+        // 3️⃣ 提取 rotation
+        const rotation = Math.atan2(matrix[1] / scale.x, matrix[0] / scale.x);
+
+        // 4️⃣ 提取 pivot
+        // 构造 R*S 矩阵
+        const rs = new Matrix2D();
+        rs.fromValues(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0)
+
+        // invert(R*S)
+        const det = rs[0] * rs[3] - rs[1] * rs[2];
+        if (det === 0) throw new Error('Matrix is not invertible for pivot extraction');
+
+        const invRS = new Matrix2D();
+        invRS.fromValues(rs[3] / det, -rs[1] / det, -rs[2] / det, rs[0] / det, 0, 0);
+
+        // pivot = - inv(R*S) * 0 ?  => 实际上是逆算原 T(-pivot) 影响
+        pivot.x = - (invRS[0] * matrix[4] + invRS[2] * matrix[5] - position.x);
+        pivot.y = - (invRS[1] * matrix[4] + invRS[3] * matrix[5] - position.y);
+
+        out.position.x=position.x
+        out.position.y=position.y
+        out.scale.x=scale.x;
+        out.scale.y=scale.y;
+        out.rotation = rotation;
+        out.pivot.x=pivot.x
+        out.pivot.y=pivot.y
+      
+
+        return out;
+    }
+    /** 实例版：从自身矩阵逆解分量 */
+    decomposeTransform(out: DecomposedTransform = {} as DecomposedTransform): DecomposedTransform {
+        const result = Matrix2D.decomposeTransform(this, out)
+        return result
+    }
+  decomposeTransform2(out: DecomposedTransform = {} as DecomposedTransform): DecomposedTransform {
+        const result = Matrix2D.decomposeTransform(this, out)
+        return result
+    }
+    fromTranslateRotationSkewScaleOrigin(
         position: Vector2Like,
         rotation: number,
         skew: Vector2Like,
@@ -317,14 +511,16 @@ export class Matrix2D extends Float32Array {
         skew?: Vector2Like
         rotation?: number
         origin?: Vector2Like
+        pivot?:Vector2Like
     }): this {
-        Matrix2D.fromTranslateRotationSkewScaleOrigin(
+        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(
             this,
             transform.position,
             transform.rotation ?? 0,
             transform.skew ?? { x: 0, y: 0 },
             transform.scale ?? { x: 1, y: 1 },
             transform.origin ?? { x: 0, y: 0 },
+            transform.pivot ?? { x: 0, y: 0 },
         )
         return this
     }
@@ -337,7 +533,7 @@ export class Matrix2D extends Float32Array {
     }
 
     isIdentity(): boolean {
-        return !(this[1]!==0||this[2]!==0||this[0]!==1||this[3]!==1||this[4]!==0||this[5]!==0)
+        return !(this[1] !== 0 || this[2] !== 0 || this[0] !== 1 || this[3] !== 1 || this[4] !== 0 || this[5] !== 0)
     }
 
     isSingular(): boolean {
@@ -366,19 +562,19 @@ export class Matrix2D extends Float32Array {
     // ---- 点变换 ----
 
     /** p = this * (x, y) */
-    mapPoint(out:Vector2Like,v:Vector2Like){
+    mapPoint(out: Vector2Like, v: Vector2Like) {
         const x = v.x, y = v.y
         out.x = this[0] * x + this[2] * y + this[4]
         out.y = this[1] * x + this[3] * y + this[5]
         return out
     }
-    mapPoints(out:Vector2Like[],points:Vector2Like[]){
-        for(let i=0;i<points.length;i++){
-            out[i]=this.mapPoint(out[i]||{x:0,y:0},points[i])
+    mapPoints(out: Vector2Like[], points: Vector2Like[]) {
+        for (let i = 0; i < points.length; i++) {
+            out[i] = this.mapPoint(out[i] || { x: 0, y: 0 }, points[i])
         }
         return out
     }
-    transformPoint(v:Vector2Like): Vector2Like {
+    transformPoint(v: Vector2Like): Vector2Like {
         return {
             x: this[0] * v.x + this[2] * v.y + this[4],
             y: this[1] * v.x + this[3] * v.y + this[5],

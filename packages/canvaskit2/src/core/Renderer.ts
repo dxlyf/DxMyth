@@ -5,7 +5,7 @@ import { EventEmitter } from "src/event/EventEmitter"
 import { type ColorValue, ColorLike, Matrix2D, Matrix2DLike } from '@dxyl/math2'
 import { ConicGradient, LinearGradient, RadialGradient } from "./Gradient"
 import { ImagePattern } from "./Pattern"
-import { Container } from "./Container"
+import { Scene } from "./Scene"
 import { Shape } from "./Shape"
 import { CKPath2D } from "src/ck"
 
@@ -170,7 +170,7 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
         return new Path2D()
     }
   //  abstract hitTest(x:number,y:number,shape:Shape):boolean
-    abstract render(root:Container): void
+    abstract render(root:Scene): void
     abstract renderShape(shape:Shape):void
     abstract renderImage(shape:Shape):void 
     abstract renderText(shape:Shape):void 

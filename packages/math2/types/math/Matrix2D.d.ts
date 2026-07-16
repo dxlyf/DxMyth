@@ -10,6 +10,15 @@ export declare const enum MatrixIndex {
     TY = 5
 }
 export type Matrix2DLike = number[] | Float32Array;
+/** decomposeTransform 输出的分量结构 */
+export interface DecomposedTransform {
+    position: Vector2Like;
+    scale: Vector2Like;
+    skew: Vector2Like;
+    rotation: number;
+    origin: Vector2Like;
+    pivot: Vector2Like;
+}
 /**
  * 基于 Float32Array 的 2D 仿射变换矩阵。
  * 直接继承 Float32Array，与 WebGL / Skia / CanvasKit 的底层数据格式兼容。
@@ -34,7 +43,8 @@ export declare class Matrix2D extends Float32Array {
      * @param scale    缩放 { x, y }（默认 {1,1}）
      * @param origin   变换原点 { x, y }（默认 {0,0}）
      */
-    static fromTranslateRotationSkewScaleOrigin(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): Matrix2DLike;
+    static fromTranslateRotationSkewScaleOrigin(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): typeof Matrix2D;
+    static fromTranslationRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): typeof Matrix2D;
     /** out = a * b */
     static multiply(out: Matrix2DLike, a: Matrix2DLike, b: Matrix2DLike): Matrix2DLike;
     /** out = m 的逆矩阵；行列式为 0 时返回 null */
@@ -76,11 +86,38 @@ export declare class Matrix2D extends Float32Array {
     scale(sx: number, sy: number): this;
     rotate(angle: number): this;
     skew(sx: number, sy: number): this;
+    fromTranslationRotationScale(position: Vector2Like, angleInRad: number, scale: Vector2Like): this;
+    fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like): this;
+    fromTranslationRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): this;
     /**
-     * 通过变换参数组合构建仿射矩阵（实例，写入 this）。
-     * 等价于 `Matrix2D.fromTranslateRotationSkewScaleOrigin(this, ...)`
+     * 从组合矩阵逆解所有变换分量。
+     *
+     * 与 fromTranslationRotationSkewScaleOriginPivot 互为逆运算，
+     * M = T(pos+origin) · R · Sk · S · T(-origin-pivot) 的矩阵可无损还原。
+     *
+     * 分解策略:
+     *   - 线性部分 L = [a c; b d] 用 QR 分解提取 rotation / scale / skew
+     *   - skewY 约定为 0（QR 唯一分解），若原矩阵 skewY ≠ 0 则信息并入 rotation
+     *   - origin / pivot 无法从单矩阵唯一确定，约定 origin = (0,0), pivot = (0,0)
+     *
+     * @returns out 对象（含 position/scale/skew/rotation/origin/pivot）
      */
-    composeFromTransform(position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): this;
+    static decomposeTransform(matrix: Matrix2DLike, out?: DecomposedTransform): DecomposedTransform;
+    decomposeTRSP(matrix: Matrix2D, out?: {
+        position?: Vector2Like;
+        scale?: Vector2Like;
+        rotation?: number;
+        pivot?: Vector2Like;
+    }): {
+        position?: Vector2Like;
+        scale?: Vector2Like;
+        rotation?: number;
+        pivot?: Vector2Like;
+    };
+    /** 实例版：从自身矩阵逆解分量 */
+    decomposeTransform(out?: DecomposedTransform): DecomposedTransform;
+    decomposeTransform2(out?: DecomposedTransform): DecomposedTransform;
+    fromTranslateRotationSkewScaleOrigin(position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): this;
     invert(): Matrix2D;
     /**
      * 从变换对象构建矩阵（实例，写入 this）。
@@ -93,6 +130,7 @@ export declare class Matrix2D extends Float32Array {
         skew?: Vector2Like;
         rotation?: number;
         origin?: Vector2Like;
+        pivot?: Vector2Like;
     }): this;
     /** 行列式 */
     determinant(): number;

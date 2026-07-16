@@ -3,7 +3,7 @@ import { EventEmitter } from 'src/event/EventEmitter'
 import { EventSystem } from 'src/event/EventSystem'
 import { PluginConstructor, PluginSystem } from 'src/plugin/PluginSystem'
 import { merge } from 'src/utils/merge'
-import { Container } from './Container'
+import { Scene } from './Scene'
 import { Element } from './Element'
 import { Renderer, type RendererProps } from './Renderer'
 import { CanvasRenderer } from 'src/renderer/canvas/CanvasRenderer'
@@ -11,6 +11,7 @@ import { Color, ColorValue } from '@dxyl/math2'
 import { type InputType } from 'src/event/EventSystem'
 import { AnimationSystem } from 'src/animation/AnimationSystem'
 import { ElementFlag } from './ElementFlags'
+import { PickerSystem } from 'src/picker/PickerSystem'
 
 export const renderers = {
     canvas: CanvasRenderer,
@@ -40,7 +41,8 @@ export class Engine extends EventEmitter<EngineEvents> {
     eventSystem: EventSystem
     animationSystem: AnimationSystem
     pluginSystem: PluginSystem
-    scene: Container
+    pickerSystem: PickerSystem
+    scene: Scene
     renderer: Renderer
     private needRender: boolean = true
     private rendering: boolean = false
@@ -50,7 +52,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         super()
         Engine.activeEngine = this
         this.render = this.render.bind(this)
-        this.scene = new Container()
+        this.scene = new Scene()
         this.eventSystem = new EventSystem(this)
         this.animationSystem = new AnimationSystem()
         this.pluginSystem = new PluginSystem(this)
@@ -67,6 +69,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.renderer.engine = this
         await this.renderer.init()
         this.setupResize()
+        this.pickerSystem=new PickerSystem(this)
         this.pluginSystem.registerPlugins(Engine.defaultPlugins.concat(this.props.plugins))
         // 启动事件系统
         this.eventSystem.start(this.props.inputType)
@@ -163,7 +166,7 @@ export class Engine extends EventEmitter<EngineEvents> {
     }
     private tick(delta: number) {
         this.emit('tick', delta)
-        if (this.needRender||this.scene.flags.dirty) {
+        if (this.needRender||this.scene.flags.include(ElementFlag.REPAINT)) {
             this.needRender = false
             this.render()
         }

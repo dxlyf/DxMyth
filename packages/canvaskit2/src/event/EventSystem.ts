@@ -19,7 +19,7 @@ import type { Engine } from 'src/core/Engine'
 import type { Element } from 'src/core/Element'
 import { NodeEvent } from 'src/core/EventTarget'
 import type { Viewport } from 'src/core/Viewport'
-import { Container } from 'src/core/Container'
+import { PickerSystem } from 'src/picker/PickerSystem'
 
 /** 输入模式 */
 export type InputType = 'auto' | 'pointer' | 'mouse' | 'touch'
@@ -78,6 +78,7 @@ export type PointerEventName =
 
 export class EventSystem {
     engine: Engine
+    pickerSystem: PickerSystem
     /** 当前输入模式 */
     inputType: InputType
     /** 实际生效的输入类型（auto 解析后） */
@@ -126,6 +127,7 @@ export class EventSystem {
 
     constructor(engine: Engine) {
         this.engine = engine
+        this.pickerSystem = engine.pickerSystem
         this.inputType = 'auto'
         this.resolvedType = 'pointer'
     }
@@ -334,8 +336,7 @@ export class EventSystem {
         }
 
         // 命中测试
-        const scene = this.engine.scene
-        const target = scene.pick(worldX, worldY)
+        const target = this.findTarget(worldX, worldY)
         // 创建事件对象
         const evt = new NodeEvent<PointerEventName, PointerEventData>(eventName, data)
         evt.nativeEvent = native
@@ -627,5 +628,8 @@ export class EventSystem {
             this._lastClickTime = now
             this._lastClickTarget = pressed
         }
+    }
+    findTarget(worldX: number, worldY: number): Element | null {
+        return this.pickerSystem.pick(worldX, worldY)
     }
 }

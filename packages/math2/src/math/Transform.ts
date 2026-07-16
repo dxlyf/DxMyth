@@ -13,7 +13,15 @@
 import { Matrix2D, type Matrix2DLike } from './Matrix2D'
 import { type Vector2Like } from './Vector2'
 import { Point } from './Point'
-
+import { degToRad, radToDeg } from './MathUtils'
+export type TransformProps={
+    position?:Vector2Like
+    rotation?:number
+    scale?:Vector2Like
+    skew?:Vector2Like
+    origin?:Vector2Like
+    pivot?:Vector2Like
+}
 export class Transform {
     // ---- 内部存储 ----
 
@@ -22,6 +30,7 @@ export class Transform {
     private _rotation: number = 0
     public skew: Point
     public origin: Point
+    public pivot:Point
 
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
     private _parent: Transform | null = null
@@ -52,12 +61,13 @@ export class Transform {
     /** 变化回调 */
     private _onChange: (() => void) | null = null
 
-    constructor() {
-        this.invalidate=this.invalidate.bind(this)
-        this.position = new Point(0, 0).onChange(this.invalidate)
-        this.scale = new Point(1, 1).onChange(this.invalidate)
-        this.skew = new Point(0, 0).onChange(this.invalidate)
-        this.origin = new Point(0, 0).onChange(this.invalidate)
+    constructor(options:TransformProps={}) {
+        this.updateTransform=this.updateTransform.bind(this)
+        this.position =Point.fromPoint(options.position??{x:0,y:0}).onChange(this.updateTransform)
+        this.scale =Point.fromPoint(options.scale??{x:1,y:1}).onChange(this.updateTransform)
+        this.skew = Point.fromPoint(options.skew??{x:0,y:0}).onChange(this.updateTransform)
+        this.origin =Point.fromPoint(options.origin??{x:0,y:0}).onChange(this.updateTransform)
+        this.pivot =Point.fromPoint(options.pivot??{x:0,y:0}).onChange(this.updateTransform)
     }
 
     // ==================== 访问器 ====================
@@ -68,8 +78,14 @@ export class Transform {
     set rotation(v: number) {
         if (this._rotation !== v) {
             this._rotation = v
-            this.invalidate()
+            this.updateTransform()
         }
+    }
+    get angle(){
+        return radToDeg(this._rotation)
+    }
+    set angle(v:number){
+        this.rotation=degToRad(v)
     }
 
 
@@ -161,13 +177,14 @@ export class Transform {
      * M_local = T(position) · Sk(skew) · S(scale) · R(rotation) · T(-origin)
      */
     private _updateLocalMatrix(): void {
-        Matrix2D.fromTranslateRotationSkewScaleOrigin(
+        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(
             this._matrix,
             this.position,
             this._rotation,
             this.skew,
             this.scale,
             this.origin,
+            this.pivot
         )
         this._lastLocalVersion = this._localVersion
     }
@@ -199,7 +216,7 @@ export class Transform {
      * 强制标记为脏，下次访问 matrix/worldMatrix 时会重算。
      * 适用于批量设置多个属性后仅触发一次重算的场景。
      */
-    invalidate(): void {
+    updateTransform(): void {
         this._localVersion++
         this._onChange?.()
     }
@@ -234,64 +251,20 @@ export class Transform {
         out.y = b * point.x + d * point.y + ty
         return out
     }
-
-    /**
-     * 从矩阵反解变换属性写入自身。
-     *
-     * 分解顺序与 compose 一致，假定原点 (0, 0)。
-     * 分解结果经 round-trip（分解后再 compose）与原矩阵等价。
-     *
-     * 步骤:
-     *   1. 提取 scaleX 与 rotation（列向量模与方向）
-     *   2. 移除旋转得 Sk·S 矩阵
-     *   3. 提取 scaleY 与 skew
-     *   4. 平移直接取 tx/ty
-     */
-    decomposeMatrix2D(matrix: Matrix2DLike): void {
-        const a = matrix[0], b = matrix[1]
-        const c = matrix[2], d = matrix[3]
-        const px = matrix[4], py = matrix[5]
-
-        // 1. scaleX 与 rotation — 从第一列提取
-        const sx = Math.hypot(a, b)
-        const rotation = sx > 1e-9 ? Math.atan2(b, a) : 0
-
-        // 2. 移除旋转: M₂×₂ · R⁻¹ = Sk · S
-        const cos = Math.cos(rotation)
-        const sin = Math.sin(rotation)
-        const a_p = a * cos - c * sin   // sx (before skew)
-        const b_p = b * cos - d * sin   // tanY * sx
-        const c_p = a * sin + c * cos   // tanX * sy
-        const d_p = b * sin + d * cos   // sy (before skew)
-
-        // 3. 提取 scaleY 与 skew
-        const sy = d_p
-        const tanX = sy !== 0 ? c_p / sy : 0
-        const tanY = sx !== 0 ? b_p / sx : 0
-
-        // 4. 写入内部属性（origin 固定为 0）
-        this.position.set(px, py)
-        this.scale.set(sx, sy)
-        this._rotation = rotation
-        this.skew.set(Math.atan(tanX), Math.atan(tanY))
-        this.origin.set(0, 0)
+    decompose(matrix: Matrix2DLike): void {
+        Matrix2D.decomposeTransform(matrix,this)
     }
 
     // ---- 便捷设置（批量操作仅触发一次版本变更） ----
 
     /** 批量设置变换属性 */
-    setTransform(
-        position?: Vector2Like,
-        scale?: Vector2Like,
-        rotation?: number,
-        skew?: Vector2Like,
-        origin?: Vector2Like,
-    ): this {
-        if (position) this.position.copy(position)
-        if (scale) this.scale.copy(scale)
-        if (rotation !== undefined) this._rotation = rotation
-        if (skew) this.skew.copy(skew)
-        if (origin) this.origin.copy(origin)
+    setTransform(options:TransformProps): this {
+        if (options.position) this.position.copy(options.position)
+        if (options.scale) this.scale.copy(options.scale)
+        if (options.rotation !== undefined) this.rotation = options.rotation
+        if (options.skew) this.skew.copy(options.skew)
+        if (options.origin) this.origin.copy(options.origin)
+        if (options.pivot) this.pivot.copy(options.pivot)
         return this
     }
 
@@ -302,6 +275,7 @@ export class Transform {
         this._rotation = other._rotation
         this.skew.copy(other.skew)
         this.origin.copy(other.origin)
+        this.pivot.copy(other.pivot)
         return this
     }
 
