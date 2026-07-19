@@ -102,7 +102,7 @@ function callTap<Args extends any[], ReturnType, ContextType>(
     return tap.callback(ctx, ...args);
   }
 
-  return tap.callback(...args);
+  return (tap as any).callback(...args);
 }
 
 /** A manager for all intercepts inside of a tap */
@@ -146,7 +146,7 @@ class InterceptionManager<
         if (i.context) {
           i.call?.(ctx, ...args);
         } else {
-          i.call?.(...args);
+          (i.call as any)?.(...args);
         }
       });
     }

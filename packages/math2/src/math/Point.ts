@@ -5,7 +5,7 @@
 import type { Vector2Like } from './Vector2'
 export type PointLike = { x: number, y: number }
 export class Point implements PointLike {
-    static default(){
+    static default() {
         return this.create()
     }
     static fromPoint(point: PointLike) {
@@ -65,10 +65,11 @@ export class Point implements PointLike {
     // ---- 写入 ----
 
     set(x: number, y: number): this {
-        const changed = this._x !== x || this._y !== y
-        this._x = x
-        this._y = y
-        if (changed) this._onChange?.()
+        if( this._x !== x || this._y !== y){
+            this._x = x
+            this._y = y
+             this._onChange?.()
+        }
         return this
     }
 
@@ -85,12 +86,29 @@ export class Point implements PointLike {
     add(v: Vector2Like): this {
         return this.set(this._x + v.x, this._y + v.y)
     }
+    translate(x: number, y: number) {
+        return this.set(this._x + x, this._y + y)
+    }
+    scale(x: number, y: number) {
+        return this.set(this._x * x, this._y * y)
+    }
+    rotate(angle: number, center?: PointLike) {
+        const cos = Math.cos(angle)
+        const sin = Math.sin(angle)
+        const cx = center?.x || 0
+        const cy = center?.y || 0
+        const dx = this._x - cx
+        const dy = this._y - cy
+        const nx = dx * cos - dy * sin + cx
+        const ny = dx * sin + dy * cos + cy
+        return this.set(nx, ny)
+    }
 
     subtract(v: Vector2Like): this {
         return this.set(this._x - v.x, this._y - v.y)
     }
-    multiply(v:Vector2Like){
-        return this.set(this.x*v.x,this.y*v.y)
+    multiply(v: Vector2Like) {
+        return this.set(this.x * v.x, this.y * v.y)
     }
     multiplyScalar(s: number): this {
         return this.set(this._x * s, this._y * s)
@@ -120,25 +138,25 @@ export class Point implements PointLike {
         }
         return this.set(this.x / len, this.y / len)
     }
-    perpendicular(){
-        return this.set(-this.y,this.x)
+    perpendicular() {
+        return this.set(-this.y, this.x)
     }
-    negate(){
-        return this.set(-this.x,-this.y)
+    negate() {
+        return this.set(-this.x, -this.y)
     }
-   setLengthTo(x:number,y:number,length:number,originLength?:{value:number}){
-        const dmag=Math.sqrt(x*x+y*y)
-        const dscale=length/dmag
-        const nx=x*dscale
-        const ny=y*dscale
+    setLengthTo(x: number, y: number, length: number, originLength?: { value: number }) {
+        const dmag = Math.sqrt(x * x + y * y)
+        const dscale = length / dmag
+        const nx = x * dscale
+        const ny = y * dscale
         if (!Number.isFinite(x) || !Number.isFinite(y) || (x == 0 && y == 0)) {
             this.set(0, 0);
             return false;
         }
-        if(originLength){
-            originLength.value=dmag
+        if (originLength) {
+            originLength.value = dmag
         }
-        this.set(nx,ny)
+        this.set(nx, ny)
         return true
     }
     isFinite() {
@@ -149,8 +167,8 @@ export class Point implements PointLike {
     clone(): Point {
         return new Point(this._x, this._y)
     }
-    equals( b: Vector2Like): boolean {
-        return this.x===b.x&&this.y===b.y
+    equals(b: Vector2Like): boolean {
+        return this.x === b.x && this.y === b.y
     }
     equalsEpsilon(b: Vector2Like, epsilon: number = 1e-9): boolean {
         return Math.abs(this.x - b.x) <= epsilon && Math.abs(this.y - b.y) <= epsilon

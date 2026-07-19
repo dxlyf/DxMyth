@@ -21,7 +21,7 @@ const init = async () => {
             fillStyle: '#ff0000',
             strokeStyle: '#0000ff',
             lineWidth: 10,
-            strokeAlign:'outer'
+            strokeAlign:'outside'
             // shadowBlur: 10,
             // shadowColor: '#ffff00',
             // shadowOffsetX: 10,
@@ -32,7 +32,18 @@ const init = async () => {
             height:100
         }
     })
-    
+    rect.on('pointerenter',e=>{
+        console.log('pointerenter')
+        rect.setStyles({
+            fillStyle:'#0000ff'
+        })
+    })
+    rect.on('pointerleave',e=>{
+        console.log('pointerleave')
+        rect.setStyles({
+            fillStyle:'#ff0000'
+        })
+    })
 
     const ellipse = new Ellipse({
         position: { x: 300, y: 250 },
@@ -54,7 +65,8 @@ const init = async () => {
         console.log('ff')
     })
     engine.add(ellipse)
-
+    group.add(rect)
+    
     engine.add(group)
     engine.on('tick',()=>{
         stats.update()

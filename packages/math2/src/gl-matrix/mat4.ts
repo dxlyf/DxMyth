@@ -38,7 +38,7 @@ export class Mat4 extends Float32Array {
       case 16:
         super(values); break;
       case 2:
-        super(values[0] as ArrayBufferLike, values[1], 16); break;
+        super(values[0] as ArrayBuffer, values[1], 16); break;
       case 1:
         const v = values[0];
         if (v === undefined) {
@@ -50,7 +50,7 @@ export class Mat4 extends Float32Array {
             v, v, v, v,
             v, v, v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 16);
+          super(v as ArrayBuffer, 0, 16);
         }
         break;
       default:
@@ -1921,7 +1921,7 @@ export class Mat4 extends Float32Array {
    * @returns `out`
    * @deprecated
    */
-  static perspectiveFromFieldOfView<T extends Mat4Like>(out: T, fov, near: number, far: number): T {
+  static perspectiveFromFieldOfView<T extends Mat4Like>(out: T, fov: { upDegrees: number; downDegrees: number; leftDegrees: number; rightDegrees: number }, near: number, far: number): T {
     const upTan = Math.tan((fov.upDegrees * Math.PI) / 180.0);
     const downTan = Math.tan((fov.downDegrees * Math.PI) / 180.0);
     const leftTan = Math.tan((fov.leftDegrees * Math.PI) / 180.0);

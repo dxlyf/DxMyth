@@ -38,7 +38,6 @@ export class Polygon extends Shape<PolygonProps> {
     }
 
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const pts = this.props.shape.points
         if (pts.length < 4) return
         renderer.moveTo(pts[0], pts[1])

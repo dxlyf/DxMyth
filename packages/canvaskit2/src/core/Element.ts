@@ -113,10 +113,9 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
 
     }
     onUpdate() {
-
     }
     onAfterUpdate() {
-
+        this.flags.clear()
     }
 
     getDefaultProps(): Partial<Props>[] {
@@ -204,30 +203,63 @@ export abstract class Element<Props extends ElementProps = ElementProps> extends
     get worldMatrixInvert() {
         return this.transform.worldMatrixInvert
     }
-    // 添加owner到自身
+    /**
+     * 设置父节点。
+     * - parent 非空: 建立父子关系，同步 transform.parent 与 flags 父级，并继承 owner
+     * - parent 为空: 解除父子关系，并递归清除自身及后代的 owner
+     *
+     * 注意: flags.setParent 内部会处理新旧父级链的 subtreeFlags 同步。
+     */
     setParent(parent: Element) {
         if (parent) {
             this.parent = parent as Element<Props>
             this.transform.parent = parent.transform
             this.flags.setParent(parent.flags)
-            if (parent.owner) {
+            // 父级有 owner 时，递归挂载到自身与所有后代
+            if (parent.owner && this.owner !== parent.owner) {
                 this.addOwnerToSelf(parent.owner)
             }
         } else {
+            // 先解除 flags 父级（内部会清理旧父级链的 subtreeFlags）
+            this.flags.removeParent()
             this.parent = null
             this.transform.parent = null
-            this.flags.removeParent()
+            // 递归解除自身及后代的 owner（会触发 remove:element 事件）
+            this.removeOwnerToSelf()
         }
     }
+    /**
+     * 递归解除自身及所有后代的 owner 引用。
+     * 解除前触发 owner 的 'remove:element' 事件。
+     */
+    removeOwnerToSelf() {
+        const owner = this.owner
+        if (!owner) return
+        // 先递归子节点（保证子节点的事件先触发）
+        const children = this.children
+        if (children) {
+            for (let i = 0, len = children.length; i < len; i++) {
+                children[i].removeOwnerToSelf()
+            }
+        }
+        this.owner = null
+        owner.emit('remove:element', owner, this)
+    }
+    /**
+     * 递归为自身及所有后代挂载 owner。
+     * 挂载后触发 owner 的 'add:element' 事件。
+     * 已挂载相同 owner 的节点会被跳过，避免重复事件。
+     */
     addOwnerToSelf(owner: Engine) {
+        if (this.owner === owner) return
         this.owner = owner
         const children = this.children
         if (children) {
             for (let i = 0, len = children.length; i < len; i++) {
-                const child = children[i]
-                child.addOwnerToSelf(owner)
+                children[i].addOwnerToSelf(owner)
             }
         }
+        owner.emit('add:element', owner, this)
     }
     // 
     get localBounds() {

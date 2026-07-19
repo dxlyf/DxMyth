@@ -22,6 +22,14 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
     declare domElement: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
 
+    // ==================== 批量渲染（按颜色分组降 fillStyle 切换） ====================
+    // 按颜色分组的 batchable shape：key = CSS RGBA 字符串，value = {cssColor, shapes}
+    private _batchGroups: Map<string, { cssColor: string, shapes: Shape[] }> = new Map()
+    // batch key 顺序（保持首次出现顺序）
+    private _batchKeys: string[] = []
+    // 非 batchable shape 列表（走原 renderShape 路径）
+    private _deferredList: Shape[] = []
+
     constructor(props?: Partial<CanvasRendererProps>) {
         super(props)
 
@@ -280,13 +288,88 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
 
     }
     renderImage(shape: Shape): void {
-        throw new Error("Method not implemented.")
+        const ctx = this.ctx
+        ctx.save()
+        ctx.beginPath()
+        // 应用 transform
+        const matrix = shape.worldMatrix
+        if (!matrix.isIdentity()) {
+            ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+        }
+        // 透明度
+        if (shape.style.opacity < 1) ctx.globalAlpha = shape.style.opacity
+        // 应用 clipPath
+        this._applyClipPath(shape)
+        // 图片绘制委托给 shape.draw（内部调用 drawImage）
+        shape.draw(this)
+        ctx.restore()
     }
     renderText(shape: Shape): void {
-        throw new Error("Method not implemented.")
+        const ctx = this.ctx
+        ctx.save()
+        ctx.beginPath()
+        const matrix = shape.worldMatrix
+        if (!matrix.isIdentity()) {
+            ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5])
+        }
+        if (shape.style.opacity < 1) ctx.globalAlpha = shape.style.opacity
+        // 应用 fill/stroke/shadow 样式（fillText/strokeText 依赖 ctx.fillStyle/strokeStyle）
+        this.applyShapeStyle(shape)
+        // 应用字体/排版样式（ctx.font/textAlign/textBaseline/letterSpacing）
+        this.applyTextStyle(shape)
+        // 应用 clipPath
+        this._applyClipPath(shape)
+        // 文本绘制委托给 shape.draw（内部调用 renderer.fillText/strokeText）
+        shape.draw(this)
+        ctx.restore()
     }
     /**
-     * 核心绘制：transform → 样式 → 路径 → fill/stroke
+     * 应用文本字体/排版样式到 ctx。
+     * 从 shape.style 读取字体属性，构造 Canvas font 字符串并设置 textAlign/textBaseline/letterSpacing。
+     * CanvasKit 渲染器会有自己的实现（基于 SkFont），因此字体构造逻辑放在渲染器侧而非 Shape 侧。
+     */
+    applyTextStyle(shape: Shape): void {
+        const st = shape.style
+        const ctx = this.ctx
+        ctx.font = `${st.fontStyle} ${st.fontWeight} ${st.fontSize}px ${st.fontFamily}`
+        ctx.textAlign = st.textAlign as CanvasTextAlign
+        ctx.textBaseline = st.textBaseline as CanvasTextBaseline
+        if (st.letterSpacing !== undefined && 'letterSpacing' in ctx) {
+            ctx.letterSpacing = st.letterSpacing
+        }
+    }
+    /**
+     * 应用阴影（独立于 fill/stroke 样式，便于 Text/Image 复用）
+     */
+    private _applyShadow(shape: Shape): void {
+        const style = shape.style
+        const shadowColor = style.shadowColor
+        const shadowBlur = style.shadowBlur
+        const ctx = this.ctx
+        if (shadowColor && shadowBlur > 0) {
+            ctx.shadowColor = shadowColor as unknown as string
+            ctx.shadowBlur = shadowBlur
+            ctx.shadowOffsetX = style.shadowOffsetX
+            ctx.shadowOffsetY = style.shadowOffsetY
+        } else {
+            ctx.shadowBlur = 0
+            ctx.shadowOffsetX = 0
+            ctx.shadowOffsetY = 0
+        }
+    }
+    /**
+     * 应用 clipPath 到当前 ctx。
+     * 调用前需要 ctx 已 save，调用后会 clip 当前路径。
+     */
+    private _applyClipPath(shape: Shape): void {
+        const clipPath2D = (shape as any).getClipPath2D ? (shape as any).getClipPath2D() : null
+        if (clipPath2D) {
+            const rule = (shape.props.clipRule || 'nonzero') as CanvasFillRule
+            this.ctx.clip(clipPath2D, rule)
+        }
+    }
+    /**
+     * 核心绘制：transform → 样式 → clipPath → 路径 → fill/stroke
      * 被 renderShape 和 renderShapeWithBlend 共用
      */
     private _drawShape(shape: Shape): void {
@@ -301,6 +384,8 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
             ctx.globalAlpha = style.opacity
         }
         this.applyShapeStyle(shape)
+        // 应用 clipPath：在路径绘制前，clip 之后的 fill/stroke
+        this._applyClipPath(shape)
         shape.draw(this)
         const hasFill = !!style.fillStyle
         const hasStroke = !!style.strokeStyle&&style.lineWidth>0
@@ -317,11 +402,11 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         }
     }
 
-    /** 通过 clip 实现 inner/outer 描边（从 style 读取参数，减少传参） */
+    /** 通过 clip 实现 inside/outside 描边（从 style 读取参数，减少传参） */
     private _strokeWithAlign(shape: Shape): void {
         const ctx = this.ctx
         const style = shape.style
-        const align = style.strokeAlign as 'inner' | 'outer'|'center'
+        const align = style.strokeAlign as 'inside' | 'outside' | 'center'
         if (align === 'center') {
             ctx.stroke()
             return
@@ -331,13 +416,12 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         shape.draw(this)
         if (style.closePath) ctx.closePath()
 
-        if (align === 'inner') {
+        if (align === 'inside') {
             ctx.clip() // 裁掉外部 → 只保留内部描边
         } else {
+            // outside: 路径内部作为洞 → 只保留外部描边
             ctx.rect(-1e8, -1e8, 2e8, 2e8)
-            ctx.clip('evenodd') // 路径内部作为洞 → 只保留外部描边
-              // outer: 擦除内部一半 → 只保留外部描边
-            // 用 destination-out 比 evenodd + 大矩形更高效     
+            ctx.clip('evenodd')
         }
         ctx.lineWidth = style.lineWidth * 2 // 双倍线宽，clip 裁掉一半
         ctx.stroke()
@@ -415,107 +499,68 @@ export class CanvasRenderer extends Renderer<CanvasRendererProps> {
         const renderList = scene.getRenderElements(viewport,true) as Shape[]
         const ctx = this.ctx
         this.renderBefore(ctx)
-
-        // ---- 合批渲染 ----
-        const viewportMatrix = this.viewport.getWorldToScreenMatrix()
-        const dpr = this.dpr
-        let batch: Shape[] = []
-        let batchKey: string | null = null
-
-        const flushBatch = () => {
-            if (batch.length === 0) return
-            if (batch.length === 1) {
-                batch[0].render(this)
-            } else {
-                this._renderBatch(batch, viewportMatrix, dpr)
-            }
-            batch = []
-            batchKey = null
+        // 批量渲染：扫描 batchable shape 按颜色分组 fillRect，一次 fillStyle 切换绘制同色元素；
+        // 非 batchable shape 走原 renderShape 路径。
+        // 顺序简化：所有 batchable 先画（底层），所有 non-batchable 后画（上层）。
+        this._collectBatches(renderList)
+        this._flushBatches()
+        for (let i = 0, len = this._deferredList.length; i < len; i++) {
+            this._deferredList[i].render(this)
         }
-
-        for (let i = 0, len = renderList.length; i < len; i++) {
-            const shape = renderList[i]
-            shape.onUpdate()
-            if (!shape.shouldRender()) continue
-
-            const currentKey = shape._getBatchKey()
-
-            if (currentKey === null) {
-                // 不可合批：先刷掉已有批次，再单独渲染
-                flushBatch()
-                shape.render(this)
-                this.prevShape = shape
-            } else if (currentKey === batchKey) {
-                // 同批次：加入
-                batch.push(shape)
-                this.prevShape = shape
-            } else {
-                // 不同批次：先刷掉旧批次，再开启新批次
-                flushBatch()
-                batchKey = currentKey
-                batch.push(shape)
-                this.prevShape = shape
-            }
-        }
-        flushBatch()
-
         this.renderAfter(ctx)
     }
 
-    
+    /**
+     * 扫描 renderList，将 batchable shape 按填充颜色分组收集，non-batchable 入 deferredList。
+     * 每帧开始前清空上一帧的分组（复用 Map/Array 容器避免 GC）。
+     */
+    private _collectBatches(renderList: Shape[]): void {
+        this._batchGroups.clear()
+        this._batchKeys.length = 0
+        this._deferredList.length = 0
+        for (let i = 0, len = renderList.length; i < len; i++) {
+            const shape = renderList[i]
+            if (!shape.isBatchable || !shape.isBatchable()) {
+                this._deferredList.push(shape)
+                continue
+            }
+            // batch key = fillStyle 的 CSS RGBA 字符串（同时可作为 ctx.fillStyle 值）
+            const color = (shape.style.fillStyle as any).value as Color
+            const cssColor = Color.toCSS_RGBA(color)
+            let group = this._batchGroups.get(cssColor)
+            if (!group) {
+                group = { cssColor, shapes: [] }
+                this._batchGroups.set(cssColor, group)
+                this._batchKeys.push(cssColor)
+            }
+            group.shapes.push(shape)
+        }
+    }
 
     /**
-     * 合批渲染一组 shape（共享样式，各自独立变换）
+     * 按颜色分组批量绘制：每组设置一次 fillStyle，组内每个 shape fillRect（worldMatrix 平移烘焙）。
+     * Canvas 2D fillRect 性能极佳，批量主要省 save/transform/applyStyle/clipPath 开销。
      */
-    private _renderBatch(shapes: Shape[], viewportMatrix: Matrix2D, dpr: number): void {
+    private _flushBatches(): void {
+        if (this._batchKeys.length === 0) return
         const ctx = this.ctx
-        const first = shapes[0]
-        const style = first.style
-
-        ctx.save()
-        if ((style.opacity ?? 1) < 1) {
-            ctx.globalAlpha = style.opacity
-        }
-
-        // 样式只设置一次
-        this.applyShapeStyle(first)
-
-        const hasFill = !!style.fillStyle
-        const hasStroke = !!style.strokeStyle && (style.lineWidth ?? 1) > 0
-        const m = Matrix2D.pool.get()
-
-        /**
-         * 辅助：将批次内所有 shape 的路径绘制到 ctx
-         */
-        const drawBatchPaths = () => {
-            ctx.beginPath()
-            for (const shape of shapes) {
-                m.fromScale(dpr, dpr).multiply(viewportMatrix).multiply(shape.worldMatrix)
-                ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5])
-                shape.draw(this)
+        for (let k = 0, klen = this._batchKeys.length; k < klen; k++) {
+            const group = this._batchGroups.get(this._batchKeys[k])!
+            const shapes = group.shapes
+            const n = shapes.length
+            if (n === 0) continue
+            ctx.fillStyle = group.cssColor
+            for (let i = 0; i < n; i++) {
+                const shape = shapes[i] as any
+                const s = shape.props.shape
+                const m = shape.worldMatrix
+                const tx = m[4]
+                const ty = m[5]
+                ctx.fillRect(s.x + tx, s.y + ty, s.width, s.height)
             }
         }
-
-        if (hasFill && hasStroke) {
-            // 同时有填充和描边：一次构建路径，依次 fill/stroke
-            drawBatchPaths()
-            if (!style.firstStroke) {
-                ctx.fill(style.fillRule)
-                ctx.stroke()
-            } else {
-                ctx.stroke()
-                ctx.fill(style.fillRule)
-            }
-        } else if (hasFill) {
-            drawBatchPaths()
-            ctx.fill(style.fillRule)
-        } else if (hasStroke) {
-            drawBatchPaths()
-            ctx.stroke()
-        }
-
-        Matrix2D.pool.release(m)
-        ctx.restore()
     }
+
+
 
 }

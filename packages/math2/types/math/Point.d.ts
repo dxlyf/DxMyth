@@ -25,6 +25,9 @@ export declare class Point implements PointLike {
     copy(v: Vector2Like): this;
     zero(): this;
     add(v: Vector2Like): this;
+    translate(x: number, y: number): this;
+    scale(x: number, y: number): this;
+    rotate(angle: number, center?: PointLike): this;
     subtract(v: Vector2Like): this;
     multiply(v: Vector2Like): this;
     multiplyScalar(s: number): this;

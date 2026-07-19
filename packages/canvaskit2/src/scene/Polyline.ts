@@ -39,7 +39,6 @@ export class Polyline extends Shape<PolylineProps> {
     }
 
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const pts = this.props.shape.points
         if (pts.length < 4) return
         renderer.moveTo(pts[0], pts[1])

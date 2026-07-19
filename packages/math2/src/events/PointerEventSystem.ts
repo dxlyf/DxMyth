@@ -33,6 +33,7 @@ export class PointerEvent<T = string, D = any> extends NodeEvent<T, D> {
         this.nativeEvent=null
     
     }
+
     copy(target:PointerEvent<any,any>){
         this.type=target.type
         this.data=target.data
@@ -43,6 +44,13 @@ export class PointerEvent<T = string, D = any> extends NodeEvent<T, D> {
         this.cancelBubble=target.cancelBubble
         this.immediateCancelBubble=target.immediateCancelBubble
         this.defaultPrevented=target.defaultPrevented
+        this.downPoint.copy(target.downPoint)
+        this.point.copy(target.point)
+        this.offsetPoint.copy(target.offsetPoint)
+        this.deltaPoint.copy(target.deltaPoint)
+    }
+    copyPointerData(target:PointerEvent<any,any>){
+        this.data=target.data
         this.downPoint.copy(target.downPoint)
         this.point.copy(target.point)
         this.offsetPoint.copy(target.offsetPoint)
@@ -73,7 +81,7 @@ const POINTER_EVENTS={
     pointerenter:'pointerenter',
     wheel:'wheel',
 }
-type EventsMaps={
+export type PointerEventsMaps={
     pointerdown:[e:PointerEvent]
     pointermove:[e:PointerEvent]
     pointerup:[e:PointerEvent]
@@ -90,7 +98,7 @@ type EventsMaps={
     dragover:[e:PointerEvent]
     drop:[e:PointerEvent]
 }
-export class PointerEventSystem extends EventEmitter<EventsMaps> {
+export class PointerEventSystem extends EventEmitter<PointerEventsMaps> {
     options: PointerEventSystemOptions
     handlers: Map<string, any> = new Map()
 
@@ -99,17 +107,17 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
     private _dblclickInterval: number
 
     // 状态
-    private _lastPoint = Point.create()
-    private _downPoint = Point.create()
-    private _isPointerDown = false
-    private _isDragging = false
+    public _lastPoint = Point.create()
+    public _downPoint = Point.create()
+    public _isPointerDown = false
+    public _isDragging = false
     private _lastClickTime = 0
     private _lastClickPoint = Point.create()
 
     // hitTest 追踪
-    private _hoverTarget: any = null     // 当前悬停的元素
-    private _downTarget: any = null      // pointerdown 时的命中元素
-    private _dragHoverTarget: any = null // 拖拽时当前悬停的元素
+    public _hoverTarget: any = null     // 当前悬停的元素
+    public _downTarget: any = null      // pointerdown 时的命中元素
+    public _dragHoverTarget: any = null // 拖拽时当前悬停的元素
 
     constructor(options: PointerEventSystemOptions) {
         super()
@@ -186,12 +194,15 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                 event.downPoint.copy(point)
                 event.offsetPoint.set(0, 0)
 
+                // 捕获指针，确保移出元素后仍能接收 pointermove
+                try { this.options.target.setPointerCapture(e.pointerId) } catch {}
+
                 // 首次进入元素
                 if (hitTarget && hitTarget !== this._hoverTarget) {
                     if (this._hoverTarget) {
                         const leaveEvt = this.createEvent('pointerleave', e)
                         spawned.push(leaveEvt)
-                        leaveEvt.copy(event)
+                        leaveEvt.copyPointerData(event)
                         leaveEvt.target = this._hoverTarget
                         this.emit('pointerleave', leaveEvt)
                     }
@@ -210,7 +221,7 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                     if (this._hoverTarget) {
                         const leaveEvt = this.createEvent('pointerleave', e)
                         spawned.push(leaveEvt)
-                        leaveEvt.copy(event)
+                        leaveEvt.copyPointerData(event)
                         leaveEvt.target = this._hoverTarget
                         this.emit('pointerleave', leaveEvt)
                     }
@@ -234,33 +245,40 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                         if (dx * dx + dy * dy >= this._dragThresholdSq) {
                             this._isDragging = true
                             this._dragHoverTarget = this._downTarget
-                            event.type = 'dragstart'
-                            this.emit('dragstart', event)
+                            const dsEvt = this.createEvent('dragstart', e)
+                            spawned.push(dsEvt)
+                            dsEvt.copyPointerData(event)
+                            dsEvt.target = this._downTarget
+                            this.emit('dragstart', dsEvt)
                         }
                     }
                     if (this._isDragging) {
-                        event.type = 'drag'
-                        this.emit('drag', event)
+
+                        const dragEvt = this.createEvent('drag', e)
+                        spawned.push(dragEvt)
+                        dragEvt.copyPointerData(event)
+                        dragEvt.target = this._downTarget
+                        this.emit('drag', dragEvt)
 
                         // dragenter / dragleave / dragover 检测
                         if (hitTarget !== this._dragHoverTarget) {
                             if (this._dragHoverTarget) {
                                 const dlEvt = this.createEvent('dragleave', e)
                                 spawned.push(dlEvt)
-                                dlEvt.copy(event)
+                                dlEvt.copyPointerData(event)
                                 dlEvt.target = this._dragHoverTarget
                                 this.emit('dragleave', dlEvt)
                             }
                             if (hitTarget) {
                                 const deEvt = this.createEvent('dragenter', e)
                                 spawned.push(deEvt)
-                                deEvt.copy(event)
+                                deEvt.copyPointerData(event)
                                 deEvt.target = hitTarget
                                 this.emit('dragenter', deEvt)
 
                                 const doEvt = this.createEvent('dragover', e)
                                 spawned.push(doEvt)
-                                doEvt.copy(event)
+                                doEvt.copyPointerData(event)
                                 doEvt.target = hitTarget
                                 this.emit('dragover', doEvt)
                             }
@@ -279,21 +297,24 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                     if (hitTarget && hitTarget !== this._downTarget) {
                         const dropEvt = this.createEvent('drop', e)
                         spawned.push(dropEvt)
-                        dropEvt.copy(event)
+                        dropEvt.copyPointerData(event)
                         dropEvt.target = hitTarget
                         this.emit('drop', dropEvt)
                     }
                     if (this._dragHoverTarget) {
                         const dlEvt = this.createEvent('dragleave', e)
                         spawned.push(dlEvt)
-                        dlEvt.copy(event)
+                        dlEvt.copyPointerData(event)
                         dlEvt.target = this._dragHoverTarget
                         this.emit('dragleave', dlEvt)
                         this._dragHoverTarget = null
                     }
                     this._isDragging = false
-                    event.type = 'dragend'
-                    this.emit('dragend', event)
+                    const deEvt = this.createEvent('dragend', e)
+                    spawned.push(deEvt)
+                    deEvt.copyPointerData(event)
+                    deEvt.target = this._downTarget
+                    this.emit('dragend', deEvt)
                 }
 
                 // click / dblclick 模拟
@@ -320,6 +341,9 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
 
                 this._isPointerDown = false
                 this._downTarget = null
+
+                // 释放指针捕获     // 浏览器自动调用 releasePointerCapture
+                //try { this.options.target.releasePointerCapture(e.pointerId) } catch {}
                 break
             }
             case 'pointerleave': {
@@ -327,7 +351,7 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                 if (this._hoverTarget) {
                     const leaveEvt = this.createEvent('pointerleave', e)
                     spawned.push(leaveEvt)
-                    leaveEvt.copy(event)
+                    leaveEvt.copyPointerData(event)
                     leaveEvt.target = this._hoverTarget
                     this.emit('pointerleave', leaveEvt)
                     this._hoverTarget = null
@@ -336,7 +360,7 @@ export class PointerEventSystem extends EventEmitter<EventsMaps> {
                 if (this._isDragging && this._dragHoverTarget) {
                     const dlEvt = this.createEvent('dragleave', e)
                     spawned.push(dlEvt)
-                    dlEvt.copy(event)
+                    dlEvt.copyPointerData(event)
                     dlEvt.target = this._dragHoverTarget
                     this.emit('dragleave', dlEvt)
                     this._dragHoverTarget = null

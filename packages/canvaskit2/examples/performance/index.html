@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渲染器性能测试 · Canvas vs CanvasKit</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, "Segoe UI", sans-serif;
+            background: #15151f;
+            color: #ddd;
+            padding: 18px;
+        }
+        h1 { font-size: 17px; margin-bottom: 14px; font-weight: 600; }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            background: #22222e;
+            border: 1px solid #383848;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+        }
+        .group { display: flex; align-items: center; gap: 8px; }
+        .group-label { font-size: 12px; color: #999; margin-right: 4px; }
+        button.opt {
+            background: #2e2e3e;
+            color: #bbb;
+            border: 1px solid #44445a;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        button.opt:hover { background: #3a3a4e; color: #fff; }
+        button.opt.active {
+            background: #4fc3f7;
+            color: #111;
+            border-color: #4fc3f7;
+            font-weight: 600;
+        }
+        button.opt.active.ck { background: #ffb74d; border-color: #ffb74d; }
+        .stats {
+            display: flex;
+            align-items: baseline;
+            gap: 18px;
+            margin-left: auto;
+        }
+        .stat { display: flex; flex-direction: column; align-items: flex-start; }
+        .stat-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+        .stat-value { font-size: 20px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+        .stat-value.fps { font-size: 30px; color: #69f0ae; }
+        .stat-value .unit { font-size: 12px; color: #888; font-weight: 400; margin-left: 2px; }
+        #status { font-size: 12px; color: #aaa; padding: 4px 10px; background: #2a2a3a; border-radius: 10px; }
+        .stage-wrap {
+            position: relative;
+            width: 900px;
+            height: 600px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #383848;
+        }
+        .legend {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.6;
+            max-width: 900px;
+        }
+        .legend code { background: #2a2a3a; padding: 1px 5px; border-radius: 3px; color: #ccc; }
+    </style>
+</head>
+<body>
+    <h1>渲染器性能测试 · Canvas 2D vs CanvasKit (Skia WASM)</h1>
+    <div class="toolbar">
+        <div class="group">
+            <span class="group-label">渲染器</span>
+            <button class="opt" data-renderer="canvas">Canvas</button>
+            <button class="opt ck" data-renderer="canvaskit">CanvasKit</button>
+        </div>
+        <div class="group">
+            <span class="group-label">矩形数</span>
+            <button class="opt" data-count="1000">1000</button>
+            <button class="opt" data-count="3000">3000</button>
+            <button class="opt" data-count="5000">5000</button>
+            <button class="opt" data-count="8000">8000</button>
+        </div>
+        <span id="status">初始化中...</span>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-label">FPS</span>
+                <span class="stat-value fps" id="fps">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">平均 FPS</span>
+                <span class="stat-value" id="avg-fps">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">帧渲染耗时</span>
+                <span class="stat-value" id="render-ms">0.0<span class="unit">ms</span></span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">元素数</span>
+                <span class="stat-value" id="count-display">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="stage-wrap" id="stage"></div>
+    <div class="legend">
+        场景：N 个带颜色的小矩形在画布内匀速移动并边界反弹，每帧更新位置。<code>FPS</code> 由引擎 tick 间隔统计；
+        <code>帧渲染耗时</code> 由 <code>render:before/after</code> 事件测量。切换渲染器或数量会销毁并重建 Engine。
+        可对比两种渲染器在相同负载下的吞吐差异。
+    </div>
+    <script type="module" src="./main.ts"></script>
+</body>
+</html>

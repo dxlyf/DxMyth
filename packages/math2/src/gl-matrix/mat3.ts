@@ -1,4 +1,4 @@
-import { EPSILON, FloatArray } from './common.js';
+﻿import { EPSILON, FloatArray } from './common.js';
 import { Mat2dLike } from './mat2d.js';
 import { Mat4Like } from './mat4.js';
 import { Vec2Like } from './vec2.js';
@@ -37,7 +37,7 @@ export class Mat3 extends Float32Array {
       case 9:
         super(values); break;
       case 2:
-        super(values[0] as ArrayBufferLike, values[1], 9); break;
+        super(values[0] as ArrayBuffer, values[1], 9); break;
       case 1:
         const v = values[0];
         if (v === undefined) {
@@ -48,7 +48,7 @@ export class Mat3 extends Float32Array {
             v, v, v,
             v, v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 9);
+          super(v as ArrayBuffer, 0, 9);
         }
         break;
       default:

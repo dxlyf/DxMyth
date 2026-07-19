@@ -40,6 +40,7 @@ export class Transform {
     private _matrix: Matrix2D = Matrix2D.identity()
     private _worldMatrix: Matrix2D = Matrix2D.identity()
     private _worldMatrixInvert: Matrix2D = Matrix2D.identity()
+    private _worldScale:number=1
 
     // ---- 版本追踪 ----
 
@@ -51,7 +52,7 @@ export class Transform {
 
     /** 上次计算 _worldMatrix 时的 _localVersion */
     private _lastWorldLocalVersion: number = -1
-
+    private _worldLocalVersion: number = -1
     /** 上次计算 _worldMatrix 时 parent.worldVersion 的值 */
     private _lastParentWorldVersion: number = -1
 
@@ -109,22 +110,19 @@ export class Transform {
         }
     }
 
-    /**
-     * 世界矩阵版本号。
-     * 子级可通过比较此值来检测父级世界矩阵是否变化，无需逐帧访问 worldMatrix getter。
-     */
-    get worldVersion(): number {
-        return this._lastWorldLocalVersion
-    }
 
     /** 局部变换矩阵（只读，懒计算） */
     get matrix(): Matrix2D {
-        if (this._localVersion !== this._lastLocalVersion) {
+        if (this._isLocalDirty()) {
             this._updateLocalMatrix()
         }
         return this._matrix
     }
-
+    /** 获取世界矩阵的全局缩放系数 */
+    get worldScale(): number {
+        this.worldMatrix
+        return this._worldScale
+    }
     /** 世界变换矩阵（只读，懒计算，自动跟随 parent 链） */
     get worldMatrix(): Matrix2D {
         if (this._needsWorldUpdate()) {
@@ -138,9 +136,9 @@ export class Transform {
         // 先访问 worldMatrix 触发所有懒更新（含父级链）
         const wm = this.worldMatrix
         // 逆矩阵的版本号与世界矩阵版本一致则无需重算
-        if (this._lastInvertLocalVersion !== this._lastWorldLocalVersion) {
+        if (this._lastInvertLocalVersion !== this._worldLocalVersion) {
             Matrix2D.invert(this._worldMatrixInvert, wm)
-            this._lastInvertLocalVersion = this._lastWorldLocalVersion
+            this._lastInvertLocalVersion = this._worldLocalVersion
         }
         return this._worldMatrixInvert
     }
@@ -168,7 +166,7 @@ export class Transform {
         if (this._parent === null) return false
         // 触发 parent 递归更新（若 parent 的父级链有变化也会一并处理）
         void (this._parent.worldMatrix)
-        return this._parent.worldVersion !== this._lastParentWorldVersion
+        return this._parent._worldLocalVersion !== this._lastParentWorldVersion
     }
 
     // ==================== 矩阵计算 ====================
@@ -202,12 +200,13 @@ export class Transform {
 
         if (this._parent) {
             Matrix2D.multiply(this._worldMatrix, this._parent.worldMatrix, this._matrix)
-            this._lastParentWorldVersion = this._parent.worldVersion
+            this._lastParentWorldVersion = this._parent._worldLocalVersion
         } else {
             this._worldMatrix.copy(this._matrix)
         }
-
-        this._lastWorldLocalVersion = this._localVersion
+        this._worldScale =this._worldMatrix.getScale()
+        this._lastWorldLocalVersion=this._localVersion
+        this._worldLocalVersion++
     }
 
     // ==================== 公开方法 ====================
@@ -251,6 +250,8 @@ export class Transform {
         out.y = b * point.x + d * point.y + ty
         return out
     }
+
+
     decompose(matrix: Matrix2DLike): void {
         Matrix2D.decomposeTransform(matrix,this)
     }

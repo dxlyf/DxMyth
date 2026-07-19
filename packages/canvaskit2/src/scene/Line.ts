@@ -37,7 +37,6 @@ export class Line extends Shape<LineProps> {
     }
 
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const s = this.props.shape
         renderer.moveTo(s.x1, s.y1)
         renderer.lineTo(s.x2, s.y2)

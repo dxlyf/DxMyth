@@ -43,7 +43,6 @@ export class Star extends Shape<StarProps> {
     }
 
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const s = this.props.shape
         const n = s.points * 2
         const step = Math.PI / s.points

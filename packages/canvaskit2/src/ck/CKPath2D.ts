@@ -92,8 +92,16 @@ export class CKPath2D extends CKPathBuilder {
                     cap: toCKLineCap(strokeOptions.lineCap),
                     miter_limit: strokeOptions.miterLimit,
                 })
-                this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Difference)
-                path0.delete()
+                if (!path0) {
+                    console.warn('[CKPath2D] strokePath: makeStroked returned null for outside align')
+                } else {
+                    try {
+                        this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Difference)
+                    } catch (e) {
+                        console.error('[CKPath2D] strokePath outside MakeFromOp failed:', e)
+                    }
+                    path0.delete()
+                }
             } else if (strokeAlign === 'inside') {
                 const path0 = this.fillPath.makeStroked({
                     width: strokeOptions.lineWith * 2,
@@ -101,8 +109,16 @@ export class CKPath2D extends CKPathBuilder {
                     cap: toCKLineCap(strokeOptions.lineCap),
                     miter_limit: strokeOptions.miterLimit,
                 })
-                this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Intersect)
-                path0.delete()
+                if (!path0) {
+                    console.warn('[CKPath2D] strokePath: makeStroked returned null for inside align')
+                } else {
+                    try {
+                        this._strokePath = ck.Path.MakeFromOp(path0, this.fillPath, ck.PathOp.Intersect)
+                    } catch (e) {
+                        console.error('[CKPath2D] strokePath inside MakeFromOp failed:', e)
+                    }
+                    path0.delete()
+                }
             }
         }
         return this._strokePath

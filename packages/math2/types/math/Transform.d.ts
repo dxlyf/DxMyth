@@ -21,12 +21,14 @@ export declare class Transform {
     private _matrix;
     private _worldMatrix;
     private _worldMatrixInvert;
+    private _worldScale;
     /** 当前局部属性版本（Point onChange 或 rotation setter 自动递增） */
     private _localVersion;
     /** 上次计算 _matrix 时的 _localVersion */
     private _lastLocalVersion;
     /** 上次计算 _worldMatrix 时的 _localVersion */
     private _lastWorldLocalVersion;
+    private _worldLocalVersion;
     /** 上次计算 _worldMatrix 时 parent.worldVersion 的值 */
     private _lastParentWorldVersion;
     /** 上次计算 _worldMatrixInvert 时的 _localVersion */
@@ -46,13 +48,10 @@ export declare class Transform {
     /** 父级变换 */
     get parent(): Transform | null;
     set parent(v: Transform | null);
-    /**
-     * 世界矩阵版本号。
-     * 子级可通过比较此值来检测父级世界矩阵是否变化，无需逐帧访问 worldMatrix getter。
-     */
-    get worldVersion(): number;
     /** 局部变换矩阵（只读，懒计算） */
     get matrix(): Matrix2D;
+    /** 获取世界矩阵的全局缩放系数 */
+    get worldScale(): number;
     /** 世界变换矩阵（只读，懒计算，自动跟随 parent 链） */
     get worldMatrix(): Matrix2D;
     /** 世界变换矩阵的逆（只读，懒计算） */

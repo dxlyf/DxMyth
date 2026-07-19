@@ -1,7 +1,7 @@
 
 import { loadImage } from 'src/utils/loadImage'
 import type {Pattern as IPattern} from './Renderer'
-import { ColorValue,Color } from 'src/math/Color'
+import { ColorValue,Color } from '@dxyl/math2'
 
 export class Pattern implements IPattern{
     type:'pattern'='pattern'

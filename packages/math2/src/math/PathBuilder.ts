@@ -1,4 +1,4 @@
-import { Vector2 as Point,type Vector2Like as PointLike } from './Vector2'
+import { Vector2 as Point, type Vector2Like as PointLike } from './Vector2'
 import { getQuadraticBezierBounds, QuadraticBezier } from './QuadraticBezier'
 import { getCubicBezierBounds, CubicBezier } from './CubicBezier'
 import { BoundingRect } from './BoundingRect'
@@ -8,39 +8,39 @@ import { windCubicBezier, windLine, windQuadraticBezier } from './PathIntersecti
 import { Matrix2DLike } from './Matrix2D'
 import { Matrix2D } from './Matrix2D'
 import { fromSvgPath } from './ParseSvgPath'
-import {PathStroke} from './PathStroke'
+import { PathStroke } from './PathStroke'
 import { Conic } from './Conic'
 
 export enum PathVerb {
-    MoveTo = 1<<0,
-    LineTo = 1<<1,
-    QuadraticTo = 1<<2,
-    CubicTo = 1<<3,
-    Close = 1<<4,
+    MoveTo = 1 << 0,
+    LineTo = 1 << 1,
+    QuadraticTo = 1 << 2,
+    CubicTo = 1 << 3,
+    Close = 1 << 4,
 }
-export const PathSegmentType={
-    Arc:1<<0,  
-    Rect:1<<1,
-    Ellipse:1<<2,
-    RoundRect:1<<3
+export const PathSegmentType = {
+    Arc: 1 << 0,
+    Rect: 1 << 1,
+    Ellipse: 1 << 2,
+    RoundRect: 1 << 3
 }
-export const PathVerbCount={
-    [PathVerb.MoveTo]:1,
-    [PathVerb.LineTo]:1,
-    [PathVerb.QuadraticTo]:2,
-    [PathVerb.CubicTo]:3,
-    [PathVerb.Close]:0,
+export const PathVerbCount = {
+    [PathVerb.MoveTo]: 1,
+    [PathVerb.LineTo]: 1,
+    [PathVerb.QuadraticTo]: 2,
+    [PathVerb.CubicTo]: 3,
+    [PathVerb.Close]: 0,
 }
-export enum PathCmd{
-    M='M', // 移动到
-    L='L', // 直线
-    Q='Q', // 二次贝塞尔曲线
-    C='C', // 三次贝塞尔曲线
-    Z='Z', // 关闭路径
-    A='A', // 圆弧线
-    R='R', // 矩形
-    E='E',// 椭圆
-    RR='RR',// 圆角矩形
+export enum PathCmd {
+    M = 'M', // 移动到
+    L = 'L', // 直线
+    Q = 'Q', // 二次贝塞尔曲线
+    C = 'C', // 三次贝塞尔曲线
+    Z = 'Z', // 关闭路径
+    A = 'A', // 圆弧线
+    R = 'R', // 矩形
+    E = 'E',// 椭圆
+    RR = 'RR',// 圆角矩形
 }
 type PathVisitCallbacks = {
     moveTo?: (point: PointLike) => void
@@ -61,10 +61,9 @@ export class PathBuilder {
     static fromSvgPath(svgPath: string) {
         return fromSvgPath(svgPath)
     }
-    static default(){
+    static default() {
         return new PathBuilder()
     }
-    cmds:[number|string,...any[]][]
     verbs: PathVerb[] // 路径命令
     points: PointLike[]// 路径点
     lastMoveIndex: number = -1 // 最后一个移动点的索引
@@ -76,18 +75,17 @@ export class PathBuilder {
     private _tightBounds: BoundingRect | null = null
     /** 包围盒是否需要重新计算 */
     private _boundsDirty: boolean = true
-    private _tightBoundsDirty:boolean=true
+    private _tightBoundsDirty: boolean = true
     /**路径发生变变化 */
     drity: boolean = false
-    constructor(path?:PathBuilder|string) {
+    constructor(path?: PathBuilder | string) {
         this.verbs = []
         this.points = []
-        this.cmds = []
-        if(path instanceof PathBuilder) {
+        if (path instanceof PathBuilder) {
             this.copy(path)
-        }else if(typeof path === 'string') {
+        } else if (typeof path === 'string') {
             this.copy(fromSvgPath(path))
-        } 
+        }
     }
     get lastVerb() {
         return this.verbs[this.verbs.length - 1]
@@ -107,7 +105,6 @@ export class PathBuilder {
         return path
     }
     copy(path: PathBuilder) {
-        this.cmds = path.cmds.map(d=>d.slice()) as any
         this.verbs = path.verbs.slice()
         this.points = path.points.map((p) => ({ x: p.x, y: p.y }))
         this.lastMoveIndex = path.lastMoveIndex
@@ -117,7 +114,6 @@ export class PathBuilder {
         this._boundsDirty = path._boundsDirty
     }
     reset() {
-        this.cmds = []
         this.verbs = []
         this.points = []
         this.lastMoveIndex = -1
@@ -149,6 +145,7 @@ export class PathBuilder {
         this.verbs = this.verbs.concat(path.verbs)
         this.points = this.points.concat(path.points)
         this.markDirty()
+        return this
     }
     addReversePath(path: PathBuilder) {
         path.invertVisit({
@@ -215,7 +212,7 @@ export class PathBuilder {
     moveTo(x: number, y: number) {
         if (this.lastVerb === PathVerb.MoveTo) {
             this.lastPoint.x = x
-            this.lastPoint.y = y   
+            this.lastPoint.y = y
         } else {
             this.verbs.push(PathVerb.MoveTo)
             this.points.push({ x, y })
@@ -246,12 +243,12 @@ export class PathBuilder {
         this.markDirty()
     }
     conicTo(cpX: number, cpY: number, x: number, y: number, weight: number) {
-        if(weight<=0){
+        if (weight <= 0) {
             // const lastPoint = this.lastPoint
             // const cp1X =(lastPoint.x+x)*0.5
             // const cp1Y = (lastPoint.y+y)*0.5
             // return this.quadraticCurveTo(cp1X, cp1Y, x, y)
-            return this.quadraticCurveTo(cpX,cpY,x,y)
+            return this.quadraticCurveTo(cpX, cpY, x, y)
         }
         const k = (4 * weight) / (3 * (weight + 1))
         const lastPoint = this.lastPoint
@@ -262,11 +259,11 @@ export class PathBuilder {
         this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, x, y);
     }
     conicToQuad(cpX: number, cpY: number, x: number, y: number, weight: number) {
-        const conic=new Conic([{x:this.lastPoint.x,y:this.lastPoint.y},{x:cpX,y:cpY},{x:x,y:y}],weight)
-        const ptsList=conic.toQuadraticBeziers()
-        for(let i=0;i<ptsList.length;i++){
-            const [p0,p1,p2]=ptsList[i]
-            this.quadraticCurveTo(p1.x,p1.y,p2.x,p2.y)
+        const conic = new Conic([{ x: this.lastPoint.x, y: this.lastPoint.y }, { x: cpX, y: cpY }, { x: x, y: y }], weight)
+        const ptsList = conic.toQuadraticBeziers()
+        for (let i = 0; i < ptsList.length; i++) {
+            const [p0, p1, p2] = ptsList[i]
+            this.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y)
         }
     }
     rect(x: number, y: number, width: number, height: number) {
@@ -621,7 +618,7 @@ export class PathBuilder {
         this.lineTo(x, y + r)
         if (r > 0) this.arcTo(x, y, x + r, y, r)
 
-        this.closePath()
+        this.lineTo(this.lastMovePoint.x, this.lastMovePoint.y)
         this.segmentType |= PathSegmentType.RoundRect
     }
 
@@ -707,7 +704,7 @@ export class PathBuilder {
     }
 
     closePath() {
-        
+
         if (!this.isEmpty) {
             if (this.lastVerb !== PathVerb.Close) {
                 this.verbs.push(PathVerb.Close)
@@ -838,18 +835,18 @@ export class PathBuilder {
      * 路径未变化时返回缓存，避免重复遍历。
      * @returns { minX, minY, maxX, maxY } 包围盒，路径为空时返回 null
      */
-    computeBounds(){
-        if(!this._boundsDirty){
+    computeBounds() {
+        if (!this._boundsDirty) {
             return this._bounds
         }
-        if(!this._bounds){
-            this._bounds=BoundingRect.default()
+        if (!this._bounds) {
+            this._bounds = BoundingRect.default()
         }
         this._bounds.setEmpty()
         this.points.forEach((p) => {
             this._bounds.expandPoint(p)
         })
-        if(this.isEmpty){
+        if (this.isEmpty) {
             this._bounds.fromLTRB(0, 0, 0, 0)
         }
         this._boundsDirty = false
@@ -865,13 +862,13 @@ export class PathBuilder {
         if (!this._tightBoundsDirty) {
             return this._tightBounds
         }
-        if(!this._tightBounds){
-            this._tightBounds=BoundingRect.default()
+        if (!this._tightBounds) {
+            this._tightBounds = BoundingRect.default()
         }
         let hasPoints = false
         this._tightBounds.setEmpty()
         const update = (x: number, y: number) => {
-            this._tightBounds.add( x, y )
+            this._tightBounds.add(x, y)
             hasPoints = true
         }
 
@@ -942,15 +939,78 @@ export class PathBuilder {
         })
         if (subPath.length > 0) {
             handleAutoClose()
+            paths.push(subPath)
         }
         return paths
     }
+    fromPolygons(polygons: PointLike[][]) {
+        let movePoint = { x: 0, y: 0 }
+        for (let i = 0, len = polygons.length; i < len; i++) {
+            const polygon = polygons[i]
+
+            for (let j = 0, len2 = polygon.length; j < len2; j++) {
+                const p = polygon[j]
+                if (j === 0) {
+                    movePoint.x = p.x
+                    movePoint.y = p.y
+                    this.moveTo(p.x, p.y)
+                } else {
+                    if (j === len2 - 1 && Point.equalsEpsilon(p, movePoint)) {
+                        this.closePath()
+                    } else {
+                        this.lineTo(p.x, p.y)
+                    }
+                }
+            }
+        }
+        return this
+    }
+    /**
+     * 将路径数据导出为 SVG path d 属性字符串命令数组。
+     * 每条命令为独立的 SVG 指令段，如 ["M 10 20", "L 30 40", "C ...", "Z"]。
+     *
+     * @param precision - 数值精度（保留小数位数），默认 2
+     * @returns SVG 命令字符串数组
+     */
+    toSvgCmds(precision: number = 2): string[] {
+        const cmds: string[] = []
+        const p = precision
+        const fmt = (v: number) => parseFloat(v.toFixed(p)).toString()
+
+        this.visit({
+            moveTo: (pt) => {
+                cmds.push(`M ${fmt(pt.x)} ${fmt(pt.y)}`)
+            },
+            lineTo: (_start, end) => {
+                cmds.push(`L ${fmt(end.x)} ${fmt(end.y)}`)
+            },
+            quadraticCurveTo: (_p0, p1, p2) => {
+                cmds.push(`Q ${fmt(p1.x)} ${fmt(p1.y)} ${fmt(p2.x)} ${fmt(p2.y)}`)
+            },
+            cubicCurveTo: (_p0, p1, p2, p3) => {
+                cmds.push(`C ${fmt(p1.x)} ${fmt(p1.y)} ${fmt(p2.x)} ${fmt(p2.y)} ${fmt(p3.x)} ${fmt(p3.y)}`)
+            },
+            close: () => {
+                cmds.push('Z')
+            },
+        })
+        return cmds
+    }
+
+    /**
+     * 导出为完整的 SVG path d 属性字符串
+     * @param precision - 数值精度，默认 2
+     */
+    toSvgPath(precision: number = 2): string {
+        return this.toSvgCmds(precision).join(' ')
+    }
+
     getPath2D() {
         const path = new window.Path2D()
         this.applyContext(path)
         return path
     }
-    applyContext(path:CanvasRenderingContext2D|Path2D=new Path2D()){
+    applyContext(path: (CanvasRenderingContext2D | Path2D) = new Path2D()) {
         this.visit({
             moveTo: (p) => path.moveTo(p.x, p.y),
             lineTo: (start, end) => path.lineTo(end.x, end.y),
@@ -960,6 +1020,6 @@ export class PathBuilder {
         })
         return path
     }
-  
-   
+
+
 }

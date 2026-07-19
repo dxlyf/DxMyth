@@ -1,6 +1,7 @@
 
 export * from './ck'
 export * from './renderer/canvas/CanvasRenderer'
+export * from './renderer/canvaskit/CanvasKitRenderer'
 
 export * from './core/Engine'
 export * from './core/Group'
@@ -16,3 +17,5 @@ export * from './scene/Polyline'
 export * from './scene/Line'
 export * from './scene/Star'
 export * from './scene/GraphicPath'
+export * from './scene/Image'
+export * from './scene/Text'

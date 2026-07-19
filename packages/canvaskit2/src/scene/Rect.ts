@@ -31,9 +31,15 @@ export class Rect extends Shape<RectProps> {
         out.fromXYWH(shape.x, shape.y, shape.width, shape.height)
         return out
     }
+    /**
+     * Rect 批量条件：无圆角（圆角走 PathBuilder.addRRect 首版不批量）+ 通用样式条件。
+     */
+    isBatchable(): boolean {
+        if (this.props.shape.radius) return false
+        return this._isBatchableByStyle()
+    }
 
     draw(renderer: Renderer): void {
-        this.builtinBuildPath()
         const shape = this.props.shape
         const r = shape.radius
         if (r !== undefined && r !== 0) {

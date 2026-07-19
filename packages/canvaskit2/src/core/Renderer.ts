@@ -77,6 +77,16 @@ export type RenderStyle = {
     textAlign?: string
     textBaseline?: string
     wordSpacing?: string // 单词间距，数字或字符串
+    /** fillText/strokeText 的 maxWidth 参数 */
+    maxWidth?: number
+    /** 行高（fontSize 的倍数），默认 1 */
+    lineHeight?: number
+    /** 多行文本行间距（px），默认 0 */
+    lineSpacing?: number
+    /** 是否按 wrapWidth 自动换行 */
+    wrap?: boolean
+    /** 自动换行宽度（wrap=true 时生效） */
+    wrapWidth?: number
 }
 export type StrokeAlign='center'|'outside'|'inside'
 export type FillRule = "evenodd" | "nonzero"; // 填充规则，evenodd或nonzero
@@ -172,9 +182,23 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
   //  abstract hitTest(x:number,y:number,shape:Shape):boolean
     abstract render(root:Scene): void
     abstract renderShape(shape:Shape):void
-    abstract renderImage(shape:Shape):void 
-    abstract renderText(shape:Shape):void 
+    abstract renderImage(shape:Shape):void
+    abstract renderText(shape:Shape):void
     abstract drawPath(path:CKPath2D):void
+
+    /**
+     * 应用文本字体/排版样式到当前渲染状态。
+     * 从 shape.style 读取 fontSize/fontFamily/fontWeight/fontStyle/letterSpacing/
+     * textAlign/textBaseline，由具体渲染器转换为底层 API（Canvas: ctx.font；CanvasKit: SkFont）。
+     * 在 fillText/strokeText/measureText 之前调用。
+     */
+    abstract applyTextStyle(shape:Shape):void
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillText) */
+    abstract fillText(text: string, x: number, y: number, maxWidth?: number): void
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/measureText) */
+    abstract measureText(text: string): TextMetrics
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeText) */
+    abstract strokeText(text: string, x: number, y: number, maxWidth?: number): void
 
     // 绘制
     createLinearGradient(x0: number, y0: number, x1: number, y1: number) {
@@ -265,14 +289,6 @@ export abstract class Renderer<Props extends RendererProps = RendererProps> exte
     // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke) */
     // abstract stroke(): void;
     // abstract stroke(path: Path2D): void;
-
-    // // 文本
-    // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillText) */
-    // abstract fillText(text: string, x: number, y: number, maxWidth?: number): void;
-    // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/measureText) */
-    // abstract measureText(text: string): TextMetrics;
-    // /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeText) */
-    // abstract strokeText(text: string, x: number, y: number, maxWidth?: number): void;
 
     // 图像
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage) */

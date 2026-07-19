@@ -35,7 +35,9 @@ function deepMerge(target: any, source: any): void {
             target[key] = deepMerge([], val)
         } else if (isPlainObject(val)) {
             target[key] = deepMerge({}, val)
-        } else if(isPrimitive(val)){
+        } else if (val !== undefined) {
+            // 原始值、TypedArray（Color/Matrix2D）、Date、RegExp、类实例等直接引用赋值
+            // 注意：undefined 不覆盖 target（保持 "source 中值为 undefined 的属性不覆盖" 语义）
             target[key] = val
         }
     }

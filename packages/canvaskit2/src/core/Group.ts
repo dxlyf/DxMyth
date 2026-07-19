@@ -40,6 +40,15 @@ export class Group extends Element<GroupProps> {
         this.flags.add(ElementFlag.CHILDREN)
         this.emit('add:child',{target:this,child})
     }
+    setParent(parent:Group){
+        const currentParent=this.parent
+        super.setParent(parent)
+        if(parent){
+            
+        }else{
+
+        }
+    }
     hitTest(x: number, y: number): boolean {
         let children = this.children
         if(!this.shouldInteractive()){

@@ -69,27 +69,41 @@ export class CKPathBuilder {
     }
     /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/roundRect) */
     roundRect(x: number, y: number, w: number, h: number, radii?: number | DOMPointInit | (number | DOMPointInit)[]): void {
-        let rrect = ck.XYWHRect(x, y, w, h)
-        let corners = new Float32Array(4).fill(0)
+        // ck.XYWHRect 返回 4 元素 Float32Array [l, t, r, b]（Rect），不能直接当 12 元素 RRect 用：
+        // Float32Array 定长，给索引 [4]-[11] 赋值会被静默忽略，导致圆角全为 0。
+        // RRect 布局: [l, t, r, b, rx_tl, ry_tl, rx_tr, ry_tr, rx_br, ry_br, rx_bl, ry_bl]
+        const rect = ck.XYWHRect(x, y, w, h)
+        // corners 顺序对应 CSS roundRect: [tl, tr, br, bl]
+        const corners = new Float32Array(4)
         if (Array.isArray(radii)) {
             if (radii.length === 1) {
                 corners.fill(radii[0] as number)
             } else if (radii.length === 2) {
-                corners[0] = corners[1] = radii[0] as number
-                corners[2] = corners[3] = radii[1] as number
+                // CSS 2 值规则: [tl/br, tr/bl]
+                corners[0] = corners[2] = radii[0] as number
+                corners[1] = corners[3] = radii[1] as number
             } else if (radii.length === 4) {
                 corners[0] = radii[0] as number
                 corners[1] = radii[1] as number
                 corners[2] = radii[2] as number
                 corners[3] = radii[3] as number
             }
-        } else {
-            corners.fill(radii as number)
+        } else if (typeof radii === 'number') {
+            corners.fill(radii)
         }
-        rrect[4] = rrect[5] = corners[0]
-        rrect[6] = rrect[7] = corners[1]
-        rrect[8] = rrect[9] = corners[2]
-        rrect[10] = rrect[11] = corners[3]
+        const rrect = new Float32Array(12)
+        rrect[0] = rect[0]            // left
+        rrect[1] = rect[1]            // top
+        rrect[2] = rect[2]            // right
+        rrect[3] = rect[3]            // bottom
+        rrect[4] = corners[0]         // tl rx
+        rrect[5] = corners[0]         // tl ry
+        rrect[6] = corners[1]         // tr rx
+        rrect[7] = corners[1]         // tr ry
+        rrect[8] = corners[2]         // br rx
+        rrect[9] = corners[2]         // br ry
+        rrect[10] = corners[3]        // bl rx
+        rrect[11] = corners[3]        // bl ry
         this.pathBuilder.addRRect(rrect)
         this.markDirty()
     }

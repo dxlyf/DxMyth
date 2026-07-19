@@ -7,6 +7,7 @@ import { Scene } from './Scene'
 import { Element } from './Element'
 import { Renderer, type RendererProps } from './Renderer'
 import { CanvasRenderer } from 'src/renderer/canvas/CanvasRenderer'
+import { CanvasKitRenderer } from 'src/renderer/canvaskit/CanvasKitRenderer'
 import { Color, ColorValue } from '@dxyl/math2'
 import { type InputType } from 'src/event/EventSystem'
 import { AnimationSystem } from 'src/animation/AnimationSystem'
@@ -15,6 +16,7 @@ import { PickerSystem } from 'src/picker/PickerSystem'
 
 export const renderers = {
     canvas: CanvasRenderer,
+    canvaskit: CanvasKitRenderer,
 }
 export type EngineProps = RendererProps & {
     container?: HTMLElement
@@ -27,6 +29,8 @@ export type EngineProps = RendererProps & {
 export type EngineEvents = {
     'initialize:before': [engne: Engine]
     initialize: [engne: Engine]
+    'add:element':[engine:Engine,el:Element]
+    'remove:element':[engine:Engine,el:Element]
     'render:before': [engine: Engine]
     'render:after': [engine: Engine]
     'tick': [delta: number]
@@ -50,12 +54,12 @@ export class Engine extends EventEmitter<EngineEvents> {
     private onResize: () => void
     constructor() {
         super()
-        Engine.activeEngine = this
-        this.render = this.render.bind(this)
-        this.scene = new Scene()
+        this.scene = new Scene(this)
+        this.pickerSystem=new PickerSystem(this)
         this.eventSystem = new EventSystem(this)
         this.animationSystem = new AnimationSystem()
         this.pluginSystem = new PluginSystem(this)
+        this.render = this.render.bind(this)
     }
     async initialize(config: EngineProps) {
         this.emit('initialize:before', this)
@@ -69,7 +73,6 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.renderer.engine = this
         await this.renderer.init()
         this.setupResize()
-        this.pickerSystem=new PickerSystem(this)
         this.pluginSystem.registerPlugins(Engine.defaultPlugins.concat(this.props.plugins))
         // 启动事件系统
         this.eventSystem.start(this.props.inputType)
@@ -146,6 +149,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.animationSystem.stop()
         this.pluginSystem.unregisterPlugins()
         this.emit('destroy', this)
+        ;(this.renderer as any).dispose?.()
     }
     add(child: Element) {
         this.scene.add(child)
@@ -161,6 +165,7 @@ export class Engine extends EventEmitter<EngineEvents> {
         this.emit('render:before', this)
         this.renderer.render(scene)
         this.emit('render:after', this)
+
         scene.flags.clear()
         this.rendering = false
     }

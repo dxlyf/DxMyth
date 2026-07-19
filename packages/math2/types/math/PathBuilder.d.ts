@@ -47,7 +47,6 @@ export declare enum PathDirection {
 export declare class PathBuilder {
     static fromSvgPath(svgPath: string): PathBuilder;
     static default(): PathBuilder;
-    cmds: [number | string, ...any[]][];
     verbs: PathVerb[];
     points: PointLike[];
     lastMoveIndex: number;
@@ -72,7 +71,7 @@ export declare class PathBuilder {
     reset(): void;
     markDirty(): void;
     transform(matrix: Matrix2DLike): void;
-    addPath(path: PathBuilder, matrix?: Matrix2DLike): void;
+    addPath(path: PathBuilder, matrix?: Matrix2DLike): this;
     addReversePath(path: PathBuilder): void;
     reversePathTo(other: PathBuilder): void;
     offset(x: number, y: number): void;
@@ -208,7 +207,21 @@ export declare class PathBuilder {
      */
     computeTightBounds(): BoundingRect | null;
     toPolygons(autoClose?: boolean, epsilon?: number): PointLike[][];
+    fromPolygons(polygons: PointLike[][]): this;
+    /**
+     * 将路径数据导出为 SVG path d 属性字符串命令数组。
+     * 每条命令为独立的 SVG 指令段，如 ["M 10 20", "L 30 40", "C ...", "Z"]。
+     *
+     * @param precision - 数值精度（保留小数位数），默认 2
+     * @returns SVG 命令字符串数组
+     */
+    toSvgCmds(precision?: number): string[];
+    /**
+     * 导出为完整的 SVG path d 属性字符串
+     * @param precision - 数值精度，默认 2
+     */
+    toSvgPath(precision?: number): string;
     getPath2D(): Path2D;
-    applyContext(path?: CanvasRenderingContext2D | Path2D): Path2D | CanvasRenderingContext2D;
+    applyContext(path?: (CanvasRenderingContext2D | Path2D)): Path2D | CanvasRenderingContext2D;
 }
 export {};

@@ -89,6 +89,18 @@ export declare class Matrix2D extends Float32Array {
     fromTranslationRotationScale(position: Vector2Like, angleInRad: number, scale: Vector2Like): this;
     fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like): this;
     fromTranslationRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): this;
+    static decomposeAffine(matrix: Matrix2DLike): {
+        translate: {
+            x: number;
+            y: number;
+        };
+        scaleX: number;
+        scaleY: number;
+        scale: number;
+        rotation: number;
+        skewX: number;
+        determinant: number;
+    };
     /**
      * 从组合矩阵逆解所有变换分量。
      *
@@ -116,7 +128,6 @@ export declare class Matrix2D extends Float32Array {
     };
     /** 实例版：从自身矩阵逆解分量 */
     decomposeTransform(out?: DecomposedTransform): DecomposedTransform;
-    decomposeTransform2(out?: DecomposedTransform): DecomposedTransform;
     fromTranslateRotationSkewScaleOrigin(position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): this;
     invert(): Matrix2D;
     /**
@@ -137,10 +148,11 @@ export declare class Matrix2D extends Float32Array {
     isIdentity(): boolean;
     isSingular(): boolean;
     equals(m: Matrix2DLike): boolean;
-    /** X 轴缩放量（含旋转影响） */
+    /** X 轴缩放量 */
     getScaleX(): number;
-    /** Y 轴缩放量（含旋转影响） */
+    /** Y 轴缩放量 */
     getScaleY(): number;
+    getScale(): number;
     /** 旋转角 (rad) */
     getRotation(): number;
     /** p = this * (x, y) */

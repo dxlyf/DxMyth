@@ -1,6 +1,5 @@
 
-import { loadImage } from 'src/utils/loadImage'
-import { ColorValue,Color } from 'src/math/Color'
+import { loadImage } from 'src/utils/loadResource'
 
 export type IPattern = {
     type: 'pattern'

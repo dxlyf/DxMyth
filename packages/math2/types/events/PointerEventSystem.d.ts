@@ -11,6 +11,7 @@ export declare class PointerEvent<T = string, D = any> extends NodeEvent<T, D> {
     constructor(type: T, data: D);
     reset(): void;
     copy(target: PointerEvent<any, any>): void;
+    copyPointerData(target: PointerEvent<any, any>): void;
     clone(): PointerEvent<string, {}>;
 }
 export type PointerEventSystemOptions = {
@@ -24,7 +25,7 @@ export type PointerEventSystemOptions = {
     /** 自定义需要绑定的原生事件映射，key 为内部事件名，value 为原生 DOM 事件类型 */
     pointerEvents?: Record<string, string>;
 };
-type EventsMaps = {
+export type PointerEventsMaps = {
     pointerdown: [e: PointerEvent];
     pointermove: [e: PointerEvent];
     pointerup: [e: PointerEvent];
@@ -41,20 +42,20 @@ type EventsMaps = {
     dragover: [e: PointerEvent];
     drop: [e: PointerEvent];
 };
-export declare class PointerEventSystem extends EventEmitter<EventsMaps> {
+export declare class PointerEventSystem extends EventEmitter<PointerEventsMaps> {
     options: PointerEventSystemOptions;
     handlers: Map<string, any>;
     private _dragThresholdSq;
     private _dblclickInterval;
-    private _lastPoint;
-    private _downPoint;
-    private _isPointerDown;
-    private _isDragging;
+    _lastPoint: Point;
+    _downPoint: Point;
+    _isPointerDown: boolean;
+    _isDragging: boolean;
     private _lastClickTime;
     private _lastClickPoint;
-    private _hoverTarget;
-    private _downTarget;
-    private _dragHoverTarget;
+    _hoverTarget: any;
+    _downTarget: any;
+    _dragHoverTarget: any;
     constructor(options: PointerEventSystemOptions);
     private _getPointerEvents;
     attachEvents(): void;
@@ -62,4 +63,3 @@ export declare class PointerEventSystem extends EventEmitter<EventsMaps> {
     createEvent(type: string, nativeEvent: any): PointerEvent;
     onPointerEvent(eventType: string, e: globalThis.PointerEvent): void;
 }
-export {};

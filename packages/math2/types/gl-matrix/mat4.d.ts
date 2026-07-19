@@ -659,7 +659,12 @@ export declare class Mat4 extends Float32Array {
      * @returns `out`
      * @deprecated
      */
-    static perspectiveFromFieldOfView<T extends Mat4Like>(out: T, fov: any, near: number, far: number): T;
+    static perspectiveFromFieldOfView<T extends Mat4Like>(out: T, fov: {
+        upDegrees: number;
+        downDegrees: number;
+        leftDegrees: number;
+        rightDegrees: number;
+    }, near: number, far: number): T;
     /**
      * Generates a orthogonal projection matrix with the given bounds.
      * The near/far clip planes correspond to a normalized device coordinate Z range of [-1, 1],

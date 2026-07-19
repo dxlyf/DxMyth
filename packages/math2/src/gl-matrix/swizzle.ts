@@ -12,7 +12,7 @@ import { Vec4 } from './vec4.js';
 
 // [/Swizzle Autogen]
 
-const SWIZZLE_INDEX = {
+const SWIZZLE_INDEX:any = {
   x: 0,    r: 0,
   y: 1,    g: 1,
   z: 2,    b: 2,
@@ -22,11 +22,11 @@ const SWIZZLE_INDEX = {
 function getSwizzleImpl(swizzle: string): () => any {
   switch(swizzle.length) {
     case 2:
-      return function() { return new Vec2(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]]); };
+      return function(this:any) { return new Vec2(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]]); };
     case 3:
-      return function() { return new Vec3(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]], this[SWIZZLE_INDEX[swizzle[2]]]); };
+      return function(this:any) { return new Vec3(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]], this[SWIZZLE_INDEX[swizzle[2]]]); };
     case 4:
-      return function() { return new Vec4(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]], this[SWIZZLE_INDEX[swizzle[2]]], this[SWIZZLE_INDEX[swizzle[3]]]); };
+      return function(this:any) { return new Vec4(this[SWIZZLE_INDEX[swizzle[0]]], this[SWIZZLE_INDEX[swizzle[1]]], this[SWIZZLE_INDEX[swizzle[2]]], this[SWIZZLE_INDEX[swizzle[3]]]); };
   }
 }
 

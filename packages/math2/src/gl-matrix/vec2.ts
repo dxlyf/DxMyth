@@ -1,4 +1,4 @@
-import { EPSILON, FloatArray } from './common.js';
+﻿import { EPSILON, FloatArray } from './common.js';
 import { Mat2Like } from './mat2.js';
 import { Mat2dLike } from './mat2d.js';
 import { Mat3Like } from './mat3.js';
@@ -40,7 +40,7 @@ export class Vec2 extends Float32Array {
         } else if (typeof v === 'number') {
           super([v, v]);
         } else {
-          super(v as ArrayBufferLike, 0, 2);
+          super(v as ArrayBuffer, 0, 2);
         }
         break;
       }
