@@ -1,0 +1,6 @@
+export { Point } from './Point'
+export { Matrix2D } from './Matrix2D'
+export { Transform } from './Transform'
+export { Color } from './Color'
+export { Gradient } from './Gradient'
+export { Pattern } from './Pattern'
