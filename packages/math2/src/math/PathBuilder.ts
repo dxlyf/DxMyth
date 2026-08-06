@@ -8,7 +8,6 @@ import { windCubicBezier, windLine, windQuadraticBezier } from './PathIntersecti
 import { Matrix2DLike } from './Matrix2D'
 import { Matrix2D } from './Matrix2D'
 import { fromSvgPath } from './ParseSvgPath'
-import { PathStroke } from './PathStroke'
 import { Conic } from './Conic'
 
 export enum PathVerb {
