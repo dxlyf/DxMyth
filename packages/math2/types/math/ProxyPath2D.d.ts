@@ -25,7 +25,7 @@
  *   扁平数组:        ~24KB（2000 个 number，含 1000 个 cmd 头 = 16000 bytes + 数组开销）
  */
 /** 命令类型索引（数字编码，避免字符串比较） */
-export declare const enum Cmd {
+declare const enum Cmd {
     ClosePath = 0,
     MoveTo = 1,
     LineTo = 2,

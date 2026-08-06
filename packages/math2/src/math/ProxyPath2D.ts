@@ -26,7 +26,7 @@
  */
 
 /** 命令类型索引（数字编码，避免字符串比较） */
-export const enum Cmd {
+const enum Cmd {
     ClosePath = 0,
     MoveTo = 1,
     LineTo = 2,
@@ -252,11 +252,11 @@ export class ProxyPath2D implements IProxyPath2D {
                 case Cmd.BezierCurveTo:
                     target.bezierCurveTo(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++]); break
                 case Cmd.Arc:
-                    target.arc(d[i++], d[i++], d[i++], d[i++], d[i++], !!d[i++]); break
+                    target.arc(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++]); break
                 case Cmd.ArcTo:
                     target.arcTo(d[i++], d[i++], d[i++], d[i++], d[i++]); break
                 case Cmd.Ellipse:
-                    target.ellipse(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], !!d[i++]); break
+                    target.ellipse(d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], d[i++], d[i++]); break
                 case Cmd.Rect:
                     target.rect(d[i++], d[i++], d[i++], d[i++]); break
                 case Cmd.RoundRect:

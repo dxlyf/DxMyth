@@ -1,25 +1,16 @@
 import { Color, ColorLike } from '../math/Color'
 import { PaintShader } from './PaintShader'
-import {
-    StrokeCap,
-    StrokeJoin,
-    toCanvasLineCap,
-    toCanvasLineJoin,
-    toCanvasStyle,
-    toCanvasGradient,
-    applyCanvasDash,
-} from './canvasPaint'
 
-export {
-    StrokeCap,
-    StrokeJoin,
-    toCanvasLineCap,
-    toCanvasLineJoin,
-    toCanvasStyle,
-    toCanvasGradient,
-    applyCanvasDash,
+export enum StrokeCap {
+    Butt,
+    Round,
+    Square,
 }
-
+export enum StrokeJoin {
+    Miter,
+    Round,
+    Bevel,
+}
 // ============================================================
 // Paint — 通用绘制样式存储类，参考 Skia Paint 设计
 // 集中管理颜色、描边、填充、混合模式等绘制属性
@@ -82,7 +73,7 @@ export class Paint {
     // ---- 核心属性 ----
 
     /** 填充/描边颜色 */
-    color: Color
+    color: ColorLike
 
     /** 绘制样式 */
     style: PaintStyle
@@ -134,111 +125,24 @@ export class Paint {
         this.dashOffset = 0
     }
 
-    // ==================== 便捷设置方法 ====================
-
-    /** 设置颜色 */
-    setColor(color: ColorLike): this {
-        this.color.set(color)
-        return this
-    }
-
-    /** 设置描边宽度 */
-    setStrokeWidth(width: number): this {
-        this.strokeWidth = width
-        return this
-    }
-
-    /** 设置透明度 */
-    setAlpha(alpha: number): this {
-        this.alpha = Math.max(0, Math.min(1, alpha))
-        return this
-    }
-
-    /** 设置抗锯齿 */
-    setAntiAlias(aa: boolean): this {
-        this.antiAlias = aa
-        return this
-    }
-
-    /** 设置混合模式 */
-    setBlendMode(mode: BlendMode): this {
-        this.blendMode = mode
-        return this
-    }
-
-    /** 设置 shader，替代纯色 */
-    setShader(shader: PaintShader | null): this {
-        this.shader = shader
-        return this
-    }
-
-    /** 设置虚线 */
-    setDash(intervals: number[], offset: number = 0): this {
-        this.dashIntervals = intervals.slice()
-        this.dashOffset = offset
-        return this
-    }
-
-    // ==================== 应用方法 ====================
-
-    /**
-     * 将 Paint 的填充属性应用到 Canvas 2D 上下文。
-     */
-    applyFillTo(ctx: CanvasRenderingContext2D): void {
-        ctx.globalAlpha = this.alpha
-        ctx.globalCompositeOperation = this.blendMode
-        ctx.fillStyle = this.shader
-            ? this.shader.toCanvasStyle(ctx, this.color)
-            : toCanvasStyle(ctx, this.color)
-    }
-
-    /**
-     * 将 Paint 的描边属性应用到 Canvas 2D 上下文。
-     */
-    applyStrokeTo(ctx: CanvasRenderingContext2D): void {
-        ctx.globalAlpha = this.alpha
-        ctx.globalCompositeOperation = this.blendMode
-        ctx.lineWidth = this.strokeWidth
-        ctx.lineCap = toCanvasLineCap(this.strokeCap)
-        ctx.lineJoin = toCanvasLineJoin(this.strokeJoin)
-        ctx.miterLimit = this.strokeMiter
-        ctx.strokeStyle = this.shader
-            ? this.shader.toCanvasStyle(ctx, this.color)
-            : toCanvasStyle(ctx, this.color)
-        applyCanvasDash(ctx, this.dashIntervals, this.dashOffset)
-    }
-
-    /**
-     * 根据当前 style 应用全部绘制属性。
-     * - PaintStyle.Fill → 仅填充
-     * - PaintStyle.Stroke → 仅描边
-     * - PaintStyle.FillAndStroke → 两者
-     */
-    applyTo(ctx: CanvasRenderingContext2D): void {
-        if (this.style === PaintStyle.Fill || this.style === PaintStyle.FillAndStroke) {
-            this.applyFillTo(ctx)
-        }
-        if (this.style === PaintStyle.Stroke || this.style === PaintStyle.FillAndStroke) {
-            this.applyStrokeTo(ctx)
-        }
-    }
 
     // ==================== 复制 / 克隆 ====================
 
     /** 深拷贝到目标 Paint */
     copy(target: Paint): void {
-        target.color.set(this.color)
-        target.style = this.style
-        target.strokeWidth = this.strokeWidth
-        target.strokeCap = this.strokeCap
-        target.strokeJoin = this.strokeJoin
-        target.strokeMiter = this.strokeMiter
-        target.alpha = this.alpha
-        target.antiAlias = this.antiAlias
-        target.blendMode = this.blendMode
-        target.shader = this.shader
-        target.dashIntervals = this.dashIntervals ? this.dashIntervals.slice() : null
-        target.dashOffset = this.dashOffset
+        this.color=target.color.slice()
+        this.style=target.style
+        this.strokeWidth=target.strokeWidth
+        this.strokeCap=target.strokeCap
+        this.strokeJoin=target.strokeJoin
+        this.strokeMiter=target.strokeMiter
+        this.alpha=target.alpha
+        this.antiAlias=target.antiAlias
+        this.blendMode=target.blendMode
+        this.shader=target.shader
+        this.dashIntervals=target.dashIntervals?target.dashIntervals.slice():null
+        this.dashOffset=target.dashOffset
+
     }
 
     /** 创建副本 */
