@@ -1,7 +1,15 @@
-import { Color, ColorLike } from '../math/Color';
+import { ColorLike } from '../math/Color';
 import { PaintShader } from './PaintShader';
-import { StrokeCap, StrokeJoin, toCanvasLineCap, toCanvasLineJoin, toCanvasStyle, toCanvasGradient, applyCanvasDash } from './canvasPaint';
-export { StrokeCap, StrokeJoin, toCanvasLineCap, toCanvasLineJoin, toCanvasStyle, toCanvasGradient, applyCanvasDash, };
+export declare enum StrokeCap {
+    Butt = 0,
+    Round = 1,
+    Square = 2
+}
+export declare enum StrokeJoin {
+    Miter = 0,
+    Round = 1,
+    Bevel = 2
+}
 /** 绘制样式：填充 / 描边 / 两者 */
 export declare enum PaintStyle {
     Fill = 0,
@@ -55,7 +63,7 @@ export declare const enum BlendMode {
  */
 export declare class Paint {
     /** 填充/描边颜色 */
-    color: Color;
+    color: ColorLike;
     /** 绘制样式 */
     style: PaintStyle;
     /** 描边宽度（像素） */
@@ -79,35 +87,6 @@ export declare class Paint {
     /** 虚线偏移（相位） */
     dashOffset: number;
     constructor();
-    /** 设置颜色 */
-    setColor(color: ColorLike): this;
-    /** 设置描边宽度 */
-    setStrokeWidth(width: number): this;
-    /** 设置透明度 */
-    setAlpha(alpha: number): this;
-    /** 设置抗锯齿 */
-    setAntiAlias(aa: boolean): this;
-    /** 设置混合模式 */
-    setBlendMode(mode: BlendMode): this;
-    /** 设置 shader，替代纯色 */
-    setShader(shader: PaintShader | null): this;
-    /** 设置虚线 */
-    setDash(intervals: number[], offset?: number): this;
-    /**
-     * 将 Paint 的填充属性应用到 Canvas 2D 上下文。
-     */
-    applyFillTo(ctx: CanvasRenderingContext2D): void;
-    /**
-     * 将 Paint 的描边属性应用到 Canvas 2D 上下文。
-     */
-    applyStrokeTo(ctx: CanvasRenderingContext2D): void;
-    /**
-     * 根据当前 style 应用全部绘制属性。
-     * - PaintStyle.Fill → 仅填充
-     * - PaintStyle.Stroke → 仅描边
-     * - PaintStyle.FillAndStroke → 两者
-     */
-    applyTo(ctx: CanvasRenderingContext2D): void;
     /** 深拷贝到目标 Paint */
     copy(target: Paint): void;
     /** 创建副本 */

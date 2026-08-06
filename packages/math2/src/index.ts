@@ -30,7 +30,10 @@ export * from './math/Viewport'
 export * from './math/LRU'
 export * from './math/curve'
 export * from './math/Conic'
-export {default as RBush} from './math/rbush'
+export * as polyclip from './math/polyclip-ts'
+export * as RBush from './data/rbush'
+export {default as TinyQueue} from './data/tinyqueue'
+export * from './data/splaytree'
 export * as math2 from './math2'
 
 export * as polybool from './math/polybool/polybool'
@@ -40,6 +43,8 @@ export * from './math/ShapePath'
 
 export * as tess2 from './math/tess2-ts/index'
 export * as earcut from './math/earcut'
+export *  from './math/delaunator'
+
 // contain
 export * from './math/shape'
 export * from './events/EventSystem'

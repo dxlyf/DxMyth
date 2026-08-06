@@ -5,6 +5,16 @@
 import { BoundingRect } from '../BoundingRect'
 import { Geometry, PointOut, distPointToSegmentSquared } from './Geometry'
 
+/** 重心坐标输出（避免分配）：P = u*A + v*B + w*C，u + v + w = 1 */
+export interface BarycentricOut {
+    /** 顶点 A 的权重 */
+    u: number
+    /** 顶点 B 的权重 */
+    v: number
+    /** 顶点 C 的权重 */
+    w: number
+}
+
 export class Triangle extends Geometry {
     ax: number
     ay: number
@@ -99,6 +109,37 @@ export class Triangle extends Geometry {
             Math.max(this.ax, this.bx, this.cx),
             Math.max(this.ay, this.by, this.cy)
         )
+        return r
+    }
+
+    /**
+     * 计算点 P 相对三角形 ABC 的重心坐标 (u, v, w)
+     * 满足 P = u*A + v*B + w*C，且 u + v + w = 1
+     * - 点在三角形内部（含边界）时，u, v, w ∈ [0, 1]
+     * - 点在外部时，至少有一个坐标为负
+     * - 退化三角形（面积为 0）返回 (0, 0, 0)
+     * 算法：基于子三角形有符号面积之比，2 倍面积因子在分子分母中抵消
+     */
+    static barycentric(
+        ax: number, ay: number,
+        bx: number, by: number,
+        cx: number, cy: number,
+        px: number, py: number,
+        out?: BarycentricOut
+    ): BarycentricOut {
+        const r = out || { u: 0, v: 0, w: 0 }
+        // 2 倍有符号面积（CCW 为正）
+        const denom = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        if (denom === 0) {
+            r.u = 0
+            r.v = 0
+            r.w = 0
+            return r
+        }
+        const inv = 1 / denom
+        r.u = ((bx - px) * (cy - py) - (by - py) * (cx - px)) * inv
+        r.v = ((cx - px) * (ay - py) - (cy - py) * (ax - px)) * inv
+        r.w = ((ax - px) * (by - py) - (ay - py) * (bx - px)) * inv
         return r
     }
 }
