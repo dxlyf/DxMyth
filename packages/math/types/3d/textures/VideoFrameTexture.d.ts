@@ -1,7 +1,5 @@
 import { MagnificationTextureFilter, Mapping, MinificationTextureFilter, PixelFormat, TextureDataType, Wrapping } from '../constants.js';
 import { VideoTexture } from './VideoTexture.js';
-
-
 declare class VideoFrameTexture extends VideoTexture {
     constructor(
         mapping?: Mapping,

@@ -1,6 +1,4 @@
 import { KeyframeTrack } from '../KeyframeTrack.js';
-
-
 /**
  * A track for string keyframe values.
  */

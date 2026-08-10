@@ -1,4 +1,4 @@
-import { Vector3, Vector2 } from '../../../../../../../../src/3d/index.core.ts';
+import { Vector3, Vector2 } from '../index.core.ts';
 /**
  * Utility class for sampling weighted random points on the surface of a mesh.
  *

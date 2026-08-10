@@ -1,4 +1,4 @@
-import { Curve, Vector3 } from '../../../../../../../../src/3d/index.core.ts';
+import { Curve, Vector3 } from '../index.core.ts';
 /**
  * A bunch of parametric curves
  *

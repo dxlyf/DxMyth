@@ -3,8 +3,6 @@ import { Object3D } from '../core/Object3D.js';
 import { RenderTarget } from '../core/RenderTarget.js';
 import { WebGLCubeRenderTarget } from '../renderers/WebGLCubeRenderTarget.js';
 import { Camera } from './Camera.js';
-
-
 export interface CubeCameraRenderer {
     coordinateSystem: CoordinateSystem;
     getRenderTarget(): RenderTarget | null;

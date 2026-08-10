@@ -1,4 +1,4 @@
-import { Vec2Like } from '../../../../../../../../src/gl-matrix/vec2';
+import { Vec2Like } from '../../gl-matrix/vec2';
 /**
  * 从顶点数组中计算出最小包围盒，写入`min`和`max`中
  */

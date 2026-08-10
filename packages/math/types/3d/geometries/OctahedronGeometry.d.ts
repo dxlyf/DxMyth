@@ -1,6 +1,4 @@
 import { PolyhedronGeometry } from './PolyhedronGeometry.js';
-
-
 /**
  * A class for generating an octahedron geometry.
  * @see {@link https://threejs.org/docs/index.html#api/en/geometries/OctahedronGeometry | Official Documentation}

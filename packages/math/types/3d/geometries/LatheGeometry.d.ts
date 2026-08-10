@@ -1,7 +1,5 @@
 import { BufferGeometry } from '../core/BufferGeometry.js';
 import { Vector2 } from '../math/Vector2.js';
-
-
 /**
  * Creates meshes with axial symmetry like vases
  * @remarks

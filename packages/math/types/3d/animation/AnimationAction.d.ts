@@ -2,8 +2,6 @@ import { AnimationActionLoopStyles, AnimationBlendMode } from '../constants.js';
 import { Object3D } from '../core/Object3D.js';
 import { AnimationClip } from './AnimationClip.js';
 import { AnimationMixer } from './AnimationMixer.js';
-
-
 /**
  * An instance of `AnimationAction` schedules the playback of an animation which is
  * stored in {@link AnimationClip}.

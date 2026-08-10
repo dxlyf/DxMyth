@@ -1,4 +1,4 @@
-import { Controls, Vector3 } from '../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3 } from '../index.core.ts';
 /**
  * This class is an alternative implementation of {@link FlyControls}.
  *

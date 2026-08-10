@@ -2,8 +2,6 @@ import { Matrix3 } from '../math/Matrix3.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { BufferAttribute, TypedArray } from './BufferAttribute.js';
 import { InterleavedBuffer } from './InterleavedBuffer.js';
-
-
 /**
  * @see {@link https://threejs.org/docs/index.html#api/en/core/InterleavedBufferAttribute | Official Documentation}
  * @see {@link https://github.com/mrdoob/three.js/blob/master/src/core/InterleavedBufferAttribute.js | Source}

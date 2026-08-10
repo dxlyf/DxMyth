@@ -1,7 +1,5 @@
 import { Vector2 } from '../../math/Vector2.js';
 import { Vector3 } from '../../math/Vector3.js';
-
-
 export interface CurveJSON {
     metadata: { version: number; type: string; generator: string };
     arcLengthDivisions: number;

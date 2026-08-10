@@ -1,4 +1,4 @@
-import { Vector3, Matrix3, Box3, Ray, Matrix4 } from '../../../../../../../../src/3d/index.core.ts';
+import { Vector3, Matrix3, Box3, Ray, Matrix4 } from '../index.core.ts';
 /**
  * Represents an oriented bounding box (OBB) in 3D space.
  *

@@ -1,4 +1,4 @@
-import { Controls, Vector3, Quaternion, Spherical, Vector2 } from '../../../../../../../../src/3d/index.core.ts';
+import { Controls, Vector3, Quaternion, Spherical, Vector2 } from '../index.core.ts';
 /**
  * Orbit controls allow the camera to orbit around a target.
  *

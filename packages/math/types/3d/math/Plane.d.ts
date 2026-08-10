@@ -4,8 +4,6 @@ import { Matrix3 } from './Matrix3.js';
 import { Matrix4 } from './Matrix4.js';
 import { Sphere } from './Sphere.js';
 import { Vector3 } from './Vector3.js';
-
-
 export class Plane {
     constructor(normal?: Vector3, constant?: number);
 

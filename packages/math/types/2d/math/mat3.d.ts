@@ -4,7 +4,38 @@ declare function identity<T extends Matrix3Like = Matrix3Like>(out: T): T;
 declare function multiply<T extends Matrix3Like = Matrix3Like>(out: T, a: Matrix3Like, b: Matrix3Like): T;
 declare function makeTranslation<T extends Matrix3Like = Matrix3Like>(out: T, vec: Vector2Like): T;
 declare function makeRotation<T extends Matrix3Like = Matrix3Like>(out: T, rad: number): T;
+/**
+ * 向任意方向旋转
+ * v=向量
+ * n=轴方向
+ * v0=(v·n)n 平行于v
+ * v1=v-v0 垂直于v
+ * v2=n cross v1=n cross (v-v0)=n*v (n cross v0由于v0平行n,为0,所以v2=n*v) 垂直于n和v
+ * v1'=v1*cos+v2*sin
+ * v'=v0+v1'
+ * @param out
+ * @param axis
+ * @param radian
+ * @returns
+ */
+declare function makeRotationAxis<T extends Matrix3Like = Matrix3Like>(out: T, axis: Vector2Like, radian: number): T;
 declare function makeScale<T extends Matrix3Like = Matrix3Like>(out: T, vec: Vector2Like): T;
+/**
+ * 任意方向缩放
+ * v=要缩放的向量
+ * n=缩放的轴方向
+ * v0=(v·n)n 平行于v
+ * v1=v-v0 垂直于v
+ * v0'=v0*k
+ * v1'=v1
+ * v'=v0'+v1'=(v·n)n*k+v-(v·n)n=(v·n)n*(k-1)+v
+ * 转换为矩阵形式
+ * x轴缩时，代入v=x轴基向量(1,0,0)=v'=[x*x*(k-1)+1,x*y*(k-1)+0,x*z*(k-1)+0]
+   y轴缩时，代入v=y轴基向量(0,1,0)=v'=[y*x*(k-1)+0,y*y*(k-1)+1,y*z*(k-1)+0]
+   z轴缩时，代入v=z轴基向量(0,0,1)=v'=[z*x*(k-1)+0,z*y*(k-1)+0,z*z*(k-1)+1]
+
+ */
+declare function makeScaleAxis<T extends Matrix3Like = Matrix3Like>(out: T, axis: Vector2Like, k: number): T;
 declare function makeSkew<T extends Matrix3Like = Matrix3Like>(out: T, k: Vector2Like): T;
 declare function makeProjection<T extends Matrix3Like = Matrix3Like>(out: T, width: number, height: number): T;
 declare function makeTranslationRotationScale<T extends Matrix3Like = Matrix3Like>(out: T, translation: Vector2Like, rotation: number, scale: Vector2Like): T;
@@ -40,7 +71,9 @@ export declare class Matrix3 extends Float32Array {
     static makeProjection: typeof makeProjection;
     static makeTranslation: typeof makeTranslation;
     static makeRotation: typeof makeRotation;
+    static makeRotationAxis: typeof makeRotationAxis;
     static makeScale: typeof makeScale;
+    static makeScaleAxis: typeof makeScaleAxis;
     static makeTranslationRotationScale: typeof makeTranslationRotationScale;
     static makeTranslationRotationScaleOrigin: typeof makeTranslationRotationScaleOrigin;
     static makeTranslationRotationScaleOriginPivot: typeof makeTranslationRotationScaleOriginPivot;

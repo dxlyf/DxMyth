@@ -1,7 +1,5 @@
 import { InterpolationModes } from '../../constants.js';
 import { KeyframeTrack } from '../KeyframeTrack.js';
-
-
 /**
  * A track for Quaternion keyframe values.
  */

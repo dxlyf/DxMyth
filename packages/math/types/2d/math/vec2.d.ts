@@ -108,8 +108,8 @@ declare function perpendicular<T extends Vector2Like = Vector2Like>(out: T, a: V
  * o=a-k*n
  * o=-o
  * @param out 输出向量，用于存储反射后的结果
- * @param a 输入向量
- * @param n 法向量
+ * @param a 输入向量 从外部指向表面
+ * @param n 法向量 从表面指向外部
  * @returns 返回输出向量 out
  */
 declare function reflect<T extends Vector2Like = Vector2Like>(out: T, a: Vector2Like, n: Vector2Like): T;

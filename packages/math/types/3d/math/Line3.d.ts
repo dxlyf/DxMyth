@@ -1,7 +1,5 @@
 import { Matrix4 } from './Matrix4.js';
 import { Vector3 } from './Vector3.js';
-
-
 export class Line3 {
     constructor(start?: Vector3, end?: Vector3);
 

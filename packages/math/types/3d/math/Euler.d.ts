@@ -1,8 +1,6 @@
 import { Matrix4 } from './Matrix4.js';
 import { Quaternion } from './Quaternion.js';
 import { Vector3 } from './Vector3.js';
-
-
 export type EulerOrder = "XYZ" | "YXZ" | "ZXY" | "ZYX" | "YZX" | "XZY";
 
 export type EulerTuple = [x: number, y: number, z: number, order?: EulerOrder];
