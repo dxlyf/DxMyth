@@ -1,5 +1,5 @@
 import { DOMAdapter } from '../../../../environment/adapter';
-import { ExtensionType } from '../../../../extensions/Extensions';
+import { extensions, ExtensionType } from '../../../../extensions/Extensions';
 import { GCManagedHash } from '../../../../utils/data/GCManagedHash';
 import { Texture } from '../../shared/texture/Texture';
 import { GlTexture } from './GlTexture';
@@ -41,6 +41,14 @@ export class GlTextureSystem implements System, CanvasGenerator
         ],
         name: 'texture',
     } as const;
+
+    /**
+     * Optional uploaders registered via {@link ExtensionType.TextureUploaderWebGL}. Each entry is
+     * merged into {@link _uploads} at construction time, so import order matters: register the
+     * extension before creating the renderer.
+     * @internal
+     */
+    public static readonly uploadExtensions: Record<string, GLTextureUploader> = Object.create(null);
 
     private readonly _renderer: WebGLRenderer;
     private readonly _managedTextures: GCManagedHash<TextureSource>;
@@ -86,6 +94,7 @@ export class GlTextureSystem implements System, CanvasGenerator
             buffer: glUploadBufferImageResource,
             video: glUploadVideoResource,
             compressed: glUploadCompressedTextureResource,
+            ...GlTextureSystem.uploadExtensions,
         };
 
         this._uploads = {
@@ -239,12 +248,6 @@ export class GlTextureSystem implements System, CanvasGenerator
         {
             // eslint-disable-next-line max-len
             throw new Error(`Unsupported view dimension: ${source.viewDimension} with this webgl version: ${this._renderer.context.webGLVersion}`);
-        }
-
-        // Cube textures use a different GL target.
-        if (source.uploadMethodId === 'cube')
-        {
-            glTexture.target = gl.TEXTURE_CUBE_MAP;
         }
 
         if (source.autoGenerateMipmaps && (this._renderer.context.supports.nonPowOf2mipmaps || source.isPowerOfTwo))
@@ -424,7 +427,7 @@ export class GlTextureSystem implements System, CanvasGenerator
             throw new Error('[GlTextureSystem] TEXTURE_2D_ARRAY requires WebGL2.');
         }
 
-        const gl2 = this._gl as WebGL2RenderingContext;
+        const gl2 = this._gl;
         const depth = Math.max(source.arrayLayerCount | 0, 1);
 
         // Level 0
@@ -523,7 +526,11 @@ export class GlTextureSystem implements System, CanvasGenerator
     {
         if (this._renderer.context.webGLVersion !== 2) return;
 
-        const gl = this._gl as WebGL2RenderingContext;
+        // Skip for single-mip textures: setting MAX_LEVEL=0 triggers an ANGLE Metal bug
+        // on iOS 18.0–18.1 (https://github.com/pixijs/pixijs/issues/11984).
+        if (source.mipLevelCount <= 1) return;
+
+        const gl = this._gl;
         const maxLevel = Math.max((source.mipLevelCount | 0) - 1, 0);
 
         gl.texParameteri(glTexture.target, gl.TEXTURE_BASE_LEVEL, 0);
@@ -602,7 +609,7 @@ export class GlTextureSystem implements System, CanvasGenerator
 
         const gl = renderer.gl;
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, glRenterTarget.resolveTargetFramebuffer);
+        renderer.renderTarget.adaptor.bindFramebuffer(glRenterTarget.resolveTargetFramebuffer);
 
         gl.readPixels(
             Math.round(frame.x * resolution),
@@ -653,4 +660,6 @@ export class GlTextureSystem implements System, CanvasGenerator
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this._premultiplyAlpha);
     }
 }
+
+extensions.handleByMap(ExtensionType.TextureUploaderWebGL, GlTextureSystem.uploadExtensions);
 

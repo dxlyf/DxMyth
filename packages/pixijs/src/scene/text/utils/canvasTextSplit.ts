@@ -60,7 +60,11 @@ function groupTextSegments(
         const isNewline = isNewlineCharacter(segment);
         const isSpaceAtStart = matchedLine.length === 0 && isWhitespace;
 
-        if (isWhitespace && !isNewline && isSpaceAtStart)
+        // Skip leading whitespace only when the measured line itself doesn't start
+        // with it (e.g. wordWrap stripped spaces at a wrap boundary). When the line
+        // legitimately begins with whitespace, keep it so matchedLine can reach the
+        // measured line length.
+        if (isWhitespace && !isNewline && isSpaceAtStart && (!currentLine || !currentLine.startsWith(segment)))
         {
             return;
         }
@@ -118,11 +122,6 @@ export function canvasTextSplit(
 
     const alignment = textStyle.align;
     const maxLineWidth = measuredText.lineWidths.reduce((max, line) => Math.max(max, line), 0);
-    const isSingleLine = measuredText.lines.length === 1;
-    // For single-line text, alignment has no effect (nothing to align relative to)
-    // Multi-line text uses wordWrapWidth when word wrap is enabled
-    const useWordWrapWidth = !isSingleLine && textStyle.wordWrap;
-    const alignWidth = useWordWrapWidth ? Math.max(textStyle.wordWrapWidth, maxLineWidth) : maxLineWidth;
 
     // Check if fill or stroke contains a gradient that needs offset/bounds
     const fillGradient = textStyle._fill?.fill;
@@ -185,7 +184,7 @@ export function canvasTextSplit(
         lineContainers.push(lineContainer);
 
         const lineWidth = measuredText.lineWidths[lineIndex];
-        let xOffset = getAlignmentOffset(alignment, lineWidth, alignWidth);
+        let xOffset = getAlignmentOffset(alignment, lineWidth, maxLineWidth);
 
         let currentWordContainer = new Container({ label: 'word' });
 
@@ -287,7 +286,7 @@ export function canvasTextSplit(
 
             if (wordGaps > 0)
             {
-                const extraPerGap = (alignWidth - lineWidth) / wordGaps;
+                const extraPerGap = (maxLineWidth - lineWidth) / wordGaps;
 
                 for (let i = 1; i < lineWords.length; i++)
                 {
@@ -312,9 +311,6 @@ function canvasTaggedTextSplitFromRuns(
     const { runsByLine } = measuredText;
     const alignment = textStyle.align;
     const maxLineWidth = measuredText.lineWidths.reduce((max, line) => Math.max(max, line), 0);
-    const isSingleLine = measuredText.lines.length === 1;
-    const useWordWrapWidth = !isSingleLine && textStyle.wordWrap;
-    const alignWidth = useWordWrapWidth ? Math.max(textStyle.wordWrapWidth, maxLineWidth) : maxLineWidth;
 
     let trimOffsetX = 0;
     let trimOffsetY = 0;
@@ -346,7 +342,7 @@ function canvasTaggedTextSplitFromRuns(
         lineContainers.push(lineContainer);
 
         const lineWidth = measuredText.lineWidths[lineIndex];
-        let xOffset = getAlignmentOffset(alignment, lineWidth, alignWidth);
+        let xOffset = getAlignmentOffset(alignment, lineWidth, maxLineWidth);
 
         let currentWordContainer = new Container({ label: 'word' });
 
@@ -372,6 +368,14 @@ function canvasTaggedTextSplitFromRuns(
             baseRunStyle.wordWrap = false;
             if (baseRunStyle.trim) baseRunStyle.trim = false;
             baseRunStyle.tagStyles = undefined;
+
+            // Override lineHeight so that individual character Text objects don't apply
+            // linePositionYShift internally. The line container's yOffset already accounts
+            // for lineHeight from the tagged text measurement.
+            // Write to the private field directly to avoid triggering a style update tick.
+            // This mirrors the approach used in BitmapFontManager for bitmap text.
+            // eslint-disable-next-line dot-notation
+            baseRunStyle['_lineHeight'] = 0;
 
             // Use remaining-width technique for kerning-aware character positioning
             const context = CanvasTextMetrics._context;
@@ -473,7 +477,7 @@ function canvasTaggedTextSplitFromRuns(
 
             if (wordGaps > 0)
             {
-                const extraPerGap = (alignWidth - lineWidth) / wordGaps;
+                const extraPerGap = (maxLineWidth - lineWidth) / wordGaps;
 
                 for (let i = 1; i < lineWords.length; i++)
                 {

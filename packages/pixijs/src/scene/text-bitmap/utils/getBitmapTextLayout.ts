@@ -227,7 +227,7 @@ export function getBitmapTextLayout(
 
                 nextWord(currentWord);
 
-                if (!isEnd)
+                if (!isEnd && charData)
                 {
                     currentLine.charPositions.push(0);
                 }
@@ -238,7 +238,7 @@ export function getBitmapTextLayout(
 
                 nextWord(currentWord);
 
-                if (!isEnd)
+                if (!isEnd && charData)
                 {
                     currentLine.charPositions.push(0);
                 }
@@ -302,11 +302,6 @@ export function getBitmapTextLayout(
     }
 
     nextLine();
-
-    if (style.wordWrap && style.align !== 'left')
-    {
-        layoutData.width = Math.max(layoutData.width, adjustedWordWrapWidth);
-    }
 
     if (style.align === 'center')
     {

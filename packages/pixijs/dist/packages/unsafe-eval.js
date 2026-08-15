@@ -1,6 +1,6 @@
 /*!
- * PixiJS - v8.17.1
- * Compiled Sun, 22 Mar 2026 12:39:12 UTC
+ * PixiJS - v8.19.0
+ * Compiled Fri, 14 Aug 2026 15:14:18 UTC
  *
  * PixiJS is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license
@@ -422,6 +422,7 @@ var unsafe_eval_js = (function (exports) {
 
 
 
+
     function generateShaderSyncPolyfill() {
       return syncShader;
     }
@@ -449,7 +450,7 @@ var unsafe_eval_js = (function (exports) {
               shader._uniformBindMap[i][j],
               syncData.blockIndex++
             );
-          } else if (resource instanceof PIXI.TextureSource) {
+          } else if (resource instanceof PIXI.TextureSource || resource instanceof PIXI.TextureView) {
             renderer.texture.bind(resource, syncData.textureCount);
             const uniformName = shader._uniformBindMap[i][j];
             const uniformData = programData.uniformData[uniformName];
