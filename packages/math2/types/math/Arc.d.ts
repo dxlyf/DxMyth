@@ -131,7 +131,7 @@ export interface CubicBezierPoints {
  * @param startAngle 起始角（弧度）
  * @param deltaAngle 角度跨度（弧度），正值逆时针
  */
-export declare function arcToCubic(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, startAngle: number, deltaAngle: number): CubicBezierPoints;
+export declare function ellipticalArcToCubicBezier(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, startAngle: number, deltaAngle: number): CubicBezierPoints;
 /**
  * 将椭圆（或椭圆弧）近似为多段三次贝塞尔曲线。
  *

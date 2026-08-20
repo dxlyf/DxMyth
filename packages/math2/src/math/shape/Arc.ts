@@ -6,7 +6,7 @@
 // ============================================================
 
 import { BoundingRect } from '../BoundingRect'
-import { Geometry, PointOut, distPointToSegmentSquared, normalizeAnglePositive, angleDelta } from './Geometry'
+import { Geometry, PointOut, distPointToSegmentSquared, normalizeAnglePositive, angleDelta, arcSegmentCount } from './Geometry'
 
 export class Arc extends Geometry {
     cx: number
@@ -181,6 +181,30 @@ export class Arc extends Geometry {
             ? Math.abs(distC - r)
             : Math.sqrt(minD2)
         return this.contains(x, y) ? dist : -dist
+    }
+
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        const { cx, cy, radius } = this
+        // 扇形边界：圆心 → 起点 → 弧 → 终点（末边终点→圆心隐式闭合）
+        r.push({ x: cx, y: cy })
+        r.push({
+            x: cx + radius * Math.cos(this.startAngle),
+            y: cy + radius * Math.sin(this.startAngle)
+        })
+        const sweep = this.sweep()
+        const n = arcSegmentCount(radius, sweep)
+        const dir = this.ccw ? 1 : -1
+        for (let i = 1; i < n; i++) {
+            const a = this.startAngle + dir * (sweep * i) / n
+            r.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) })
+        }
+        r.push({
+            x: cx + radius * Math.cos(this.endAngle),
+            y: cy + radius * Math.sin(this.endAngle)
+        })
+        return r
     }
 
     bounds(out?: BoundingRect): BoundingRect {

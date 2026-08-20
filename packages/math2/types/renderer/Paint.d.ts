@@ -1,15 +1,8 @@
+import { Pattern } from '../math/Pattern';
 import { ColorLike } from '../math/Color';
-import { PaintShader } from './PaintShader';
-export declare enum StrokeCap {
-    Butt = 0,
-    Round = 1,
-    Square = 2
-}
-export declare enum StrokeJoin {
-    Miter = 0,
-    Round = 1,
-    Bevel = 2
-}
+import { Gradient } from '../math/Gradient';
+export type StrokeCap = 'butt' | 'round' | 'square';
+export type StrokeJoin = 'miter' | 'round' | 'bevel';
 /** 绘制样式：填充 / 描边 / 两者 */
 export declare enum PaintStyle {
     Fill = 0,
@@ -80,8 +73,8 @@ export declare class Paint {
     antiAlias: boolean;
     /** 混合模式 */
     blendMode: BlendMode;
-    /** shader（渐变/图案/纯色），优先级高于 color。类似 Skia 的 setShader */
-    shader: PaintShader | null;
+    pattern: Pattern | null;
+    gradient: Gradient | null;
     /** 虚线间隔数组（如 [5, 3] 表示 5px 实线 + 3px 空白），null 表示实线 */
     dashIntervals: number[] | null;
     /** 虚线偏移（相位） */

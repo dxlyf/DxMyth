@@ -13,8 +13,8 @@ export declare const isFinite: (v: number) => boolean;
 export declare const interpolate: (a: number, b: number, t: number) => number;
 export declare const random: (min: number, max: number) => number;
 export declare const clamp: (value: number, min: number, max: number) => number;
-export declare const smoothStep: (t: number) => number;
-export declare const mix: (value: number, start: number, end: number) => number;
+export declare const smoothStep: (start: number, end: number, value: number) => number;
+export declare const mix: (start: number, end: number, value: number) => number;
 /**
  * 计算阶乘，使用缓存优化性能
  */

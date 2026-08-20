@@ -33,5 +33,6 @@ export declare class RoundRect extends Geometry {
      *   4. 若在内十字区域：min 到四条直边的距离
      */
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

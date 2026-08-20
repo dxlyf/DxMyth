@@ -18,10 +18,14 @@ export declare class Ellipse extends Geometry {
     contains(x: number, y: number): boolean;
     containsInclusive(x: number, y: number): boolean;
     /**
-     * 径向近似带符号距离
-     * 思路：射线 (cx, cy) -> (x, y) 与椭圆边界交点距中心为 r_b，
-     *       点距中心为 r_p，带符号距离 ≈ r_b - r_p（正为内）
+     * 精确带符号距离（数值法）
+     * 思路：椭圆点 q(θ) = (cx + a·cosθ, cy + b·sinθ)，最小化 |p - q(θ)|²。
+     *       对 θ 求导令 f(θ)=0，用牛顿迭代求最近点对应的参数角 θ*，
+     *       距离 = |p - q(θ*)|。初值取径向近似点对应的角 atan2(a·dy, b·dx)，
+     *       通常 3~6 次迭代即可收敛到双精度精度。
+     * 约定：内部为正、外部为负（与 Triangle 等一致）
      */
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

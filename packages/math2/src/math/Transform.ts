@@ -14,13 +14,13 @@ import { Matrix2D, type Matrix2DLike } from './Matrix2D'
 import { type Vector2Like } from './Vector2'
 import { Point } from './Point'
 import { degToRad, radToDeg } from './MathUtils'
-export type TransformProps={
-    position?:Vector2Like
-    rotation?:number
-    scale?:Vector2Like
-    skew?:Vector2Like
-    origin?:Vector2Like
-    pivot?:Vector2Like
+export type TransformProps = {
+    position?: Vector2Like
+    rotation?: number
+    scale?: Vector2Like
+    skew?: Vector2Like
+    origin?: Vector2Like
+    pivot?: Vector2Like
 }
 export class Transform {
     // ---- 内部存储 ----
@@ -30,7 +30,7 @@ export class Transform {
     private _rotation: number = 0
     public skew: Point
     public origin: Point
-    public pivot:Point
+    public pivot: Point
 
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
     private _parent: Transform | null = null
@@ -40,35 +40,27 @@ export class Transform {
     private _matrix: Matrix2D = Matrix2D.identity()
     private _worldMatrix: Matrix2D = Matrix2D.identity()
     private _worldMatrixInvert: Matrix2D = Matrix2D.identity()
-    private _worldScale:number=1
+    private _worldScale: number = 1
 
     // ---- 版本追踪 ----
 
     /** 当前局部属性版本（Point onChange 或 rotation setter 自动递增） */
-    private _localVersion: number = 0
+    private _localMatrixDirty: boolean = true
+    private _worldMatrixDirty: boolean = true
 
-    /** 上次计算 _matrix 时的 _localVersion */
-    private _lastLocalVersion: number = -1
-
-    /** 上次计算 _worldMatrix 时的 _localVersion */
-    private _lastWorldLocalVersion: number = -1
-    private _worldLocalVersion: number = -1
-    /** 上次计算 _worldMatrix 时 parent.worldVersion 的值 */
-    private _lastParentWorldVersion: number = -1
-
-    /** 上次计算 _worldMatrixInvert 时的 _localVersion */
-    private _lastInvertLocalVersion: number = -1
+    private _worldVersion: number = 0
+    private _parentWorldVersion: number = -1
 
     /** 变化回调 */
     private _onChange: (() => void) | null = null
 
-    constructor(options:TransformProps={}) {
-        this.updateTransform=this.updateTransform.bind(this)
-        this.position =Point.fromPoint(options.position??{x:0,y:0}).onChange(this.updateTransform)
-        this.scale =Point.fromPoint(options.scale??{x:1,y:1}).onChange(this.updateTransform)
-        this.skew = Point.fromPoint(options.skew??{x:0,y:0}).onChange(this.updateTransform)
-        this.origin =Point.fromPoint(options.origin??{x:0,y:0}).onChange(this.updateTransform)
-        this.pivot =Point.fromPoint(options.pivot??{x:0,y:0}).onChange(this.updateTransform)
+    constructor(options: TransformProps = {}) {
+        this.updateTransform = this.updateTransform.bind(this)
+        this.position = Point.fromPoint(options.position ?? { x: 0, y: 0 }).onChange(this.updateTransform)
+        this.scale = Point.fromPoint(options.scale ?? { x: 1, y: 1 }).onChange(this.updateTransform)
+        this.skew = Point.fromPoint(options.skew ?? { x: 0, y: 0 }).onChange(this.updateTransform)
+        this.origin = Point.fromPoint(options.origin ?? { x: 0, y: 0 }).onChange(this.updateTransform)
+        this.pivot = Point.fromPoint(options.pivot ?? { x: 0, y: 0 }).onChange(this.updateTransform)
     }
 
     // ==================== 访问器 ====================
@@ -82,11 +74,11 @@ export class Transform {
             this.updateTransform()
         }
     }
-    get angle(){
+    get angle() {
         return radToDeg(this._rotation)
     }
-    set angle(v:number){
-        this.rotation=degToRad(v)
+    set angle(v: number) {
+        this.rotation = degToRad(v)
     }
 
 
@@ -106,75 +98,44 @@ export class Transform {
     set parent(v: Transform | null) {
         if (this._parent !== v) {
             this._parent = v
-            this._forceWorldUpdate()
+            this.updateTransform()
         }
     }
 
 
     /** 局部变换矩阵（只读，懒计算） */
     get matrix(): Matrix2D {
-        if (this._isLocalDirty()) {
-            this._updateLocalMatrix()
-        }
+        this.updateMatrix()
         return this._matrix
     }
     /** 获取世界矩阵的全局缩放系数 */
     get worldScale(): number {
-        this.worldMatrix
+        this.updateWorldMatrix()
         return this._worldScale
     }
     /** 世界变换矩阵（只读，懒计算，自动跟随 parent 链） */
     get worldMatrix(): Matrix2D {
-        if (this._needsWorldUpdate()) {
-            this._updateWorldMatrix()
-        }
+        this.updateWorldMatrix()
         return this._worldMatrix
     }
 
     /** 世界变换矩阵的逆（只读，懒计算） */
     get worldMatrixInvert(): Matrix2D {
-        // 先访问 worldMatrix 触发所有懒更新（含父级链）
-        const wm = this.worldMatrix
-        // 逆矩阵的版本号与世界矩阵版本一致则无需重算
-        if (this._lastInvertLocalVersion !== this._worldLocalVersion) {
-            Matrix2D.invert(this._worldMatrixInvert, wm)
-            this._lastInvertLocalVersion = this._worldLocalVersion
-        }
+        this.updateWorldMatrix()
         return this._worldMatrixInvert
     }
 
-    // ==================== 脏标记检查 ====================
-
-    /** 本地矩阵是否需要重算 */
-    private _isLocalDirty(): boolean {
-        return this._localVersion !== this._lastLocalVersion
-    }
-
     /** 本地版本是否变化（触发 world 重算） */
-    private _needsWorldUpdate(): boolean {
-        if (this._lastWorldLocalVersion !== this._localVersion) return true
-        if (this._parent && this._parentWorldVersionChanged()) return true
-        return false
+    _needsWorldUpdate(): boolean {
+        if(this._parent){
+            return this._worldMatrixDirty||this._parent._worldVersion !== this._parentWorldVersion||this._parent._needsWorldUpdate()
+        }
+        return this._worldMatrixDirty
     }
-
-    /**
-     * 父级世界矩阵是否自上次计算后发生了变化。
-     * 先访问 parent.worldMatrix 触发祖孙链的懒更新，
-     * 确保 parent.worldVersion 已反映所有祖先的变更。
-     */
-    private _parentWorldVersionChanged(): boolean {
-        if (this._parent === null) return false
-        // 触发 parent 递归更新（若 parent 的父级链有变化也会一并处理）
-        void (this._parent.worldMatrix)
-        return this._parent._worldLocalVersion !== this._lastParentWorldVersion
-    }
-
-    // ==================== 矩阵计算 ====================
-
-    /**
-     * M_local = T(position) · Sk(skew) · S(scale) · R(rotation) · T(-origin)
-     */
-    private _updateLocalMatrix(): void {
+    public updateMatrix(force: boolean = false): void {
+        if (!force && !this._localMatrixDirty) {
+            return
+        }
         Matrix2D.fromTranslationRotationSkewScaleOriginPivot(
             this._matrix,
             this.position,
@@ -184,7 +145,8 @@ export class Transform {
             this.origin,
             this.pivot
         )
-        this._lastLocalVersion = this._localVersion
+        this._localMatrixDirty = false
+        this._worldMatrixDirty = true
     }
 
     /**
@@ -193,20 +155,21 @@ export class Transform {
      * 无 parent: M_world = M_local
      * 有 parent: M_world = M_parent · M_local
      */
-    private _updateWorldMatrix(): void {
-        if (this._isLocalDirty()) {
-            this._updateLocalMatrix()
+    public updateWorldMatrix(force=false): void {
+        if (!force&&!this._needsWorldUpdate()) {
+            return
         }
-
+         this.updateMatrix()
         if (this._parent) {
             Matrix2D.multiply(this._worldMatrix, this._parent.worldMatrix, this._matrix)
-            this._lastParentWorldVersion = this._parent._worldLocalVersion
+            this._parentWorldVersion = this._parent._worldVersion
         } else {
             this._worldMatrix.copy(this._matrix)
         }
-        this._worldScale =this._worldMatrix.getScale()
-        this._lastWorldLocalVersion=this._localVersion
-        this._worldLocalVersion++
+        this._worldMatrixInvert.copy(this._worldMatrix).invert()
+        this._worldScale = this._worldMatrix.getScale()
+        this._worldVersion++
+        this._worldMatrixDirty = false
     }
 
     // ==================== 公开方法 ====================
@@ -216,7 +179,8 @@ export class Transform {
      * 适用于批量设置多个属性后仅触发一次重算的场景。
      */
     updateTransform(): void {
-        this._localVersion++
+        this._localMatrixDirty = true
+        this._worldMatrixDirty = true
         this._onChange?.()
     }
 
@@ -234,7 +198,7 @@ export class Transform {
      * result = M_world⁻¹ · point
      */
     worldToLocal<T extends Vector2Like>(point: Vector2Like, out: T): T {
-        const [ a, b, c, d, tx, ty ] = this.worldMatrixInvert
+        const [a, b, c, d, tx, ty] = this.worldMatrixInvert
         out.x = a * point.x + c * point.y + tx
         out.y = b * point.x + d * point.y + ty
         return out
@@ -253,13 +217,13 @@ export class Transform {
 
 
     decompose(matrix: Matrix2DLike): void {
-        Matrix2D.decomposeTransform(matrix,this)
+        Matrix2D.decomposeTransform(matrix, this)
     }
 
     // ---- 便捷设置（批量操作仅触发一次版本变更） ----
 
     /** 批量设置变换属性 */
-    setTransform(options:TransformProps): this {
+    setTransform(options: TransformProps): this {
         if (options.position) this.position.copy(options.position)
         if (options.scale) this.scale.copy(options.scale)
         if (options.rotation !== undefined) this.rotation = options.rotation
@@ -278,13 +242,5 @@ export class Transform {
         this.origin.copy(other.origin)
         this.pivot.copy(other.pivot)
         return this
-    }
-
-    // ---- 受保护的内部方法（供子类或同包使用） ----
-
-    /** 清除世界矩阵缓存版本，强制下次 get 时重算（即使 local 未变） */
-    protected _forceWorldUpdate(): void {
-        this._lastWorldLocalVersion = -1
-        this._lastInvertLocalVersion = -1
     }
 }

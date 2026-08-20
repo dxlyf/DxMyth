@@ -1,16 +1,9 @@
+import { Pattern } from 'src/math/Pattern'
 import { Color, ColorLike } from '../math/Color'
-import { PaintShader } from './PaintShader'
+import { Gradient } from 'src/math/Gradient'
 
-export enum StrokeCap {
-    Butt,
-    Round,
-    Square,
-}
-export enum StrokeJoin {
-    Miter,
-    Round,
-    Bevel,
-}
+export type StrokeCap='butt'|'round'|'square'
+export type StrokeJoin='miter'|'round'|'bevel'
 // ============================================================
 // Paint — 通用绘制样式存储类，参考 Skia Paint 设计
 // 集中管理颜色、描边、填充、混合模式等绘制属性
@@ -99,8 +92,9 @@ export class Paint {
     /** 混合模式 */
     blendMode: BlendMode
 
-    /** shader（渐变/图案/纯色），优先级高于 color。类似 Skia 的 setShader */
-    shader: PaintShader | null
+    
+    pattern: Pattern | null
+    gradient:Gradient | null 
 
     // ---- 虚线 ----
 
@@ -114,13 +108,14 @@ export class Paint {
         this.color = new Color(0, 0, 0, 1)
         this.style = PaintStyle.Fill
         this.strokeWidth = 1
-        this.strokeCap = StrokeCap.Butt
-        this.strokeJoin = StrokeJoin.Miter
+        this.strokeCap = 'butt'
+        this.strokeJoin = 'miter'
         this.strokeMiter = 10
         this.alpha = 1
         this.antiAlias = true
         this.blendMode = BlendMode.SourceOver
-        this.shader = null
+        this.pattern = null
+        this.gradient = null
         this.dashIntervals = null
         this.dashOffset = 0
     }
@@ -139,7 +134,8 @@ export class Paint {
         this.alpha=target.alpha
         this.antiAlias=target.antiAlias
         this.blendMode=target.blendMode
-        this.shader=target.shader
+        this.pattern=target.pattern?target.pattern.clone():null
+        this.gradient=target.gradient?target.gradient.clone():null
         this.dashIntervals=target.dashIntervals?target.dashIntervals.slice():null
         this.dashOffset=target.dashOffset
 

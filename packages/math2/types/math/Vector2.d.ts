@@ -86,6 +86,7 @@ export declare class Vector2 implements Vector2Like {
     static segmentIntersection(a1: Vector2Like, a2: Vector2Like, b1: Vector2Like, b2: Vector2Like): Vector2Like | null;
     x: number;
     y: number;
+    isVector2: boolean;
     constructor(x?: number, y?: number);
     set(x: number, y: number): this;
     copy(v: Vector2Like): this;

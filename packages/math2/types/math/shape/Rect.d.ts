@@ -16,5 +16,6 @@ export declare class Rect extends Geometry {
     /** 点在矩形内（含边界） */
     containsInclusive(x: number, y: number): boolean;
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

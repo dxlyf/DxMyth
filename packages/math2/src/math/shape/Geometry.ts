@@ -45,6 +45,13 @@ export abstract class Geometry {
     /** 轴对齐包围盒（就地写入 out，避免分配） */
     abstract bounds(out?: BoundingRect): BoundingRect
 
+    /**
+     * 将边界细分为折线段顶点，写入 out 并返回
+     * - 直线图形直接输出顶点；曲线/圆弧按弦高误差自适应细分
+     * - 闭合图形不重复首尾点（末边由首尾隐式闭合）
+     */
+    abstract getPoints(out?: PointOut[]): PointOut[]
+
     /** 点是否在边界上（epsilon 容差，无宽度） */
     isPointOnBoundary(x: number, y: number, epsilon: number = EPS): boolean {
         return Math.abs(this.signedDistance(x, y)) <= epsilon
@@ -152,6 +159,19 @@ export function signedDistPointToLine(
     // 法线方向（左侧为正）：(-aby, abx)
     const sign = (abx * apy - aby * apx) >= 0 ? 1 : -1
     return sign * Math.sqrt(dx * dx + dy * dy)
+}
+
+/**
+ * 圆弧细分为折线所需段数
+ * 弦高误差 ≤ tolerance（默认 0.25），段数 = ceil(sweep / (2·acos(1 - tol/r)))
+ * sweep ≤ 0 或 radius ≤ 0 时返回 0（无细分段）
+ */
+export function arcSegmentCount(radius: number, sweep: number, tolerance: number = 0.25): number {
+    if (sweep <= 0 || radius <= 0) return 0
+    const ratio = tolerance / radius
+    // 半径过小时 tolerance/r ≥ 1，acos 参数裁剪到 [-1, 1]
+    const maxStep = 2 * Math.acos(Math.max(-1, Math.min(1, 1 - ratio)))
+    return Math.max(1, Math.ceil(sweep / maxStep))
 }
 
 /** 角度归一化到 [0, 2π) */

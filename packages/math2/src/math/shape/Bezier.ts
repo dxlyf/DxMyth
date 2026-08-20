@@ -8,8 +8,11 @@
 // ============================================================
 
 import { BoundingRect } from '../BoundingRect'
-import { Geometry, PointOut } from './Geometry'
+import { Geometry, PointOut, distPointToSegmentSquared } from './Geometry'
 import { solveCubicByCardano } from '../MathUtils'
+
+/** 展平容差（弦高误差） */
+const FLATTEN_TOL = 0.25
 
 export type BezierType = 'quadratic' | 'cubic'
 
@@ -271,6 +274,70 @@ export class Bezier extends Geometry {
             r.y = 6 * (u * (p[5] - 2 * p[3] + p[1]) + t * (p[7] - 2 * p[5] + p[3]))
         }
         return r
+    }
+
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        const p = this.points
+        if (p.length < 6) return r
+        r.push({ x: p[0], y: p[1] })
+        const tol2 = FLATTEN_TOL * FLATTEN_TOL
+        if (this.type === 'quadratic') {
+            this._flattenQuadratic(r, tol2, p[0], p[1], p[2], p[3], p[4], p[5])
+        } else {
+            this._flattenCubic(r, tol2, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])
+        }
+        return r
+    }
+
+    /**
+     * 递归展平二次贝塞尔：控制点 P1 到弦 P0P2 距离 ≤ tol 时终止，否则 de Casteljau 对半分
+     */
+    private _flattenQuadratic(
+        out: PointOut[], tol2: number,
+        x0: number, y0: number,
+        x1: number, y1: number,
+        x2: number, y2: number,
+        depth: number = 0
+    ): void {
+        const d2 = distPointToSegmentSquared(x1, y1, x0, y0, x2, y2)
+        if (d2 <= tol2 || depth >= 16) {
+            out.push({ x: x2, y: y2 })
+            return
+        }
+        const mx0 = (x0 + x1) * 0.5, my0 = (y0 + y1) * 0.5
+        const mx1 = (x1 + x2) * 0.5, my1 = (y1 + y2) * 0.5
+        const mx = (mx0 + mx1) * 0.5, my = (my0 + my1) * 0.5
+        this._flattenQuadratic(out, tol2, x0, y0, mx0, my0, mx, my, depth + 1)
+        this._flattenQuadratic(out, tol2, mx, my, mx1, my1, x2, y2, depth + 1)
+    }
+
+    /**
+     * 递归展平三次贝塞尔：P1、P2 到弦 P0P3 距离均 ≤ tol 时终止，否则 de Casteljau 对半分
+     */
+    private _flattenCubic(
+        out: PointOut[], tol2: number,
+        x0: number, y0: number,
+        x1: number, y1: number,
+        x2: number, y2: number,
+        x3: number, y3: number,
+        depth: number = 0
+    ): void {
+        const d1 = distPointToSegmentSquared(x1, y1, x0, y0, x3, y3)
+        const d2 = distPointToSegmentSquared(x2, y2, x0, y0, x3, y3)
+        if ((d1 <= tol2 && d2 <= tol2) || depth >= 16) {
+            out.push({ x: x3, y: y3 })
+            return
+        }
+        const ax = (x0 + x1) * 0.5, ay = (y0 + y1) * 0.5
+        const bx = (x1 + x2) * 0.5, by = (y1 + y2) * 0.5
+        const cx = (x2 + x3) * 0.5, cy = (y2 + y3) * 0.5
+        const dx = (ax + bx) * 0.5, dy = (ay + by) * 0.5
+        const ex = (bx + cx) * 0.5, ey = (by + cy) * 0.5
+        const fx = (dx + ex) * 0.5, fy = (dy + ey) * 0.5
+        this._flattenCubic(out, tol2, x0, y0, ax, ay, dx, dy, fx, fy, depth + 1)
+        this._flattenCubic(out, tol2, fx, fy, ex, ey, cx, cy, x3, y3, depth + 1)
     }
 
     bounds(out?: BoundingRect): BoundingRect {

@@ -99,6 +99,17 @@ export class Triangle extends Geometry {
         return this.contains(x, y) ? dist : -dist
     }
 
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        r.push(
+            { x: this.ax, y: this.ay },
+            { x: this.bx, y: this.by },
+            { x: this.cx, y: this.cy }
+        )
+        return r
+    }
+
     bounds(out?: BoundingRect): BoundingRect {
         const r = out || new BoundingRect()
         r.min.set(

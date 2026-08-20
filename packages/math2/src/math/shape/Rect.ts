@@ -70,6 +70,18 @@ export class Rect extends Geometry {
         return -Math.sqrt(cx * cx + cy * cy)
     }
 
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        r.push(
+            { x: this.x, y: this.y },
+            { x: this.right, y: this.y },
+            { x: this.right, y: this.bottom },
+            { x: this.x, y: this.bottom }
+        )
+        return r
+    }
+
     bounds(out?: BoundingRect): BoundingRect {
         const r = out || new BoundingRect()
         r.min.set(this.x, this.y)

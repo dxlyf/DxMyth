@@ -114,6 +114,7 @@ export class ProxyPath2D implements IProxyPath2D {
     // ============ Path2D API ============
 
     addPath(path: ProxyPath2D, transform?: DOMMatrix2DInit): void {
+        this.commandData.push(...path.commandData.map(d=>({...d})))
         this.ctx?.addPath(path.ctx, transform)
     }
     moveTo(x: number, y: number): void {

@@ -42,5 +42,14 @@ export declare class Bezier extends Geometry {
      */
     private _closestCubic;
     private _secondDerivativeAt;
+    getPoints(out?: PointOut[]): PointOut[];
+    /**
+     * 递归展平二次贝塞尔：控制点 P1 到弦 P0P2 距离 ≤ tol 时终止，否则 de Casteljau 对半分
+     */
+    private _flattenQuadratic;
+    /**
+     * 递归展平三次贝塞尔：P1、P2 到弦 P0P3 距离均 ≤ tol 时终止，否则 de Casteljau 对半分
+     */
+    private _flattenCubic;
     bounds(out?: BoundingRect): BoundingRect;
 }

@@ -31,5 +31,6 @@ export declare class Polygon extends Geometry {
      */
     contains(x: number, y: number): boolean;
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

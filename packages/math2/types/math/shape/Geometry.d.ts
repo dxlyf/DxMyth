@@ -24,6 +24,12 @@ export declare abstract class Geometry {
     abstract signedDistance(x: number, y: number): number;
     /** 轴对齐包围盒（就地写入 out，避免分配） */
     abstract bounds(out?: BoundingRect): BoundingRect;
+    /**
+     * 将边界细分为折线段顶点，写入 out 并返回
+     * - 直线图形直接输出顶点；曲线/圆弧按弦高误差自适应细分
+     * - 闭合图形不重复首尾点（末边由首尾隐式闭合）
+     */
+    abstract getPoints(out?: PointOut[]): PointOut[];
     /** 点是否在边界上（epsilon 容差，无宽度） */
     isPointOnBoundary(x: number, y: number, epsilon?: number): boolean;
     /**
@@ -49,6 +55,12 @@ export declare function distPointToSegmentSquared(px: number, py: number, ax: nu
  * 注意：此处符号基于法线方向，与封闭区域的 inside/outside 含义不同
  */
 export declare function signedDistPointToLine(px: number, py: number, ax: number, ay: number, bx: number, by: number): number;
+/**
+ * 圆弧细分为折线所需段数
+ * 弦高误差 ≤ tolerance（默认 0.25），段数 = ceil(sweep / (2·acos(1 - tol/r)))
+ * sweep ≤ 0 或 radius ≤ 0 时返回 0（无细分段）
+ */
+export declare function arcSegmentCount(radius: number, sweep: number, tolerance?: number): number;
 /** 角度归一化到 [0, 2π) */
 export declare function normalizeAnglePositive(a: number): number;
 /** 判断角度 angle 是否在 [start, end]（按 ccw 方向）范围内 */

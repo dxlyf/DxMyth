@@ -21,5 +21,6 @@ export declare class Line extends Geometry {
      * 对开放曲线，inner/outer 描边的语义基于此符号
      */
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

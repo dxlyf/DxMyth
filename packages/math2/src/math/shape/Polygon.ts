@@ -162,6 +162,16 @@ export class Polygon extends Geometry {
         return this.contains(x, y) ? dist : -dist
     }
 
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        const p = this.points
+        for (let i = 0; i < p.length; i += 2) {
+            r.push({ x: p[i], y: p[i + 1] })
+        }
+        return r
+    }
+
     bounds(out?: BoundingRect): BoundingRect {
         const r = out || new BoundingRect()
         const p = this.points

@@ -80,6 +80,13 @@ export class Line extends Geometry {
         return sign * Math.sqrt(dx * dx + dy * dy)
     }
 
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        r.push({ x: this.x1, y: this.y1 }, { x: this.x2, y: this.y2 })
+        return r
+    }
+
     bounds(out?: BoundingRect): BoundingRect {
         const r = out || new BoundingRect()
         r.min.set(Math.min(this.x1, this.x2), Math.min(this.y1, this.y2))

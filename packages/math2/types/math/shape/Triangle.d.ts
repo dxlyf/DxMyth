@@ -29,6 +29,7 @@ export declare class Triangle extends Geometry {
      */
     contains(x: number, y: number): boolean;
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
     /**
      * 计算点 P 相对三角形 ABC 的重心坐标 (u, v, w)

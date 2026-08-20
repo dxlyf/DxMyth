@@ -38,10 +38,11 @@ export const random=(min:number,max:number)=>{
 export const clamp = (value: number, min: number, max: number) => {
     return Math.max(min, Math.min(max, value))
 }
-export const smoothStep = (t: number) => {
-    return t * t * (3 * t - 2)
+export const smoothStep = (start:number,end:number,value:number) => {
+    const t=(value-start)/(end-start)
+    return clamp(t * t * (3 * t - 2),0,1)
 }
-export const mix=(value:number,start:number, end:number)=>{
+export const mix=(start:number, end:number,value:number)=>{
     return clamp((value-start)/(end-start),0,1)
 }
 const factorialCache: number[] = [1, 1]

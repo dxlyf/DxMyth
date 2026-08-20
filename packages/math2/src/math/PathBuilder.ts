@@ -4,7 +4,7 @@ import { getCubicBezierBounds, CubicBezier } from './CubicBezier'
 import { BoundingRect } from './BoundingRect'
 import { normalizeAngles } from './Arc'
 
-import { windCubicBezier, windLine, windQuadraticBezier } from './PathIntersection'
+import { windingCubicBezier, windingLine, windingQuadraticBezier } from './PathIntersection'
 import { Matrix2DLike } from './Matrix2D'
 import { Matrix2D } from './Matrix2D'
 import { fromSvgPath } from './ParseSvgPath'
@@ -109,8 +109,10 @@ export class PathBuilder {
         this.lastMoveIndex = path.lastMoveIndex
         this.needMoveTo = path.needMoveTo
         this.segmentType = path.segmentType
-        this.drity = path.drity
-        this._boundsDirty = path._boundsDirty
+        this.drity = true
+        this._boundsDirty =true
+        this._tightBoundsDirty=true
+
     }
     reset() {
         this.verbs = []
@@ -732,17 +734,17 @@ export class PathBuilder {
         let wind = 0
         this.visit({
             lineTo: (start, end) => {
-                wind += windLine(px, py, start.x, start.y, end.x, end.y)
+                wind += windingLine(px, py, start.x, start.y, end.x, end.y)
             },
             quadraticCurveTo: (p0, p1, p2) => {
-                wind += windQuadraticBezier(px, py,
+                wind += windingQuadraticBezier(px, py,
                     p0,
                     p1,
                     p2,
                 )
             },
             cubicCurveTo: (p0, p1, p2, p3) => {
-                wind += windCubicBezier(px, py,
+                wind += windingCubicBezier(px, py,
                     p0,
                     p1,
                     p2,
@@ -751,7 +753,7 @@ export class PathBuilder {
             },
             close: (lastPoint, movePoint) => {
                 if (!Point.equalsEpsilon(lastPoint, movePoint)) {
-                    wind += windLine(px, py, lastPoint.x, lastPoint.y, movePoint.x, movePoint.y)
+                    wind += windingLine(px, py, lastPoint.x, lastPoint.y, movePoint.x, movePoint.y)
                 }
             },
         })
@@ -941,6 +943,59 @@ export class PathBuilder {
             paths.push(subPath)
         }
         return paths
+    }
+    /**
+     * 将路径拆分为多个子路径（按 MoveTo 分段）
+     * 二次/三次贝塞尔曲线按 epsilon 公差展平为折线
+     *
+     * @param epsilon - 曲线展平公差，默认 0.25
+     * @returns 子路径数组，每项为展平后的点序列及其是否闭合
+     *   - points：子路径的折线点序列
+     *   - closed：是否有 Close 命令（闭合时末点与起点重合）
+     */
+    getSubPaths(epsilon: number = 0.25): { points: PointLike[], closed: boolean }[] {
+        const subPaths: { points: PointLike[], closed: boolean }[] = []
+        let subPath: { points: PointLike[], closed: boolean } | null = null
+        const finish = (closed: boolean) => {
+            if (subPath) {
+                // 闭合路径：末点与起点不重合时补上起点，保证多边形真正闭合
+                if (closed && subPath.points.length > 0
+                    && !Point.equalsEpsilon(subPath.points[subPath.points.length - 1], subPath.points[0])) {
+                    subPath.points.push({ x: subPath.points[0].x, y: subPath.points[0].y })
+                }
+                subPath.closed = closed
+                subPaths.push(subPath)
+                subPath = null
+            }
+        }
+        this.visit({
+            moveTo: (p) => {
+                finish(false)
+                subPath = { points: [{ x: p.x, y: p.y }], closed: false }
+            },
+            lineTo: (start, end) => {
+                subPath?.points.push({ x: end.x, y: end.y })
+            },
+            quadraticCurveTo: (p0, p1, p2) => {
+                const quad = new QuadraticBezier([p0, p1, p2])
+                quad.flatten(epsilon).forEach(p => {
+                    subPath?.points.push({ x: p.x, y: p.y })
+                })
+            },
+            cubicCurveTo: (p0, p1, p2, p3) => {
+                const curve = new CubicBezier([p0, p1, p2, p3])
+                curve.flatten(epsilon).forEach(p => {
+                    subPath?.points.push({ x: p.x, y: p.y })
+                })
+            },
+            close: (lastPoint, movePoint) => {
+                finish(true)
+            }
+        })
+        if (subPath && subPath.points.length > 0) {
+            finish(false)
+        }
+        return subPaths
     }
     fromPolygons(polygons: PointLike[][]) {
         let movePoint = { x: 0, y: 0 }

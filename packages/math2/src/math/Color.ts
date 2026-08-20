@@ -417,7 +417,7 @@ export class Color extends Float32Array {
     // ==================== 静态插值器 ====================
 
     /** RGB 空间线性插值 */
-    static lerp(a: Color, b: Color, t: number, out: Color = new Color()): Color {
+    static lerp(a: ColorLike, b: ColorLike, t: number, out: ColorLike =[]): ColorLike {
         const mt = 1 - t
         out[0] = a[0] * mt + b[0] * t
         out[1] = a[1] * mt + b[1] * t
@@ -427,7 +427,7 @@ export class Color extends Float32Array {
     }
 
     /** HSL 空间插值（色相走最短路径），更适合渐变过渡 */
-    static lerpHSL(a: Color, b: Color, t: number, out: Color = new Color()): Color {
+    static lerpHSL(a: Color, b: Color, t: number, out: Color = new Color()): ColorLike {
         const ha = a.toHSL(), hb = b.toHSL()
         const mt = 1 - t
 

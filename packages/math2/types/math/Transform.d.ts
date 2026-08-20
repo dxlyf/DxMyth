@@ -23,16 +23,10 @@ export declare class Transform {
     private _worldMatrixInvert;
     private _worldScale;
     /** 当前局部属性版本（Point onChange 或 rotation setter 自动递增） */
-    private _localVersion;
-    /** 上次计算 _matrix 时的 _localVersion */
-    private _lastLocalVersion;
-    /** 上次计算 _worldMatrix 时的 _localVersion */
-    private _lastWorldLocalVersion;
-    private _worldLocalVersion;
-    /** 上次计算 _worldMatrix 时 parent.worldVersion 的值 */
-    private _lastParentWorldVersion;
-    /** 上次计算 _worldMatrixInvert 时的 _localVersion */
-    private _lastInvertLocalVersion;
+    private _localMatrixDirty;
+    private _worldMatrixDirty;
+    private _worldVersion;
+    private _parentWorldVersion;
     /** 变化回调 */
     private _onChange;
     constructor(options?: TransformProps);
@@ -56,27 +50,16 @@ export declare class Transform {
     get worldMatrix(): Matrix2D;
     /** 世界变换矩阵的逆（只读，懒计算） */
     get worldMatrixInvert(): Matrix2D;
-    /** 本地矩阵是否需要重算 */
-    private _isLocalDirty;
     /** 本地版本是否变化（触发 world 重算） */
-    private _needsWorldUpdate;
-    /**
-     * 父级世界矩阵是否自上次计算后发生了变化。
-     * 先访问 parent.worldMatrix 触发祖孙链的懒更新，
-     * 确保 parent.worldVersion 已反映所有祖先的变更。
-     */
-    private _parentWorldVersionChanged;
-    /**
-     * M_local = T(position) · Sk(skew) · S(scale) · R(rotation) · T(-origin)
-     */
-    private _updateLocalMatrix;
+    _needsWorldUpdate(): boolean;
+    updateMatrix(force?: boolean): void;
     /**
      * 计算世界变换矩阵。
      *
      * 无 parent: M_world = M_local
      * 有 parent: M_world = M_parent · M_local
      */
-    private _updateWorldMatrix;
+    updateWorldMatrix(force?: boolean): void;
     /**
      * 强制标记为脏，下次访问 matrix/worldMatrix 时会重算。
      * 适用于批量设置多个属性后仅触发一次重算的场景。
@@ -99,6 +82,4 @@ export declare class Transform {
     setTransform(options: TransformProps): this;
     /** 从另一个 Transform 拷贝变换属性 */
     copyFrom(other: Transform): this;
-    /** 清除世界矩阵缓存版本，强制下次 get 时重算（即使 local 未变） */
-    protected _forceWorldUpdate(): void;
 }

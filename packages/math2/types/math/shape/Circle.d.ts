@@ -18,5 +18,6 @@ export declare class Circle extends Geometry {
      * 内部为正，外部为负，使用平方距离比较，避免 sqrt（仅在结果需要时调用）
      */
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

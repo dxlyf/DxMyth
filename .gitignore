@@ -10,3 +10,4 @@ TODOs.md
 dts-build/packages
 *.tsbuildinfo
 *.tgz
+.tmp_check

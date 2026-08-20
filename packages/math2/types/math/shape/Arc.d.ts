@@ -42,5 +42,6 @@ export declare class Arc extends Geometry {
      * 带符号距离（到扇形边界：弧 + 两段半径）
      */
     signedDistance(x: number, y: number): number;
+    getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
 }

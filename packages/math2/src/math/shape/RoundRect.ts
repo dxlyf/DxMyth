@@ -6,7 +6,7 @@
 // ============================================================
 
 import { BoundingRect } from '../BoundingRect'
-import { Geometry, PointOut } from './Geometry'
+import { Geometry, PointOut, arcSegmentCount } from './Geometry'
 
 export class RoundRect extends Geometry {
     x: number
@@ -168,6 +168,50 @@ export class RoundRect extends Geometry {
             // 距离边界 = -(d - r)
             return -(d - r)
         }
+    }
+
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        const { x, y, radius } = this
+        const x2 = x + this.width
+        const y2 = y + this.height
+        // 无圆角：退化为矩形四角
+        if (radius <= 0) {
+            r.push(
+                { x, y },
+                { x: x2, y },
+                { x: x2, y: y2 },
+                { x, y: y2 }
+            )
+            return r
+        }
+        // 顺时针从 (x+r, y) 开始：直边端点 + 四个四分之一圆弧
+        // 顶部圆角圆心 (x+r, y+r)，向右下… 依次为右上/右下/左下/左上
+        const pushArc = (cx: number, cy: number, a0: number, a1: number): void => {
+            const n = arcSegmentCount(radius, Math.PI * 0.5)
+            for (let i = 1; i < n; i++) {
+                const a = a0 + (a1 - a0) * (i / n)
+                r.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) })
+            }
+        }
+        // 上边（左 → 右）
+        r.push({ x: x + radius, y }, { x: x2 - radius, y })
+        // 右上圆角：圆心 (x2-r, y+r)，角度 -π/2 → 0
+        pushArc(x2 - radius, y + radius, -Math.PI * 0.5, 0)
+        // 右边（上 → 下）
+        r.push({ x: x2, y: y2 - radius })
+        // 右下圆角：圆心 (x2-r, y2-r)，角度 0 → π/2
+        pushArc(x2 - radius, y2 - radius, 0, Math.PI * 0.5)
+        // 下边（右 → 左）
+        r.push({ x: x + radius, y: y2 })
+        // 左下圆角：圆心 (x+r, y2-r)，角度 π/2 → π
+        pushArc(x + radius, y2 - radius, Math.PI * 0.5, Math.PI)
+        // 左边（下 → 上）
+        r.push({ x, y: y + radius })
+        // 左上圆角：圆心 (x+r, y+r)，角度 π → 3π/2（闭合回起点）
+        pushArc(x + radius, y + radius, Math.PI, Math.PI * 1.5)
+        return r
     }
 
     bounds(out?: BoundingRect): BoundingRect {

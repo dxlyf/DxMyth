@@ -253,7 +253,7 @@ export interface CubicBezierPoints {
  * @param startAngle 起始角（弧度）
  * @param deltaAngle 角度跨度（弧度），正值逆时针
  */
-export function arcToCubic(
+export function ellipticalArcToCubicBezier(
   cx: number,
   cy: number,
   rx: number,
@@ -349,13 +349,14 @@ export function ellipseToCubics(
 
   let angle = newStartAngle
   for (let i = 0; i < count; i++) {
-    const seg = arcToCubic(cx, cy, rx, ry, xAxisRotation, angle, delta)
+    const seg = ellipticalArcToCubicBezier(cx, cy, rx, ry, xAxisRotation, angle, delta)
     result.push(seg)
     angle += delta
   }
 
   return result
 }
+
 
 /**
  * 计算从向量 u 到向量 v 的有向角（弧度），范围 [-π, π]。

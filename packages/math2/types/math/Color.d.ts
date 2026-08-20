@@ -105,9 +105,9 @@ export declare class Color extends Float32Array {
     /** 返回前乘以 alpha（预乘 alpha） */
     premultiply(): this;
     /** RGB 空间线性插值 */
-    static lerp(a: Color, b: Color, t: number, out?: Color): Color;
+    static lerp(a: ColorLike, b: ColorLike, t: number, out?: ColorLike): ColorLike;
     /** HSL 空间插值（色相走最短路径），更适合渐变过渡 */
-    static lerpHSL(a: Color, b: Color, t: number, out?: Color): Color;
+    static lerpHSL(a: Color, b: Color, t: number, out?: Color): ColorLike;
     /** LAB 空间插值（感知均匀），色带过渡最自然 */
     static lerpLAB(a: Color, b: Color, t: number, out?: Color): Color;
     /** 生成随机颜色 */

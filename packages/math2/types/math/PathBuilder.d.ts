@@ -207,6 +207,19 @@ export declare class PathBuilder {
      */
     computeTightBounds(): BoundingRect | null;
     toPolygons(autoClose?: boolean, epsilon?: number): PointLike[][];
+    /**
+     * 将路径拆分为多个子路径（按 MoveTo 分段）
+     * 二次/三次贝塞尔曲线按 epsilon 公差展平为折线
+     *
+     * @param epsilon - 曲线展平公差，默认 0.25
+     * @returns 子路径数组，每项为展平后的点序列及其是否闭合
+     *   - points：子路径的折线点序列
+     *   - closed：是否有 Close 命令（闭合时末点与起点重合）
+     */
+    getSubPaths(epsilon?: number): {
+        points: PointLike[];
+        closed: boolean;
+    }[];
     fromPolygons(polygons: PointLike[][]): this;
     /**
      * 将路径数据导出为 SVG path d 属性字符串命令数组。

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { BoundingRect } from '../BoundingRect'
-import { Geometry, PointOut } from './Geometry'
+import { Geometry, PointOut, arcSegmentCount } from './Geometry'
 
 export class Circle extends Geometry {
     cx: number
@@ -62,6 +62,18 @@ export class Circle extends Geometry {
         const dy = y - this.cy
         const d = Math.sqrt(dx * dx + dy * dy)
         return this.radius - d
+    }
+
+    getPoints(out?: PointOut[]): PointOut[] {
+        const r = out || []
+        r.length = 0
+        const TAU = Math.PI * 2
+        const n = arcSegmentCount(this.radius, TAU)
+        for (let i = 0; i < n; i++) {
+            const a = (TAU * i) / n
+            r.push({ x: this.cx + this.radius * Math.cos(a), y: this.cy + this.radius * Math.sin(a) })
+        }
+        return r
     }
 
     bounds(out?: BoundingRect): BoundingRect {
