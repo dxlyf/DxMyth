@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SoftGL 示例 1：多色三角形（attribute + varying + 混合）</title>
+<style>
+  body { margin: 0; display: flex; flex-direction: column; align-items: center;
+         background: #1a1a2e; color: #e6e6e6; font-family: Consolas, monospace; }
+  h1 { font-size: 18px; margin: 14px 0 4px; font-weight: normal; color: #4fc3f7; }
+  p  { font-size: 13px; opacity: .8; margin: 2px 0 10px; max-width: 640px; text-align: center; }
+  canvas { image-rendering: pixelated; border: 1px solid #333; background: #000; }
+  .steps { font-size: 12px; line-height: 1.9; max-width: 660px; margin-bottom: 16px; opacity: .9; }
+  .steps b { color: #ffd54f; }
+</style>
+</head>
+<body>
+<h1>SoftGL 软件光栅化 —— 示例 1：多色三角形</h1>
+<p>这是最基础的渲染管线：CPU 上传顶点 → 顶点着色器 → 图元装配 → 光栅化 → 片段着色器 → 颜色缓冲。</p>
+<div class="steps">
+  <b>1.</b> 3 个顶点分别携带颜色（attribute）<br>
+  <b>2.</b> 顶点着色器把颜色通过 <b>varying</b> 传给片段着色器<br>
+  <b>3.</b> 光栅化器对三角形内每个像素插值出渐变颜色（透视校正插值）<br>
+  <b>4.</b> 第二个半透明三角形开启 <b>混合</b>（SRC_ALPHA / ONE_MINUS_SRC_ALPHA）叠加在第一个上
+</div>
+<canvas id="screen" width="512" height="512"></canvas>
+
+<script type="module">
+  import { createSimGL } from '../src/softgl/index.mjs';
+
+  const canvas = document.getElementById('screen');
+  const gl = createSimGL(512, 512, canvas); // 传入 canvas 后 gl 会获得 putImage() 方法
+
+  // ---------- 编译着色器 ----------
+  // 注意：这里使用的是 GLSL ES 1.00 语法（attribute / varying / gl_FragColor）。
+  // 模拟器同时支持 ES 3.00 的 in / out 写法。
+  const vsSrc = `
+    attribute vec2 a_pos;    // 顶点位置（attribute：每个顶点一个）
+    attribute vec3 a_color;  // 顶点颜色（attribute）
+    varying vec3 v_color;    // 输出到片段着色器的插值变量（varying）
+    void main() {
+      v_color = a_color;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
+  const fsSrc = `
+    precision mediump float;
+    varying vec3 v_color;    // 输入：来自顶点着色器的插值颜色
+    void main() {
+      gl_FragColor = vec4(v_color, 1.0);
+    }
+  `;
+
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, vsSrc);
+  gl.compileShader(vs); // 模拟 GPU 驱动编译着色器（词法 + 语法分析）
+  console.log('顶点着色器编译:', gl.getShaderParameter(vs, gl.COMPILE_STATUS), gl.getShaderInfoLog(vs));
+
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, fsSrc);
+  gl.compileShader(fs);
+  console.log('片段着色器编译:', gl.getShaderParameter(fs, gl.COMPILE_STATUS), gl.getShaderInfoLog(fs));
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program); // 链接：匹配 varying、分配 attribute/uniform 位置
+  console.log('程序链接:', gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program));
+  gl.useProgram(program);
+
+  // ---------- 顶点缓冲（VBO）----------
+  // 把 CPU 端的顶点数据"上传"到模拟显存（其实就是拷贝到 JS 数组）
+  const triangle = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    // 位置 xy，颜色 rgb（位置 stride 12 字节 / 颜色 stride 12 字节）
+    -0.9, -0.9,  1.0, 0.0, 0.0,
+     0.9, -0.9,  0.0, 1.0, 0.0,
+     0.0,  0.9,  0.0, 0.2, 1.0,
+  ]), gl.STATIC_DRAW);
+
+  const stride = 5 * 4; // 5 个分量 × 4 字节
+  const posLoc = gl.getAttribLocation(program, 'a_pos');
+  const colorLoc = gl.getAttribLocation(program, 'a_color');
+  gl.enableVertexAttribArray(posLoc);
+  gl.enableVertexAttribArray(colorLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, stride, 0);
+  gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, stride, 2 * 4);
+
+  // ---------- 第二个三角形：半透明，用于演示混合 ----------
+  const overlay = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, overlay);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -0.8, -0.55,  1.0, 1.0, 1.0,
+     0.8, -0.55,  1.0, 1.0, 1.0,
+     0.0,  0.15,  1.0, 1.0, 1.0,
+  ]), gl.STATIC_DRAW);
+
+  // ---------- 渲染循环 ----------
+  function frame() {
+    // 1. 清屏（对应 GPU 的 clear 硬件操作）
+    gl.clearColor(0.05, 0.05, 0.12, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // 2. 绘制第一个三角形（不透明）
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangle);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, stride, 2 * 4);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // 3. 绘制叠加三角形：开启混合后，颜色 = 源×源因子 + 目标×目标因子
+    gl.bindBuffer(gl.ARRAY_BUFFER, overlay);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, stride, 2 * 4);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    // 需要单独的半透明着色器（alpha=0.35），这里复用同一程序改 uniform 更优雅；
+    // 为演示简洁，我们直接再编译一个 alpha 可调的程序。
+    gl.useProgram(alphaProgram);
+    gl.uniform1f(alphaLoc, 0.35);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.useProgram(program);
+    gl.disable(gl.BLEND);
+
+    // 4. 把软件渲染的颜色缓冲"输出"到屏幕（模拟显示输出）
+    gl.putImage();
+    requestAnimationFrame(frame);
+  }
+
+  // 半透明叠加用的着色器（uniform float u_alpha 演示 uniform 设置）
+  const alphaVs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(alphaVs, `
+    attribute vec2 a_pos;
+    void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+  `);
+  gl.compileShader(alphaVs);
+  const alphaFs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(alphaFs, `
+    precision mediump float;
+    uniform float u_alpha;
+    void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, u_alpha); }
+  `);
+  gl.compileShader(alphaFs);
+  const alphaProgram = gl.createProgram();
+  gl.attachShader(alphaProgram, alphaVs);
+  gl.attachShader(alphaProgram, alphaFs);
+  gl.linkProgram(alphaProgram);
+  const alphaLoc = gl.getUniformLocation(alphaProgram, 'u_alpha');
+
+  frame();
+</script>
+</body>
+</html>

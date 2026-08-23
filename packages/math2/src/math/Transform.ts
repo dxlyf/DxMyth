@@ -14,6 +14,7 @@ import { Matrix2D, type Matrix2DLike } from './Matrix2D'
 import { type Vector2Like } from './Vector2'
 import { Point } from './Point'
 import { degToRad, radToDeg } from './MathUtils'
+import { EventEmitter } from 'src/events/EventEmitter'
 export type TransformProps = {
     position?: Vector2Like
     rotation?: number
@@ -22,7 +23,10 @@ export type TransformProps = {
     origin?: Vector2Like
     pivot?: Vector2Like
 }
-export class Transform {
+export type TransformEvents={
+    'transform:change': [transform: Transform<TransformEvents>]
+}
+export class Transform<Events extends TransformEvents=any> extends EventEmitter<TransformEvents> {
     // ---- 内部存储 ----
 
     public position: Point
@@ -33,7 +37,7 @@ export class Transform {
     public pivot: Point
 
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
-    private _parent: Transform | null = null
+    declare parent: Transform<Events> | null 
 
     // ---- 矩阵缓存 ----
 
@@ -51,10 +55,8 @@ export class Transform {
     private _worldVersion: number = 0
     private _parentWorldVersion: number = -1
 
-    /** 变化回调 */
-    private _onChange: (() => void) | null = null
-
     constructor(options: TransformProps = {}) {
+        super()
         this.updateTransform = this.updateTransform.bind(this)
         this.position = Point.fromPoint(options.position ?? { x: 0, y: 0 }).onChange(this.updateTransform)
         this.scale = Point.fromPoint(options.scale ?? { x: 1, y: 1 }).onChange(this.updateTransform)
@@ -80,29 +82,6 @@ export class Transform {
     set angle(v: number) {
         this.rotation = degToRad(v)
     }
-
-
-    /**
-     * 注册变化回调。当任一变换属性发生变化时触发。
-     * 与 Point.onChange 模式一致，返回 this 便于链式调用。
-     */
-    onChange(cb: () => void): this {
-        this._onChange = cb
-        return this
-    }
-
-    /** 父级变换 */
-    get parent(): Transform | null {
-        return this._parent
-    }
-    set parent(v: Transform | null) {
-        if (this._parent !== v) {
-            this._parent = v
-            this.updateTransform()
-        }
-    }
-
-
     /** 局部变换矩阵（只读，懒计算） */
     get matrix(): Matrix2D {
         this.updateMatrix()
@@ -127,8 +106,9 @@ export class Transform {
 
     /** 本地版本是否变化（触发 world 重算） */
     _needsWorldUpdate(): boolean {
-        if(this._parent){
-            return this._worldMatrixDirty||this._parent._worldVersion !== this._parentWorldVersion||this._parent._needsWorldUpdate()
+        const parent=this.parent
+        if(parent){
+            return this._worldMatrixDirty||parent._worldVersion !== this._parentWorldVersion||parent._needsWorldUpdate()
         }
         return this._worldMatrixDirty
     }
@@ -136,7 +116,7 @@ export class Transform {
         if (!force && !this._localMatrixDirty) {
             return
         }
-        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(
+        Matrix2D.fromTranslateRotationSkewScaleOriginPivot(
             this._matrix,
             this.position,
             this._rotation,
@@ -160,9 +140,10 @@ export class Transform {
             return
         }
          this.updateMatrix()
-        if (this._parent) {
-            Matrix2D.multiply(this._worldMatrix, this._parent.worldMatrix, this._matrix)
-            this._parentWorldVersion = this._parent._worldVersion
+         const parent=this.parent
+        if (this.parent) {
+            Matrix2D.multiply(this._worldMatrix, parent.worldMatrix, this._matrix)
+            this._parentWorldVersion = parent._worldVersion
         } else {
             this._worldMatrix.copy(this._matrix)
         }
@@ -181,16 +162,18 @@ export class Transform {
     updateTransform(): void {
         this._localMatrixDirty = true
         this._worldMatrixDirty = true
-        this._onChange?.()
+        this.emit('transform:change', this)
     }
 
     /** 重置所有变换为默认值 */
-    reset(): void {
+    resetTransform(): void {
         this.position.set(0, 0)
         this.scale.set(1, 1)
         this._rotation = 0
         this.skew.set(0, 0)
         this.origin.set(0, 0)
+        this.pivot.set(0, 0)
+        this.updateTransform()
     }
 
     /**

@@ -89,6 +89,11 @@ export class EllipseCurve extends Curve<Vector2> {
         return point.set(x, y)
     }
 
+    /** 椭圆是曲线，加倍细分以获得更平滑的采样 */
+    getResolution(divisions: number): number {
+        return divisions * 2
+    }
+
     copy(source: EllipseCurve): this {
         super.copy(source)
 

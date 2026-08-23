@@ -3,6 +3,8 @@
 // 参考：https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
 // ══════════════════════════════════════════════
 
+import { Vector2 } from "./Vector2"
+
 /** SVG 弧线的端点参数化 */
 export interface EndpointArcParams {
   x1: number
@@ -219,7 +221,16 @@ export function arcToOval(params: EndpointArcParams): ArcOvalResult {
     xAxisRotation: center.xAxisRotation,
   }
 }
-
+export function pointOnEllipse(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, theta: number) {
+  const cos = Math.cos(theta) * rx
+  const sin = Math.sin(theta) * ry
+  const cosRx = Math.cos(xAxisRotation)
+  const sinRx = Math.sin(xAxisRotation)
+  return {
+    x: cx + cosRx * cos - sinRx * sin,
+    y: cy + sinRx * cos + cosRx * sin,
+  }
+}
 // ══════════════════════════════════════════════
 // 弧线 → 三次贝塞尔曲线近似
 // ══════════════════════════════════════════════
@@ -234,6 +245,40 @@ export interface CubicBezierPoints {
   cp2: { x: number; y: number }
   /** 终点 */
   p2: { x: number; y: number }
+}
+
+/**
+ * 四分之一椭圆弧转贝塞尔曲线段
+ * @param cx 
+ * @param cy 
+ * @param rx 
+ * @param ry 
+ * @param theta1 
+ * @param theta2 
+ */
+export function quarterArcToCubicBezier(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, theta1: number, theta2: number) {
+
+  const deltaAngle = theta2 - theta1;
+  const kappa = 4 / 3 * Math.tan(deltaAngle / 4);
+  // 单位圆
+  const p0 = Vector2.fromRotation(theta1)
+  const p3 = Vector2.fromRotation(theta2)
+  const p1 = Vector2.fromPoint(p0)
+  const p2 = Vector2.fromPoint(p3)
+
+  // 根据椭圆弧公式与贝赛尔曲线公式，推导楕圆B'(0)=R'(0)
+  // 3(p1-p0)=delta*(-sin*rx,cos*ry), p1=p0-(delta/3)*(-sin*rx,cos*ry)  kappa=(delta/3) 
+  // kappa= 4 / 3 * Math.tan(deltaAngle / 4);更精确
+
+  p1.translate(-kappa * p0.y, kappa * p0.x);
+  p2.translate(kappa * p3.y, -kappa * p3.x);
+
+  p0.scale(rx, ry).rotate(xAxisRotation).translate(cx, cy)
+  p1.scale(rx, ry).rotate(xAxisRotation).translate(cx, cy)
+  p2.scale(rx, ry).rotate(xAxisRotation).translate(cx, cy)
+  p3.scale(rx, ry).rotate(xAxisRotation).translate(cx, cy)
+
+  return [p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y]
 }
 
 /**
@@ -325,7 +370,7 @@ export function ellipticalArcToCubicBezier(
  * @param counterclockwise 是否逆时针，默认 false（顺时针）
  * @param segmentAngle 每段最大角度（弧度），默认 π/2（90°）
  */
-export function ellipseToCubics(
+export function ellipseToCubicBezier(
   cx: number,
   cy: number,
   rx: number,
@@ -358,6 +403,227 @@ export function ellipseToCubics(
 }
 
 
+// 椭圆弧转换为二次贝塞尔曲线
+export function ellipseToQuadraticBezier(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, axisAngle: number, largeArc: number | boolean, sweepClockwise: number | boolean) {
+
+  const { cx, cy, rx, ry, startAngle: theta1, sweepAngle: deltaTheta } = endpointToCenter({
+    x1,
+    y1,
+    x2,
+    y2,
+    rx: radiusX,
+    ry: radiusY,
+    xAxisRotation: axisAngle,
+    largeArcFlag: largeArc == 1,
+    sweepFlag: sweepClockwise == 1,
+  })
+  const nquads = Math.ceil(Math.abs(deltaTheta) * 4 / Math.PI);
+  const anglePerSegment = deltaTheta / nquads;
+  const quads: number[][] = []
+  let currentX = x1
+  let currentY = y1
+  for (let i = 0; i < nquads; ++i) {
+    let t1 = theta1 + i * anglePerSegment;
+    let t2 = t1 + anglePerSegment;
+    let tm = (t1 + t2) / 2;
+
+    const { x: _x1, y: _y1 } = pointOnEllipse(cx, cy, rx, ry, axisAngle, t1)
+    const { x: _x2, y: _y2 } = pointOnEllipse(cx, cy, rx, ry, axisAngle, t2)
+    const { x: xm, y: ym } = pointOnEllipse(cx, cy, rx, ry, axisAngle, tm)// 中点
+    // x1 = cos(phi) * rh * cos(t1) - sin(phi) * rv * sin(t1) + cx;
+    // y1 = sin(phi) * rh * cos(t1) + cos(phi) * rv * sin(t1) + cy;
+
+    // x2 = cos(phi) * rh * cos(t2) - sin(phi) * rv * sin(t2) + cx;
+    // y2 = sin(phi) * rh * cos(t2) + cos(phi) * rv * sin(t2) + cy;
+
+    // let xm = cos(phi) * rh * cos(tm) - sin(phi) * rv * sin(tm) + cx;
+    // let ym = sin(phi) * rh * cos(tm) + cos(phi) * rv * sin(tm) + cy;
+    // 计算控制点
+    let xc = (xm * 4 - (_x1 + _x2)) / 2; // = xm*2-x1*0.5-x2*0.5;
+    let yc = (ym * 4 - (_y1 + _y2)) / 2;
+    quads.push([currentX, currentY, xc, yc, _x2, _y2])
+    currentX = _x2;
+    currentY = _y2;
+
+    //  this.quadraticCurveTo(xc, yc, x2, y2)
+  }
+  return quads
+}
+
+export function ellipseCubicBezierFromPath(
+  path: Pick<Path2D, 'moveTo' | 'lineTo' | 'bezierCurveTo'> & { isEmpty: boolean },
+  x: number, y: number,
+  radiusX: number, radiusY: number,
+  rotation: number,
+  startAngle: number, endAngle: number,
+  counterclockwise = false,
+): void {
+  const { startAngle: startNorm, endAngle: endNorm } = normalizeAngles(startAngle, endAngle, counterclockwise)
+
+  const delta = endNorm - startNorm
+  const segments = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2)))
+  const segAngle = delta / segments
+
+  const cosRot = Math.cos(rotation)
+  const sinRot = Math.sin(rotation)
+
+  let currentAngle = startNorm
+  for (let i = 0; i < segments; i++) {
+    const segStart = currentAngle
+    const segEnd = currentAngle + segAngle
+
+    // 参数化椭圆点，含旋转
+    const cosStart = Math.cos(segStart)
+    const sinStart = Math.sin(segStart)
+    const startX = x + cosRot * radiusX * cosStart - sinRot * radiusY * sinStart
+    const startY = y + sinRot * radiusX * cosStart + cosRot * radiusY * sinStart
+
+    if (i === 0) {
+      if (path.isEmpty) {
+        path.moveTo(startX, startY)
+      } else {
+        path.lineTo(startX, startY)
+      }
+    }
+
+    // 三次贝塞尔近似椭圆弧段
+    const theta = segAngle
+    const k = (4 / 3) * Math.tan(theta / 4)
+
+    // 端点沿切线方向偏移，切线方向为旋转后的 (-rx·sin(t), ry·cos(t))
+    const tanX1 = -radiusX * sinStart
+    const tanY1 = radiusY * cosStart
+    const cp1X = startX + k * (cosRot * tanX1 - sinRot * tanY1)
+    const cp1Y = startY + k * (sinRot * tanX1 + cosRot * tanY1)
+
+    const cosEnd = Math.cos(segEnd)
+    const sinEnd = Math.sin(segEnd)
+    const endX = x + cosRot * radiusX * cosEnd - sinRot * radiusY * sinEnd
+    const endY = y + sinRot * radiusX * cosEnd + cosRot * radiusY * sinEnd
+
+    const tanX2 = -radiusX * sinEnd
+    const tanY2 = radiusY * cosEnd
+    const cp2X = endX - k * (cosRot * tanX2 - sinRot * tanY2)
+    const cp2Y = endY - k * (sinRot * tanX2 + cosRot * tanY2)
+
+    path.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY)
+    currentAngle = segEnd
+  }
+}
+export function arcCubicBezierFromPath(path: Pick<Path2D, 'moveTo' | 'lineTo' | 'bezierCurveTo'> & { isEmpty: boolean }, x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise = false): void {
+  const { startAngle: startNorm, endAngle: endNorm } = normalizeAngles(startAngle, endAngle, counterclockwise)
+
+  const delta = endNorm - startNorm
+
+  // 每段最多 90°，保证贝塞尔近似精度
+  const segments = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2)))
+  const segAngle = delta / segments
+
+  let currentAngle = startNorm
+  for (let i = 0; i < segments; i++) {
+    const segStart = currentAngle
+    const segEnd = currentAngle + segAngle
+
+    const startX = x + radius * Math.cos(segStart)
+    const startY = y + radius * Math.sin(segStart)
+
+    if (i === 0) {
+      // 与 Canvas API 一致：有子路径则 lineTo 到起点，否则 moveTo
+      if (path.isEmpty) {
+        path.moveTo(startX, startY)
+      } else {
+        path.lineTo(startX, startY)
+      }
+    }
+
+    // 三次贝塞尔近似圆弧段（k = 4/3 * tan(θ/4)）
+    const theta = segAngle
+    const k = (4 / 3) * Math.tan(theta / 4)
+
+    // 起点控制点：沿起点切线方向外推
+    const cp1X = startX - k * radius * Math.sin(segStart)
+    const cp1Y = startY + k * radius * Math.cos(segStart)
+
+    const endX = x + radius * Math.cos(segEnd)
+    const endY = y + radius * Math.sin(segEnd)
+
+    // 终点控制点：沿终点切线方向回推
+    const cp2X = endX + k * radius * Math.sin(segEnd)
+    const cp2Y = endY - k * radius * Math.cos(segEnd)
+
+    path.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY)
+    currentAngle = segEnd
+  }
+
+}
+export function ellipseSvgArcFromPath(path: Pick<Path2D, 'lineTo' | 'ellipse'>, x1: number, y1: number, rx: number, ry: number, rotation: number, largeArcFlag: boolean, sweepFlag: boolean, x2: number, y2: number): void {
+  // 起点终点重合时跳过
+  if (Math.abs(x1 - x2) < 1e-10 && Math.abs(y1 - y2) < 1e-10) return
+
+  // 半轴取绝对值
+  rx = Math.abs(rx)
+  ry = Math.abs(ry)
+  if (rx < 1e-10 || ry < 1e-10) {
+    path.lineTo(x2, y2)
+    return
+  }
+  const {cx,cy,rx:rx2,ry:ry2,startAngle,sweepAngle}=endpointToCenter({
+    x1,
+    y1,
+    x2,
+    y2,
+    rx,
+    ry,
+    xAxisRotation:rotation,
+    largeArcFlag,
+    sweepFlag
+  })
+   path.ellipse(cx, cy, rx2, ry2, rotation, startAngle, startAngle+sweepAngle, !sweepFlag)
+  // const cosRot = Math.cos(rotation)
+  // const sinRot = Math.sin(rotation)
+
+  // // (1) 变换到未旋转坐标系
+  // const dx = (x1 - x2) / 2
+  // const dy = (y1 - y2) / 2
+  // const x1p = cosRot * dx + sinRot * dy
+  // const y1p = -sinRot * dx + cosRot * dy
+
+  // // (2) 确保半径足够大（缩放半轴）
+  // const lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+  // if (lambda > 1) {
+  //   const sqrtLambda = Math.sqrt(lambda)
+  //   rx *= sqrtLambda
+  //   ry *= sqrtLambda
+  // }
+
+  // // (3) 计算未旋转坐标系下的圆心 (cxp, cyp)
+  // const rx2 = rx * rx
+  // const ry2 = ry * ry
+  // const x1p2 = x1p * x1p
+  // const y1p2 = y1p * y1p
+  // const sqrtArg = Math.max(0,
+  //   (rx2 * ry2 - rx2 * y1p2 - ry2 * x1p2) / (rx2 * y1p2 + ry2 * x1p2),
+  // )
+  // const sign = largeArcFlag !== sweepFlag ? 1 : -1
+  // const sqrtVal = Math.sqrt(sqrtArg)
+  // const cxp = sign * sqrtVal * (rx * y1p / ry)
+  // const cyp = sign * sqrtVal * (-ry * x1p / rx)
+
+  // // (4) 变换回原始坐标系得到 (cx, cy)
+  // const cx = cosRot * cxp - sinRot * cyp + (x1 + x2) / 2
+  // const cy = sinRot * cxp + cosRot * cyp + (y1 + y2) / 2
+
+  // // (5) 计算起止角度（在未旋转椭圆坐标系下，除以半轴做归一化）
+  // const ux = (x1p - cxp) / rx
+  // const uy = (y1p - cyp) / ry
+  // const vx = (-x1p - cxp) / rx
+  // const vy = (-y1p - cyp) / ry
+  // const startAngle = Math.atan2(uy, ux)
+  // const endAngle = Math.atan2(vy, vx)
+
+  // // SVG sweepFlag=1 表示顺时针，对应 ellipse() 的 counterclockwise=false
+  // path.ellipse(cx, cy, rx, ry, rotation, startAngle, endAngle, !sweepFlag)
+}
 /**
  * 计算从向量 u 到向量 v 的有向角（弧度），范围 [-π, π]。
  * 正值表示从 u 逆时针旋转到 v。

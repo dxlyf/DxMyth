@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SoftGL 示例 3：FBO 离屏渲染到纹理</title>
+<style>
+  body { margin: 0; display: flex; flex-direction: column; align-items: center;
+         background: #1a1a2e; color: #e6e6e6; font-family: Consolas, monospace; }
+  h1 { font-size: 18px; margin: 14px 0 4px; font-weight: normal; color: #4fc3f7; }
+  p  { font-size: 13px; opacity: .8; margin: 2px 0 10px; max-width: 680px; text-align: center; }
+  canvas { image-rendering: pixelated; border: 1px solid #333; background: #000; }
+  .steps { font-size: 12px; line-height: 1.9; max-width: 680px; margin-bottom: 16px; opacity: .9; }
+  .steps b { color: #ffd54f; }
+</style>
+</head>
+<body>
+<h1>SoftGL 软件光栅化 —— 示例 3：FBO 离屏渲染（渲染到纹理）</h1>
+<p>演示帧缓冲对象：先把场景画到"看不见的"离屏缓冲里，再把结果作为纹理贴到屏幕上。</p>
+<div class="steps">
+  <b>1.</b> 创建纹理 → 创建 <b>FBO</b> → 用 <b>framebufferTexture2D</b> 把纹理挂为颜色附件<br>
+  <b>2.</b> 绑定 FBO 后调用 <b>checkFramebufferStatus</b> 确认可渲染（对应 GPU 的完整性检查）<br>
+  <b>3.</b> 在 FBO 中离屏绘制一个旋转彩色三角形（镜头对着"虚拟画布"）<br>
+  <b>4.</b> 切换回默认帧缓冲，用全屏四边形 + <b>texture2D</b> 采样把纹理显示出来<br>
+  <b>5.</b> 这就是"渲染到纹理"(RTT) 的基础 —— 游戏里的后处理、反射、阴影贴图都基于它
+</div>
+<canvas id="screen" width="512" height="512"></canvas>
+
+<script type="module">
+  import { createSimGL } from '../src/softgl/index.mjs';
+
+  const canvas = document.getElementById('screen');
+  const gl = createSimGL(512, 512, canvas);
+
+  const TEX_SIZE = 256;
+
+  // ================= 1. 创建纹理（仅分配空间，之后作为 FBO 渲染目标） =================
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, TEX_SIZE, TEX_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // 双线性过滤
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  // ================= 2. 创建并配置 FBO =================
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  console.log('FBO 状态:', status === gl.FRAMEBUFFER_COMPLETE ? 'FRAMEBUFFER_COMPLETE（完整，可渲染）' : status);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); // 先回到默认帧缓冲
+
+  // ================= 3. 离屏绘制用的着色器（画彩色三角形到 FBO） =================
+  function build(vsSrc, fsSrc) {
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, vsSrc); gl.compileShader(vs);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fsSrc); gl.compileShader(fs);
+    const p = gl.createProgram();
+    gl.attachShader(p, vs); gl.attachShader(p, fs); gl.linkProgram(p);
+    return p;
+  }
+
+  const offscreenProg = build(`
+    attribute vec2 a_pos;
+    attribute vec3 a_color;
+    varying vec3 v_color;
+    void main() {
+      v_color = a_color;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `, `
+    precision mediump float;
+    varying vec3 v_color;
+    void main() { gl_FragColor = vec4(v_color, 1.0); }
+  `);
+  const offPos = gl.getAttribLocation(offscreenProg, 'a_pos');
+  const offColor = gl.getAttribLocation(offscreenProg, 'a_color');
+
+  // 旋转三角形（NDC，中心旋转）
+  const offVbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, offVbo);
+  const TRI = 0.85;
+  function uploadTriangle(angle) {
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const rot = (x, y) => [x * c - y * s, x * s + y * c];
+    const a = rot(0, TRI), b = rot(TRI * Math.cos(-2.4), TRI * Math.sin(-2.4)), d = rot(TRI * Math.cos(2.4), TRI * Math.sin(2.4));
+    gl.bindBuffer(gl.ARRAY_BUFFER, offVbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      a[0], a[1], 1, 0.2, 0.2,
+      b[0], b[1], 0.2, 1, 0.3,
+      d[0], d[1], 0.3, 0.4, 1,
+    ]), gl.STREAM_DRAW); // STREAM_DRAW：每帧更新，对应 GPU 的"流式"数据
+  }
+
+  // ================= 4. 屏幕绘制用的着色器（全屏四边形 + texture2D） =================
+  const screenProg = build(`
+    attribute vec2 a_pos;
+    attribute vec2 a_uv;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_uv;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `, `
+    precision mediump float;
+    uniform sampler2D u_tex; // 采样器：片段着色器从"显存"读取纹素
+    varying vec2 v_uv;
+    void main() {
+      gl_FragColor = texture2D(u_tex, v_uv);
+    }
+  `);
+  const screenPos = gl.getAttribLocation(screenProg, 'a_pos');
+  const screenUv = gl.getAttribLocation(screenProg, 'a_uv');
+  const texLoc = gl.getUniformLocation(screenProg, 'u_tex');
+
+  const quadVbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVbo);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1, -1, 0, 0,   1, -1, 1, 0,   1, 1, 1, 1,
+    -1, -1, 0, 0,   1, 1, 1, 1,   -1, 1, 0, 1,
+  ]), gl.STATIC_DRAW);
+
+  // ================= 渲染循环 =================
+  let angle = 0;
+  function frame() {
+    angle += 0.03;
+
+    // ---- 阶段 A：离屏渲染到 FBO ----
+    uploadTriangle(angle);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.viewport(0, 0, TEX_SIZE, TEX_SIZE); // 视口 = FBO 尺寸
+    gl.useProgram(offscreenProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offVbo);
+    gl.vertexAttribPointer(offPos, 2, gl.FLOAT, false, 20, 0);
+    gl.vertexAttribPointer(offColor, 3, gl.FLOAT, false, 20, 8);
+    gl.enableVertexAttribArray(offPos);
+    gl.enableVertexAttribArray(offColor);
+    gl.clearColor(0.1, 0.1, 0.16, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // ---- 阶段 B：把 FBO 的颜色纹理贴到屏幕 ----
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // 切回默认帧缓冲
+    gl.viewport(0, 0, 512, 512);
+    gl.useProgram(screenProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVbo);
+    gl.vertexAttribPointer(screenPos, 2, gl.FLOAT, false, 16, 0);
+    gl.vertexAttribPointer(screenUv, 2, gl.FLOAT, false, 16, 8);
+    gl.enableVertexAttribArray(screenPos);
+    gl.enableVertexAttribArray(screenUv);
+    // 把纹理绑定到纹理单元 0，并告诉着色器用单元 0
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.uniform1i(texLoc, 0);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.putImage();
+    requestAnimationFrame(frame);
+  }
+  frame();
+</script>
+</body>
+</html>

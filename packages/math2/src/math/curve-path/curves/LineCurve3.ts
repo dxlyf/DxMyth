@@ -38,6 +38,11 @@ export class LineCurve3 extends Curve<Vector3> {
         return this.getPoint(u, optionalTarget)
     }
 
+    /** 直线只需首尾两个点 */
+    getResolution(): number {
+        return 1
+    }
+
     getTangent(t: number, optionalTarget: Vector3 = new Vector3()): Vector3 {
         return Vector3.subtract(optionalTarget, this.v2, this.v1).normalize()
     }

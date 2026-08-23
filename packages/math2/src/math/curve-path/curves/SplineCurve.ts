@@ -40,6 +40,11 @@ export class SplineCurve extends Curve<Vector2> {
         return point
     }
 
+    /** 样条由多个控制点段组成，按控制点数量倍增细分 */
+    getResolution(divisions: number): number {
+        return divisions * (this.points.length || 1)
+    }
+
     copy(source: SplineCurve): this {
         super.copy(source)
 

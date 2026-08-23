@@ -140,10 +140,7 @@ export class CurvePath<T extends Vector2 | Vector3 = Vector2 | Vector3> extends 
 
         for (let i = 0, curves = this.curves; i < curves.length; i++) {
             const curve = curves[i]
-            const resolution = curve.isEllipseCurve ? divisions * 2
-                : (curve.isLineCurve || curve.isLineCurve3) ? 1
-                    : curve.isSplineCurve ? divisions * (curve.points ? curve.points.length : 1)
-                        : divisions
+            const resolution = curve.getResolution(divisions)
 
             const pts = curve.getPoints(resolution)
 

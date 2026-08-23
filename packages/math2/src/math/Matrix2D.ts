@@ -1,5 +1,7 @@
 import { CachePool } from './CachePool'
 import { Vector2, type Vector2Like } from './Vector2'
+import { TWO_PI } from './MathUtils'
+import { Transform } from './Transform'
 // ============================================================
 // Matrix2D — 基于 Float32Array 的 2D 仿射变换矩阵
 // 内存布局: [0]=a, [1]=b, [2]=c, [3]=d, [4]=tx, [5]=ty
@@ -23,6 +25,14 @@ export type Matrix2DLike = number[] | Float32Array
 
 /** decomposeTransform 输出的分量结构 */
 export interface DecomposedTransform {
+    position: Vector2Like
+    scale: Vector2Like
+    skew: Vector2Like
+    rotation: number
+    origin: Vector2Like
+    pivot: Vector2Like
+}
+export interface ITransform {
     position: Vector2Like
     scale: Vector2Like
     skew: Vector2Like
@@ -126,7 +136,7 @@ export class Matrix2D extends Float32Array {
         out[5] = ty - (b * ox + d * oy)
         return this;
     }
-    static fromTranslationRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
+    static fromTranslateRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
         const x = position.x, y = position.y
         let ox = origin.x, oy = origin.y
         const px = pivot.x, py = pivot.y
@@ -333,6 +343,24 @@ export class Matrix2D extends Float32Array {
         this.fromTranslationRotationScalePivot(position, angleInRad, scale, { x: 0, y: 0 })
         return this;
     }
+    fromTranslationRotationSkewScalePivot(position: Vector2Like, angleInRad: number, skew: Vector2Like, scale: Vector2Like, pivot: Vector2Like) {
+        const cos = Math.cos(angleInRad);
+        const sin = Math.sin(angleInRad);
+        const skewX=Math.tan(skew.x)
+        const skewY=Math.tan(skew.y)
+        let a=cos-sin*skewY
+        let b=sin+cos*skewY
+        let c=cos*skewX-sin
+        let d=sin*skewX+cos
+        a*=scale.x
+        b*=scale.x
+        c*=scale.y
+        d*=scale.y
+        const tx = position.x - (pivot.x * a - pivot.y * c);
+        const ty = position.y - (pivot.x * b + pivot.y * d);
+        this.fromValues(a, b, c, d, tx, ty)
+        return this;
+    }
     fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like) {
         const cos = Math.cos(angleInRad);
         const sin = Math.sin(angleInRad);
@@ -345,46 +373,56 @@ export class Matrix2D extends Float32Array {
         this.fromValues(a, b, c, d, tx, ty)
         return this;
     }
-    fromTranslationRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
-        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(this, position, rotation, skew, scale, origin, pivot)
+    fromTranslateRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like) {
+        Matrix2D.fromTranslateRotationSkewScaleOriginPivot(this, position, rotation, skew, scale, origin, pivot)
         return this;
     }
-    static  decomposeAffine(matrix: Matrix2DLike) {
-    const [a, b, c, d, tx, ty] = matrix;
-    
-    // 1. 平移
-    const translate = { x: tx, y: ty };
-    
-    // 2. X轴和Y轴的缩放
-    const scaleX = Math.sqrt(a * a + b * b);
-    const scaleY = Math.sqrt(c * c + d * d);
-    
-    // 3. 旋转角度（X轴的旋转）
-    const rotation = Math.atan2(b, a);  // 弧度
-    
-    // 4. 倾斜角（X轴和Y轴的夹角偏离90度的程度）
-    // 计算Y轴相对于X轴垂直方向的偏离
-    const skewX = Math.atan2(a * c + b * d, scaleX * scaleY);
-    // 或者更常见的：
-    const delta = a * d - b * c;  // 行列式（有符号面积缩放因子）
-    // // 方法1：几何平均（推荐，保持面积比例）
-    // const scale = Math.sqrt(scaleX * scaleY);
+    fromTranslateRotationSkewScaleOrigin(
+        position: Vector2Like,
+        rotation: number,
+        skew: Vector2Like,
+        scale: Vector2Like = { x: 1, y: 1 },
+        origin: Vector2Like = { x: 0, y: 0 },
+    ) {
+        Matrix2D.fromTranslateRotationSkewScaleOrigin(this, position, rotation, skew, scale, origin)
+        return this
+    }
+    static decomposeAffine(matrix: Matrix2DLike) {
+        const [a, b, c, d, tx, ty] = matrix;
 
-    // // 方法2：算术平均
-    // const scale = (scaleX + scaleY) / 2;
+        // 1. 平移
+        const translate = { x: tx, y: ty };
 
-    // // 方法3：取最大值（保守估计）
-    // const scale = Math.max(scaleX, scaleY);
-    return {
-        translate,
-        scaleX,
-        scaleY,
-        scale: Math.sqrt(Math.abs(delta)),  // 统一缩放 = sqrt(|det|)
-        rotation,
-        skewX:skewX,
-        determinant: delta
-    };
-}
+        // 2. X轴和Y轴的缩放
+        const scaleX = Math.sqrt(a * a + b * b);
+        const scaleY = Math.sqrt(c * c + d * d);
+
+        // 3. 旋转角度（X轴的旋转）
+        const rotation = Math.atan2(b, a);  // 弧度
+
+        // 4. 倾斜角（X轴和Y轴的夹角偏离90度的程度）
+        // 计算Y轴相对于X轴垂直方向的偏离
+        const skewX = Math.atan2(a * c + b * d, scaleX * scaleY);
+        // 或者更常见的：
+        const delta = a * d - b * c;  // 行列式（有符号面积缩放因子）
+        // // 方法1：几何平均（推荐，保持面积比例）
+        // const scale = Math.sqrt(scaleX * scaleY);
+
+        // // 方法2：算术平均
+        // const scale = (scaleX + scaleY) / 2;
+
+        // // 方法3：取最大值（保守估计）
+        // const scale = Math.max(scaleX, scaleY);
+        return {
+            translate,
+            scaleX,
+            scaleY,
+            scale: Math.sqrt(Math.abs(delta)),  // 统一缩放 = sqrt(|det|)
+            rotation,
+            skewX: skewX,
+            determinant: delta
+        };
+    }
     /**
      * 从组合矩阵逆解所有变换分量。
      *
@@ -400,62 +438,42 @@ export class Matrix2D extends Float32Array {
      */
     static decomposeTransform(
         matrix: Matrix2DLike,
-        out: DecomposedTransform = {} as DecomposedTransform
-    ): DecomposedTransform {
-        const a = matrix[0], b = matrix[1], c = matrix[2], d = matrix[3]
-        const tx = matrix[4], ty = matrix[5]
+        transform:Transform
+    ): Transform {
+        // sort out rotation / skew..
+        const a = matrix[0];
+        const b = matrix[1];
+        const c = matrix[2];
+        const d = matrix[3];
+        const pivot = transform.pivot;
 
-        const position = out.position ?? (out.position = { x: 0, y: 0 })
-        const scale = out.scale ?? (out.scale = { x: 1, y: 1 })
+        const skewX = -Math.atan2(-c, d);
+        const skewY = Math.atan2(b, a);
 
-        // ---- 1. 提取 position ----
-        // 约定 origin=(0,0), pivot=(0,0) 时 position = (tx, ty)
-        position.x = tx
-        position.y = ty
+        const delta = Math.abs(skewX + skewY);
 
-        // ---- 2. QR 分解线性部分 [a c; b d] ----
+        if (delta < 0.00001 || Math.abs(TWO_PI - delta) < 0.00001) {
+            transform.rotation = skewY;
+            transform.skew.x = transform.skew.y = 0;
+        }
+        else {
+            transform.rotation = 0;
+            transform.skew.x = skewX;
+            transform.skew.y = skewY;
+        }
 
-        // rotation: 第一列方向
-        const scaleX = Math.sqrt(a * a + b * b)
+        // next set scale
+        transform.scale.x = Math.sqrt((a * a) + (b * b));
+        transform.scale.y = Math.sqrt((c * c) + (d * d));
 
-        const cosR = a / scaleX
-        const sinR = b / scaleX
-        const rotation = Math.atan2(sinR, cosR)
+        // next set position
+        const pivot_origin_x = pivot.x + transform.origin.x;
+        const pivot_origin_y = pivot.y + transform.origin.y;
 
-        // 移除旋转: K = R^T * L
-        // K = [k11 k12; k21 k22] = [sx, tanx*sy; tany*sx, sy]
-        const k11 = a * cosR + b * sinR   // sx
-        const k12 = c * cosR + d * sinR   // tanx * sy
-        const k22 = -c * sinR + d * cosR   // sy
-
-        // ---- 3. 提取 scale ----
-        scale.x = k11
-        scale.y = k22
-
-        // ---- 4. 提取 skew ----
-        // QR 约定 skewY = 0
-        const tanx = k12 / k22
-        const skew = out.skew ?? (out.skew = { x: 0, y: 0 })
-        skew.x = Math.atan(tanx)
-        skew.y = 0
-
-        // ---- 5. 提取 rotation ----
-        out.rotation = rotation
-
-        // ---- 6. origin / pivot 为默认值 ----
-        const origin = out.origin ?? (out.origin = { x: 0, y: 0 })
-        origin.x = 0
-        origin.y = 0
-
-        const pivot = out.pivot ?? (out.pivot = { x: 0, y: 0 })
-        pivot.x = 0
-        pivot.y = 0
-
-        out.position = position
-        out.scale = scale
-        out.rotation = rotation
-
-        return out
+        // 处理origin偏移量，因为origin会影响到最终的position位置计算。
+        transform.position.x = matrix[4] + ((pivot_origin_x * a) + (pivot_origin_y * c)) - transform.origin.x;
+        transform.position.y = matrix[5] + ((pivot_origin_x * b) + (pivot_origin_y * d)) - transform.origin.y;
+        return transform
     }
     decomposeTRSP(
         matrix: Matrix2D,
@@ -513,20 +531,47 @@ export class Matrix2D extends Float32Array {
         return out;
     }
     /** 实例版：从自身矩阵逆解分量 */
-    decomposeTransform(out: DecomposedTransform = {} as DecomposedTransform): DecomposedTransform {
+    decomposeTranslateRotationSkewScalePivotOrigin(out: Transform): Transform {
         const result = Matrix2D.decomposeTransform(this, out)
         return result
     }
-    fromTranslateRotationSkewScaleOrigin(
-        position: Vector2Like,
-        rotation: number,
-        skew: Vector2Like,
-        scale: Vector2Like = { x: 1, y: 1 },
-        origin: Vector2Like = { x: 0, y: 0 },
-    ) {
-        Matrix2D.fromTranslateRotationSkewScaleOrigin(this, position, rotation, skew, scale, origin)
-        return this
+    decomposeTranslateRotationSkewScalePivot(transform: ITransform): ITransform {
+        // sort out rotation / skew..
+        const a = this.a;
+        const b = this.b;
+        const c = this.c;
+        const d = this.d;
+        const pivot = transform.pivot;
+
+        const skewX = -Math.atan2(-c, d);
+        const skewY = Math.atan2(b, a);
+
+        const delta = Math.abs(skewX + skewY);
+
+        if (delta < 0.00001 || Math.abs(TWO_PI - delta) < 0.00001) {
+            transform.rotation = skewY;
+            transform.skew.x = transform.skew.y = 0;
+        }
+        else {
+            transform.rotation = 0;
+            transform.skew.x = skewX;
+            transform.skew.y = skewY;
+        }
+
+        // next set scale
+        transform.scale.x = Math.sqrt((a * a) + (b * b));
+        transform.scale.y = Math.sqrt((c * c) + (d * d));
+
+        // next set position
+        const pivot_origin_x = pivot.x + transform.origin.x;
+        const pivot_origin_y = pivot.y + transform.origin.y;
+
+        // 处理origin偏移量，因为origin会影响到最终的position位置计算。
+        transform.position.x = this.tx + ((pivot_origin_x * a) + (pivot_origin_y * c)) - transform.origin.x;
+        transform.position.y = this.ty + ((pivot_origin_x * b) + (pivot_origin_y * d)) - transform.origin.y;
+        return transform;
     }
+
 
     invert() {
         return Matrix2D.invert(this, this) as Matrix2D
@@ -545,7 +590,7 @@ export class Matrix2D extends Float32Array {
         origin?: Vector2Like
         pivot?: Vector2Like
     }): this {
-        Matrix2D.fromTranslationRotationSkewScaleOriginPivot(
+        Matrix2D.fromTranslateRotationSkewScaleOriginPivot(
             this,
             transform.position,
             transform.rotation ?? 0,
@@ -585,8 +630,8 @@ export class Matrix2D extends Float32Array {
     getScaleY(): number {
         return Math.hypot(this[2], this[3])
     }
-    getScale(){
-        return Math.sqrt(this.getScaleX()*this.getScaleY())
+    getScale() {
+        return Math.sqrt(this.getScaleX() * this.getScaleY())
     }
 
     /** 旋转角 (rad) */

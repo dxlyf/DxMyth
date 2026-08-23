@@ -4,7 +4,8 @@
 // 借鉴 GSAP 的核心 ticker 设计。
 // ============================================================
 
-export type TickerCallback = (delta: number, elapsed: number) => void
+/** 回调返回 false 时自动从 tick 列表中移除 */
+export type TickerCallback = (delta: number, elapsed: number) => boolean | void
 
 /** 帧调度器接口 */
 export interface FrameScheduler {
@@ -131,10 +132,13 @@ export class Ticker {
         this._lastTime = current - (delta % this._minInterval || 0)
         this._elapsed += delta
 
-        // 通知所有监听器
+        // 通知所有监听器（返回 false 的监听器会被移除）
         const listeners = this._listeners
         for (let i = 0; i < listeners.length; i++) {
-            listeners[i](delta, this._elapsed)
+            if (listeners[i](delta, this._elapsed) === false) {
+                listeners.splice(i, 1)
+                i--
+            }
         }
     }
 }

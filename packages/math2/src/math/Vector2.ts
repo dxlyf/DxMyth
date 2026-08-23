@@ -3,6 +3,7 @@
 // ============================================================
 
 import { CachePool } from "./CachePool"
+import { degToRad } from "./MathUtils"
 import type { Matrix2DLike } from "./Matrix2D"
 
 export type Vector2Like = {
@@ -14,25 +15,24 @@ export type Vector2Like = {
 
 
 export class Vector2 implements Vector2Like {
-    static pool=CachePool.create({
-        initSize:20,
-        create:()=>new Vector2(0,0),
-        init(item:Vector2){
-            item.set(0,0)
+    static pool = CachePool.create({
+        initSize: 20,
+        create: () => new Vector2(0, 0),
+        init(item: Vector2) {
+            item.set(0, 0)
         }
     })
     // ---- 静态工厂 ----
-    static default(){
+    static default() {
         return this.create()
     }
-    static create(x:number=0,y:number=0){
-        return new Vector2(x,y)
+    static create(x: number = 0, y: number = 0) {
+        return new Vector2(x, y)
     }
     static zero(): Vector2 {
         return new Vector2(0, 0)
     }
-
-     static fromPoint(v:Vector2Like): Vector2 {
+    static fromPoint(v: Vector2Like): Vector2 {
         return new Vector2(v.x, v.y)
     }
     static fromValues(x: number, y: number): Vector2 {
@@ -42,12 +42,13 @@ export class Vector2 implements Vector2Like {
     static fromScalar(s: number): Vector2 {
         return new Vector2(s, s)
     }
-
-    /** 从夹角 (rad) 创建单位向量 */
-    static fromAngle(angle: number): Vector2 {
+    static fromRotation(angle: number): Vector2 {
         return new Vector2(Math.cos(angle), Math.sin(angle))
     }
-
+    /** 从夹角 (rad) 创建单位向量 */
+    static fromAngle(angle: number): Vector2 {
+        return new Vector2(Math.cos(degToRad(angle)), Math.sin(degToRad(angle)))
+    }
     /** 从类向量对象创建 */
     static from(v: Vector2Like): Vector2 {
         return new Vector2(v.x, v.y)
@@ -237,26 +238,28 @@ export class Vector2 implements Vector2Like {
         out.y = m[1] * x + m[3] * y + m[5]
         return out
     }
-    static translate(out: Vector2, v: Vector2Like,tx:number,ty:number): Vector2 {
+    static translate(out: Vector2, v: Vector2Like, tx: number, ty: number): Vector2 {
         out.x = v.x + tx
         out.y = v.y + ty
         return out
     }
-    static rotate(out: Vector2, v: Vector2Like,angle:number): Vector2 {
+    static rotate(out: Vector2, v: Vector2Like, angle: number, origin?: Vector2Like): Vector2 {
         const c = Math.cos(angle)
         const s = Math.sin(angle)
-        const x=v.x
-        const y=v.y
-        out.x = x * c - y * s
-        out.y = y * s + x * c
+        const ox = origin?.x ?? 0
+        const oy = origin?.y ?? 0
+        const x = v.x - ox
+        const y = v.y - oy
+        out.x = x * c - y * s + ox
+        out.y = y * s + x * c + oy
         return out
     }
-    static scale(out: Vector2, v: Vector2Like,sx:number,sy:number): Vector2 {
+    static scale(out: Vector2, v: Vector2Like, sx: number, sy: number): Vector2 {
         out.x = v.x * sx
         out.y = v.y * sy
         return out
     }
-   
+
     /**
      * 计算点到线段的最短距离
      */
@@ -264,28 +267,28 @@ export class Vector2 implements Vector2Like {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const lenSq = dx * dx + dy * dy;
-        
+
         if (lenSq === 0) {
             return this.distance(p, a);
         }
-        
+
         // 计算投影参数 t
         let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
         t = Math.max(0, Math.min(1, t));
-        
+
         // 投影点
         const projX = a.x + t * dx;
         const projY = a.y + t * dy;
-        
+
         return this.distance(p, { x: projX, y: projY });
     }
-    
+
     /**
      * 计算点到折线的距离
      */
     static pointToPolylineDistance(p: Vector2Like, points: Vector2Like[]): number {
         if (points.length < 2) return Infinity;
-        
+
         let minDist = Infinity;
         for (let i = 0; i < points.length - 1; i++) {
             const dist = this.pointToSegmentDistance(p, points[i], points[i + 1]);
@@ -293,7 +296,7 @@ export class Vector2 implements Vector2Like {
         }
         return minDist;
     }
-    
+
     /**
      * 判断点是否在线段上（考虑线宽）
      */
@@ -301,7 +304,7 @@ export class Vector2 implements Vector2Like {
         const dist = this.pointToSegmentDistance(p, a, b);
         return dist <= lineWidth / 2;
     }
-    
+
     /**
      * 计算两条线段的交点
      */
@@ -310,13 +313,13 @@ export class Vector2 implements Vector2Like {
         const d1y = a2.y - a1.y;
         const d2x = b2.x - b1.x;
         const d2y = b2.y - b1.y;
-        
+
         const denom = d1x * d2y - d1y * d2x;
         if (Math.abs(denom) < 1e-10) return null;
-        
+
         const t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / denom;
         const u = ((b1.x - a1.x) * d1y - (b1.y - a1.y) * d1x) / denom;
-        
+
         if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
             return {
                 x: a1.x + t * d1x,
@@ -415,19 +418,19 @@ export class Vector2 implements Vector2Like {
         Vector2.perp(this, this)
         return this
     }
-    setLengthTo(x:number,y:number,length:number,originLength?:{value:number}){
-        const dmag=Math.sqrt(x*x+y*y)
-        const dscale=length/dmag
-        const nx=x*dscale
-        const ny=y*dscale
+    setLengthTo(x: number, y: number, length: number, originLength?: { value: number }) {
+        const dmag = Math.sqrt(x * x + y * y)
+        const dscale = length / dmag
+        const nx = x * dscale
+        const ny = y * dscale
         if (!Number.isFinite(x) || !Number.isFinite(y) || (x == 0 && y == 0)) {
             this.set(0, 0);
             return false;
         }
-        if(originLength){
-            originLength.value=dmag
+        if (originLength) {
+            originLength.value = dmag
         }
-        this.set(nx,ny)
+        this.set(nx, ny)
         return true
     }
     /** 应用矩阵变换 this = m * this */
@@ -467,14 +470,14 @@ export class Vector2 implements Vector2Like {
     distanceSquaredTo(v: Vector2Like): number {
         return Vector2.distanceSquared(this, v)
     }
-    translate(tx:number,ty:number){
-        return Vector2.translate(this,this,tx,ty)
+    translate(tx: number, ty: number) {
+        return Vector2.translate(this, this, tx, ty)
     }
-    scale(sx:number,sy:number){
-        return Vector2.scale(this,this,sx,sy)
+    scale(sx: number, sy: number) {
+        return Vector2.scale(this, this, sx, sy)
     }
-    rotate(angle:number){
-        Vector2.rotate(this,this,angle)
+    rotate(angle: number, origin?: Vector2Like) {
+        Vector2.rotate(this, this, angle, origin)
         return this
     }
     equals(v: Vector2Like): boolean {
@@ -483,8 +486,8 @@ export class Vector2 implements Vector2Like {
     equalsEpsilon(v: Vector2Like, epsilon?: number): boolean {
         return Vector2.equalsEpsilon(this, v, epsilon)
     }
-    isFinite(){
-        return Number.isFinite(this.x)&&Number.isFinite(this.y)
+    isFinite() {
+        return Number.isFinite(this.x) && Number.isFinite(this.y)
     }
     isZero(): boolean {
         return this.x === 0 && this.y === 0

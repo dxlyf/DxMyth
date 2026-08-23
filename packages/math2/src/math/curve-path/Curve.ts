@@ -96,6 +96,14 @@ export abstract class Curve<T extends CurvePoint = CurvePoint> {
     }
 
     /**
+     * 返回 getPoints 采样时的细分数量。
+     * 默认直接返回 divisions，子类按自身类型覆盖（如直线返回 1、椭圆加倍）。
+     */
+    getResolution(divisions: number): number {
+        return divisions
+    }
+
+    /**
      * 通过 getPointAt 采样曲线，返回等弧长间隔的点数组。
      * @param divisions 细分数量，返回点数 = divisions + 1
      */

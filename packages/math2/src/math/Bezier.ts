@@ -392,3 +392,42 @@ export const project = (points: PointLike[], px: number, py: number, samples: nu
 
     return { t, distance: Math.sqrt(minDist2) }
 }
+
+// 圆锥曲线(有理曲线)转换为二次 Bézier 曲线(有理贝塞尔曲线转换)
+export function conicToQuadratic(
+    x0: number, y0: number,
+    x1: number, y1: number,
+    x2: number, y2: number,
+    w: number
+) {
+    // 定义原有理曲线的三个控制点
+    const P0 = [x0, y0];
+    const P1 = [x1, y1];
+    const P2 = [x2, y2];
+
+    // 计算左侧中间控制点 Q = (P0 + w*P1) / (1+w)
+    const Q = [
+        (x0 + w * x1) / (1 + w),
+        (y0 + w * y1) / (1 + w)
+    ];
+
+    // 计算右侧中间控制点 R = (P2 + w*P1) / (1+w)
+    const R = [
+        (x2 + w * x1) / (1 + w),
+        (y2 + w * y1) / (1 + w)
+    ];
+
+    // 计算在 t = 0.5 处的分割点 M = (P0 + 2w*P1 + P2) / (2*(1+w))
+    const M = [
+        (x0 + 2 * w * x1 + x2) / (2 * (1 + w)),
+        (y0 + 2 * w * y1 + y2) / (2 * (1 + w))
+    ];
+
+    // 返回两段标准二次 Bézier 曲线
+    // 第一段：P0, Q, M
+    // 第二段：M, R, P2
+    return [
+        [P0, Q, M],
+        [M, R, P2]
+    ]
+}

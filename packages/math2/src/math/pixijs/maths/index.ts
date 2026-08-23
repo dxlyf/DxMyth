@@ -17,3 +17,5 @@ export * from './shapes/Rectangle';
 export * from './shapes/RoundedRectangle';
 export * from './shapes/ShapePrimitive';
 export * from './shapes/Triangle';
+export * from './Transform';
+

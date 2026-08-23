@@ -1,27 +1,19 @@
 
 
-import { ColorValue, ColorLike, Color } from 'src/math/Color'
+import { ColorInput, ColorValue, Color } from 'src/math/Color'
 import { Matrix2D, Matrix2DLike } from './Matrix2D'
 import { clamp } from './MathUtils'
 export type ColorStop = {
     offset: number
-    color: ColorLike
+    color: ColorValue
 }
-export interface IGradient {
-    type: 'gradient'
-    elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
-    stops: ColorStop[]
-    matrix?: Matrix2DLike
-    getColorAt(x: number, y: number): ColorLike
-    clone(): IGradient
-    copy(source: IGradient): IGradient
-}
-export abstract class Gradient implements IGradient {
+
+export abstract class Gradient   {
     type: 'gradient' = 'gradient'
-    declare elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
+    elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
     stops: ColorStop[] = []
     matrix?: Matrix2D
-    addColorStop(offset: number, color: ColorValue): void {
+    addColorStop(offset: number, color: ColorInput): void {
         this.stops.push({
             offset: clamp(offset, 0, 1),
             color: Color.fromInput(color)
@@ -40,7 +32,7 @@ export abstract class Gradient implements IGradient {
         }
         this.matrix.fromValues(a, b, c, d, e, f)
     }
-    getColorAt(t: number): ColorLike {
+    getColorAt(t: number): ColorValue {
         const stops = this.stops
         if (t <= stops[0].offset) {
             return stops[0].color
@@ -61,7 +53,7 @@ export abstract class Gradient implements IGradient {
         }
         return stops[stops.length - 1].color
     }
-    abstract getGradientColor(x: number, y: number): ColorLike
+    abstract getGradientColor(x: number, y: number): ColorValue
     copy(source: Gradient) {
         this.stops = source.cloneColorStops()
         this.type = source.type
@@ -72,6 +64,9 @@ export abstract class Gradient implements IGradient {
         return this
     }
     abstract clone(): Gradient
+    dispose(){
+
+    }
 }
 
 export class LinearGradient extends Gradient {
@@ -90,7 +85,7 @@ export class LinearGradient extends Gradient {
         this.y1 = source.y1
         return this
     }
-    getGradientColor(x: number, y: number): ColorLike {
+    getGradientColor(x: number, y: number) {
         // 纯标量运算：t = 投影 / |dir|²，避免向量分配
         const dx = this.x1 - this.x0
         const dy = this.y1 - this.y0
@@ -121,7 +116,7 @@ export class RadialGradient extends Gradient {
         this.r1 = source.r1
         return this
     }
-    getGradientColor(x: number, y: number): ColorLike {
+    getGradientColor(x: number, y: number) {
         const dx = this.x1 - this.x0
         const dy = this.y1 - this.y0
         const px = x - this.x0
@@ -178,7 +173,7 @@ export class ConicGradient extends Gradient {
         this.y = source.y
         return this
     }
-    getGradientColor(x: number, y: number): ColorLike {
+    getGradientColor(x: number, y: number) {
         // 极角（相对中心），减去起始角后归一化到 [0, 1]
         let t = (Math.atan2(y - this.y, x - this.x) - this.startAngle) / (Math.PI * 2)
         if (t < 0) t += 1

@@ -60,7 +60,7 @@ export class Viewport implements IViewport {
     private _cachedVisibleBounds: BoundingRect | null = null;
     private _visibleBoundsDirty: boolean = true;
     
-    constructor(width: number, height: number) {
+    constructor(width: number=0, height: number=0) {
         this._worldToScreenMatrix = Matrix2D.identity()
         this._screenToWorldMatrix = Matrix2D.identity()
         this._cachedVisibleBounds=BoundingRect.fromLTRB(0,0,width,height)

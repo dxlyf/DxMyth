@@ -2,7 +2,7 @@ import { Vector2 as Point, type Vector2Like as PointLike } from './Vector2'
 import { getQuadraticBezierBounds, QuadraticBezier } from './QuadraticBezier'
 import { getCubicBezierBounds, CubicBezier } from './CubicBezier'
 import { BoundingRect } from './BoundingRect'
-import { normalizeAngles } from './Arc'
+import { ellipseSvgArcFromPath,ellipseCubicBezierFromPath, normalizeAngles, arcCubicBezierFromPath } from './Arc'
 
 import { windingCubicBezier, windingLine, windingQuadraticBezier } from './PathIntersection'
 import { Matrix2DLike } from './Matrix2D'
@@ -21,7 +21,8 @@ export const PathSegmentType = {
     Arc: 1 << 0,
     Rect: 1 << 1,
     Ellipse: 1 << 2,
-    RoundRect: 1 << 3
+    RoundRect: 1 << 3,
+    EllipseSvgArc: 1 << 4,
 }
 export const PathVerbCount = {
     [PathVerb.MoveTo]: 1,
@@ -290,49 +291,7 @@ export class PathBuilder {
      * @param counterclockwise - 是否逆时针（默认顺时针）
      */
     arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise = false): void {
-        const { startAngle: startNorm, endAngle: endNorm } = normalizeAngles(startAngle, endAngle, counterclockwise)
-
-        const delta = endNorm - startNorm
-
-        // 每段最多 90°，保证贝塞尔近似精度
-        const segments = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2)))
-        const segAngle = delta / segments
-
-        let currentAngle = startNorm
-        for (let i = 0; i < segments; i++) {
-            const segStart = currentAngle
-            const segEnd = currentAngle + segAngle
-
-            const startX = x + radius * Math.cos(segStart)
-            const startY = y + radius * Math.sin(segStart)
-
-            if (i === 0) {
-                // 与 Canvas API 一致：有子路径则 lineTo 到起点，否则 moveTo
-                if (this.isEmpty) {
-                    this.moveTo(startX, startY)
-                } else {
-                    this.lineTo(startX, startY)
-                }
-            }
-
-            // 三次贝塞尔近似圆弧段（k = 4/3 * tan(θ/4)）
-            const theta = segAngle
-            const k = (4 / 3) * Math.tan(theta / 4)
-
-            // 起点控制点：沿起点切线方向外推
-            const cp1X = startX - k * radius * Math.sin(segStart)
-            const cp1Y = startY + k * radius * Math.cos(segStart)
-
-            const endX = x + radius * Math.cos(segEnd)
-            const endY = y + radius * Math.sin(segEnd)
-
-            // 终点控制点：沿终点切线方向回推
-            const cp2X = endX + k * radius * Math.sin(segEnd)
-            const cp2Y = endY - k * radius * Math.cos(segEnd)
-
-            this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY)
-            currentAngle = segEnd
-        }
+        arcCubicBezierFromPath(this,x,y,radius,startAngle,endAngle,counterclockwise)
         this.segmentType |= PathSegmentType.Arc
     }
 
@@ -358,57 +317,7 @@ export class PathBuilder {
         startAngle: number, endAngle: number,
         counterclockwise = false,
     ): void {
-        const { startAngle: startNorm, endAngle: endNorm } = normalizeAngles(startAngle, endAngle, counterclockwise)
-
-        const delta = endNorm - startNorm
-        const segments = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2)))
-        const segAngle = delta / segments
-
-        const cosRot = Math.cos(rotation)
-        const sinRot = Math.sin(rotation)
-
-        let currentAngle = startNorm
-        for (let i = 0; i < segments; i++) {
-            const segStart = currentAngle
-            const segEnd = currentAngle + segAngle
-
-            // 参数化椭圆点，含旋转
-            const cosStart = Math.cos(segStart)
-            const sinStart = Math.sin(segStart)
-            const startX = x + cosRot * radiusX * cosStart - sinRot * radiusY * sinStart
-            const startY = y + sinRot * radiusX * cosStart + cosRot * radiusY * sinStart
-
-            if (i === 0) {
-                if (this.isEmpty) {
-                    this.moveTo(startX, startY)
-                } else {
-                    this.lineTo(startX, startY)
-                }
-            }
-
-            // 三次贝塞尔近似椭圆弧段
-            const theta = segAngle
-            const k = (4 / 3) * Math.tan(theta / 4)
-
-            // 端点沿切线方向偏移，切线方向为旋转后的 (-rx·sin(t), ry·cos(t))
-            const tanX1 = -radiusX * sinStart
-            const tanY1 = radiusY * cosStart
-            const cp1X = startX + k * (cosRot * tanX1 - sinRot * tanY1)
-            const cp1Y = startY + k * (sinRot * tanX1 + cosRot * tanY1)
-
-            const cosEnd = Math.cos(segEnd)
-            const sinEnd = Math.sin(segEnd)
-            const endX = x + cosRot * radiusX * cosEnd - sinRot * radiusY * sinEnd
-            const endY = y + sinRot * radiusX * cosEnd + cosRot * radiusY * sinEnd
-
-            const tanX2 = -radiusX * sinEnd
-            const tanY2 = radiusY * cosEnd
-            const cp2X = endX - k * (cosRot * tanX2 - sinRot * tanY2)
-            const cp2Y = endY - k * (sinRot * tanX2 + cosRot * tanY2)
-
-            this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY)
-            currentAngle = segEnd
-        }
+        ellipseCubicBezierFromPath(this,x,y,radiusX,radiusY,rotation,startAngle,endAngle,counterclockwise)
         this.segmentType |= PathSegmentType.Ellipse
     }
 
@@ -425,7 +334,7 @@ export class PathBuilder {
      * @param y2 - 第二条切线的终点 Y
      * @param radius - 圆弧半径
      */
-    arcToConic(x1: number, y1: number, x2: number, y2: number, radius: number): void {
+    conicArcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void {
         this.ensureMove()
 
         if (radius === 0) {
@@ -634,74 +543,21 @@ export class PathBuilder {
      *
      * @param x1 - 起点 X
      * @param y1 - 起点 Y
-     * @param x2 - 终点 X
-     * @param y2 - 终点 Y
      * @param rx - X 轴半径
      * @param ry - Y 轴半径
      * @param rotation - 椭圆的旋转角度（弧度）
      * @param largeArcFlag - true=大弧, false=小弧
      * @param sweepFlag - true=顺时针, false=逆时针
+     * @param x - 终点 X
+     * @param y - 终点 Y
      */
-    ellipseSvgArc(
-        x1: number, y1: number, x2: number, y2: number,
+    arcToSvg(
+        x1: number, y1: number,
         rx: number, ry: number, rotation: number,
-        largeArcFlag: boolean, sweepFlag: boolean,
+        largeArcFlag: boolean, sweepFlag: boolean,x:number,y:number
     ): void {
-        // 起点终点重合时跳过
-        if (Math.abs(x1 - x2) < 1e-10 && Math.abs(y1 - y2) < 1e-10) return
-
-        // 半轴取绝对值
-        rx = Math.abs(rx)
-        ry = Math.abs(ry)
-        if (rx < 1e-10 || ry < 1e-10) {
-            this.lineTo(x2, y2)
-            return
-        }
-
-        const cosRot = Math.cos(rotation)
-        const sinRot = Math.sin(rotation)
-
-        // (1) 变换到未旋转坐标系
-        const dx = (x1 - x2) / 2
-        const dy = (y1 - y2) / 2
-        const x1p = cosRot * dx + sinRot * dy
-        const y1p = -sinRot * dx + cosRot * dy
-
-        // (2) 确保半径足够大（缩放半轴）
-        const lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
-        if (lambda > 1) {
-            const sqrtLambda = Math.sqrt(lambda)
-            rx *= sqrtLambda
-            ry *= sqrtLambda
-        }
-
-        // (3) 计算未旋转坐标系下的圆心 (cxp, cyp)
-        const rx2 = rx * rx
-        const ry2 = ry * ry
-        const x1p2 = x1p * x1p
-        const y1p2 = y1p * y1p
-        const sqrtArg = Math.max(0,
-            (rx2 * ry2 - rx2 * y1p2 - ry2 * x1p2) / (rx2 * y1p2 + ry2 * x1p2),
-        )
-        const sign = largeArcFlag !== sweepFlag ? 1 : -1
-        const sqrtVal = Math.sqrt(sqrtArg)
-        const cxp = sign * sqrtVal * (rx * y1p / ry)
-        const cyp = sign * sqrtVal * (-ry * x1p / rx)
-
-        // (4) 变换回原始坐标系得到 (cx, cy)
-        const cx = cosRot * cxp - sinRot * cyp + (x1 + x2) / 2
-        const cy = sinRot * cxp + cosRot * cyp + (y1 + y2) / 2
-
-        // (5) 计算起止角度（在未旋转椭圆坐标系下，除以半轴做归一化）
-        const ux = (x1p - cxp) / rx
-        const uy = (y1p - cyp) / ry
-        const vx = (-x1p - cxp) / rx
-        const vy = (-y1p - cyp) / ry
-        const startAngle = Math.atan2(uy, ux)
-        const endAngle = Math.atan2(vy, vx)
-
-        // SVG sweepFlag=1 表示顺时针，对应 ellipse() 的 counterclockwise=false
-        this.ellipse(cx, cy, rx, ry, rotation, startAngle, endAngle, !sweepFlag)
+        ellipseSvgArcFromPath(this, x1, y1, rx, ry, rotation, largeArcFlag, sweepFlag, x, y)
+        this.segmentType |= PathSegmentType.EllipseSvgArc
     }
 
     closePath() {

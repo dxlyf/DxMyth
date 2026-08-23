@@ -28,7 +28,7 @@ export * from './math/PathBuilder'
 export * from './math/PathIntersection'
 export * from './math/PathStroke'
 export * from './math/Point'
-export * from './math/ProxyPath2D'
+export * from './math/MirrorPath2D'
 export * from './math/QuadraticBezier'
 export * from './math/RTree'
 export * from './math/Transform'
@@ -49,7 +49,7 @@ export * as polyclip from './math/polyclip-ts'
 export * as RBush from './data/rbush'
 export {default as TinyQueue} from './data/tinyqueue'
 export * from './data/splaytree'
-export * as math2 from './math2'
+// export * as math2 from './math2'
 
 export * as polybool from './math/polybool/polybool'
 export * as clipper2 from './math/clipper2'
@@ -81,10 +81,14 @@ export type {PluginContext as PluginServiceContext,IPlugin as PluginServicePlugi
 // animation
 export * from './animation'
 export * from './tapable'
-export * from './renderer/Paint'
-export * from './renderer/canvas/CanvasRenderer'
-export * from './renderer/webgl/WebGL2Helper'
-export * from './renderer/webgpu/WebGPUHelper'
+export * from './rendering/Stage'
+export * from './rendering/Paint'
+export * from './rendering/renderer/canvas/CanvasRenderer'
+export * from './rendering/renderer/webgl/WebGL2Helper'
+export * from './rendering/renderer/webgpu/WebGPUHelper'
+
+//pre-text
+export * as pretext from './pretext'
 
 
 // utils
