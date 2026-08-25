@@ -2,6 +2,7 @@
 // EllipseCurve — 椭圆曲线（2D）
 // ============================================================
 
+import { normalizeAngles } from '../../Arc'
 import { Vector2 } from '../../Vector2'
 import { Curve } from '../Curve'
 
@@ -46,30 +47,9 @@ export class EllipseCurve extends Curve<Vector2> {
     getPoint(t: number, optionalTarget: Vector2 = new Vector2()): Vector2 {
         const point = optionalTarget
 
-        const twoPi = Math.PI * 2
-        let deltaAngle = this.aEndAngle - this.aStartAngle
-        const samePoints = Math.abs(deltaAngle) < Number.EPSILON
-
-        // 确保 deltaAngle 落在 0..2π 区间
-        while (deltaAngle < 0) deltaAngle += twoPi
-        while (deltaAngle > twoPi) deltaAngle -= twoPi
-
-        if (deltaAngle < Number.EPSILON) {
-            if (samePoints) {
-                deltaAngle = 0
-            } else {
-                deltaAngle = twoPi
-            }
-        }
-
-        if (this.aClockwise === true && !samePoints) {
-            if (deltaAngle === twoPi) {
-                deltaAngle = -twoPi
-            } else {
-                deltaAngle = deltaAngle - twoPi
-            }
-        }
-
+        const {startAngle, endAngle}=normalizeAngles(this.aStartAngle, this.aEndAngle, !this.aClockwise)
+        let deltaAngle = endAngle- startAngle
+        
         const angle = this.aStartAngle + t * deltaAngle
         let x = this.aX + this.xRadius * Math.cos(angle)
         let y = this.aY + this.yRadius * Math.sin(angle)

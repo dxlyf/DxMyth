@@ -9,6 +9,7 @@ import { Matrix2DLike } from './Matrix2D'
 import { Matrix2D } from './Matrix2D'
 import { fromSvgPath } from './ParseSvgPath'
 import { Conic } from './Conic'
+import { CachePool } from './CachePool'
 
 export enum PathVerb {
     MoveTo = 1 << 0,
@@ -64,6 +65,11 @@ export class PathBuilder {
     static default() {
         return new PathBuilder()
     }
+    static pool=CachePool.create({
+        create:()=>new PathBuilder(),
+        init:(path)=>path.reset(),
+        release:(path)=>path.reset(),
+    })
     verbs: PathVerb[] // 路径命令
     points: PointLike[]// 路径点
     lastMoveIndex: number = -1 // 最后一个移动点的索引

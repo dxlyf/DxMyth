@@ -6,6 +6,7 @@ import { PathBuilder } from "./PathBuilder";
 import { Vector2, Vector2Like } from "./Vector2";
 import { QuadraticBezier } from "./QuadraticBezier";
 import { CubicBezier } from "./CubicBezier";
+import {EllipseArc} from './shape/EllipseArc'
 
 export interface MirrorPath2D {
     addPath(path: MirrorPath2D, transform?: Matrix2DLike): void;
@@ -36,18 +37,7 @@ export interface MirrorPath2D {
     /** SVG 椭圆弧（对应 SVG A/a 命令），xAxisRotation 单位为弧度 */
     arcToSvg(rx: number, ry: number, xAxisRotation: number, largeArcFlag: boolean | number, sweepFlag: boolean | number, x: number, y: number): void;
 }
-const CommandType={
-    Move:'M',
-    Line:'L',
-    QuadraticCurveTo:'Q',
-    BezierCurveTo:'C',
-    Arc:'AC',
-    ArcTo:'AT',
-    Ellipse:'E',
-    Rect:'R',
-    RoundRect:'RR',
-    Close:'Z',
-}
+
 type MoveCommand = ['M', x: number, y: number]
 type LineCommand = ['L', x: number, y: number]
 type QuadraticCurveToCommand = ['Q', cp1x: number, cp1y: number, x: number, y: number]
@@ -292,9 +282,10 @@ function flattenEllipseToPoints(
     startAngle: number, endAngle: number, ccw: boolean,
     epsilon: number, push: (x: number, y: number) => void,
 ): void {
-    const {startAngle:newStartAngle,endAngle:newEndAngle}=normalizeAngles(startAngle,endAngle,ccw)
-    const sweepAngle=newEndAngle-newStartAngle
-    
+    new EllipseArc(cx, cy, rx, ry, rotation, startAngle, endAngle, ccw)
+    .getPoints()
+    .forEach(p => push(p.x, p.y))
+       
 }
 
 /** 将 arcTo 命令展平为 切点直线 + 圆弧 */

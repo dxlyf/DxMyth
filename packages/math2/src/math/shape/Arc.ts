@@ -5,6 +5,7 @@
 // area() 计算扇形面积；若需弓形（弦+弧）面积可用 sectorArea - triangleArea
 // ============================================================
 
+import { normalizeAngles } from '../Arc'
 import { BoundingRect } from '../BoundingRect'
 import { Geometry, PointOut, distPointToSegmentSquared, normalizeAnglePositive, angleDelta, arcSegmentCount } from './Geometry'
 
@@ -33,11 +34,8 @@ export class Arc extends Geometry {
 
     /** 扫过角度（绝对值，弧度） */
     sweep(): number {
-        const TAU = Math.PI * 2
-        let s = normalizeAnglePositive(this.startAngle)
-        let e = normalizeAnglePositive(this.endAngle)
-        let d = this.ccw ? (e - s + TAU) % TAU : (s - e + TAU) % TAU
-        return d
+        const {startAngle, endAngle}=normalizeAngles(this.startAngle, this.endAngle, this.ccw)
+        return Math.abs(endAngle-startAngle)
     }
 
     /** 弦长 */
@@ -188,7 +186,7 @@ export class Arc extends Geometry {
         r.length = 0
         const { cx, cy, radius } = this
         // 扇形边界：圆心 → 起点 → 弧 → 终点（末边终点→圆心隐式闭合）
-        r.push({ x: cx, y: cy })
+       // r.push({ x: cx, y: cy })
         r.push({
             x: cx + radius * Math.cos(this.startAngle),
             y: cy + radius * Math.sin(this.startAngle)

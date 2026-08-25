@@ -3,7 +3,7 @@
 // 参考：https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
 // ══════════════════════════════════════════════
 
-import { Vector2 } from "./Vector2"
+import { Vector2,type Vector2Like } from "./Vector2"
 
 /** SVG 弧线的端点参数化 */
 export interface EndpointArcParams {
@@ -633,3 +633,4 @@ function angleBetween(ux: number, uy: number, vx: number, vy: number): number {
   const cross = ux * vy - uy * vx
   return Math.atan2(cross, dot)
 }
+

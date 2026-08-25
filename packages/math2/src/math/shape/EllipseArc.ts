@@ -7,6 +7,7 @@
 // area() 计算扇形面积；弓形面积 = sectorArea - triangleArea
 // ============================================================
 
+import { normalizeAngles } from '../Arc'
 import { BoundingRect } from '../BoundingRect'
 import { Geometry, PointOut, distPointToSegmentSquared, normalizeAnglePositive, arcSegmentCount } from './Geometry'
 
@@ -67,9 +68,8 @@ export class EllipseArc extends Geometry {
 
     /** 扫过角度（绝对值，弧度） */
     sweep(): number {
-        let s = normalizeAnglePositive(this.startAngle)
-        let e = normalizeAnglePositive(this.endAngle)
-        return this.ccw ? (e - s + TAU) % TAU : (s - e + TAU) % TAU
+        const {startAngle, endAngle}=normalizeAngles(this.startAngle, this.endAngle, this.ccw)
+        return Math.abs(endAngle-startAngle)
     }
 
     /** 弦长（起点到终点直线距离） */
@@ -266,11 +266,11 @@ export class EllipseArc extends Geometry {
     getPoints(out?: PointOut[]): PointOut[] {
         const r = out || []
         r.length = 0
-        const sweep = this.sweep()
+        const sweep=this.sweep()
         // 按较短的半轴估算段数，保证弦高误差达标
         const n = arcSegmentCount(Math.min(this.rx, this.ry), sweep)
         const dir = this.ccw ? 1 : -1
-        r.push({ x: this.cx, y: this.cy })
+      //  r.push({ x: this.cx, y: this.cy })
         r.push(this.startPoint())
         for (let i = 1; i < n; i++) {
             r.push(this.pointAt(this.startAngle + dir * (sweep * i) / n))

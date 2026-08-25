@@ -1,17 +1,17 @@
 
 import { Matrix2D } from 'src/math/Matrix2D'
-import {MirrorPath2D} from 'src/math/MirrorPath2D'
+import {PathBuilder} from 'src/math/PathBuilder'
 
 
 
 export abstract class PainterContext {
-    currentPath:MirrorPath2D
+    currentPath:PathBuilder
     constructor(){
-        this.currentPath=new MirrorPath2D()
+        this.currentPath=new PathBuilder()
     }
 
     beginPath(){
-        this.currentPath=new MirrorPath2D()
+        this.currentPath.reset()
     }
     moveTo(x:number,y:number){
         this.currentPath.moveTo(x,y)
