@@ -6,6 +6,7 @@ import {PathBuilder} from 'src/math/PathBuilder'
 
 export abstract class PainterContext {
     currentPath:PathBuilder
+    _matrix:Matrix2D = new Matrix2D()
     constructor(){
         this.currentPath=new PathBuilder()
     }

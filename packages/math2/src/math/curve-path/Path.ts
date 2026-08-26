@@ -11,6 +11,7 @@ import { CubicBezierCurve } from './curves/CubicBezierCurve'
 import { QuadraticBezierCurve } from './curves/QuadraticBezierCurve'
 import { LineCurve } from './curves/LineCurve'
 import type { CurveJSON } from './Curve'
+import { ArcToCurve } from './curves'
 
 export class Path extends CurvePath<Vector2> {
     type = 'Path'
@@ -89,6 +90,12 @@ export class Path extends CurvePath<Vector2> {
 
         this.currentPoint.copy(pts[pts.length - 1])
 
+        return this
+    }
+    arcTo(x0:number,y0:number,x:number,y:number,radius:number){
+        const curve = new ArcToCurve(this.currentPoint.clone(),Vector2.create(x0,y0),Vector2.create(x,y),radius)
+        this.curves.push(curve)
+        this.currentPoint.set(x,y)
         return this
     }
 

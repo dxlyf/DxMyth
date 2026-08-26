@@ -1,4 +1,4 @@
-import { Vector2 as Point, type Vector2Like as PointLike } from './Vector2'
+import { Vector2 as Point, Vector2, type Vector2Like as PointLike } from './Vector2'
 import { getQuadraticBezierBounds, QuadraticBezier } from './QuadraticBezier'
 import { getCubicBezierBounds, CubicBezier } from './CubicBezier'
 import { BoundingRect } from './BoundingRect'
@@ -370,6 +370,36 @@ export class PathBuilder {
         let weight = Math.sqrt(0.5 + cosh * 0.5);
         this.lineTo(start.x, start.y)
         this.conicTo(x1, y1, end.x, end.y, weight)
+    }
+    private svgArcTo(x1: number, y1: number, x2: number, y2: number, radius: number) {
+        this.ensureMove()
+
+        if (radius === 0) {
+            this.lineTo(x1, y1)
+            return
+        }
+        const lastPoint = this.lastPoint
+        const p0 = Vector2.fromPoint(lastPoint)
+        const p1 = Vector2.create(x1, y1)
+        const p2 = Vector2.create(x2, y2)
+
+        let d0 = p1.clone().subtract(p0).normalize()
+        let d1 = p2.clone().subtract(p1).normalize()
+        let cosh = d0.dot(d1)
+        let sinh = d0.cross(d1)
+
+        // 如果是水平
+        if (Math.abs(sinh) <= 1e-6) {
+            this.lineTo(x1, y1)
+            return
+        }
+        // 计算切线长度 (1-cos)/sin)=tan(angle/2)
+        let dist = Math.abs(radius * (1 - cosh) / sinh)
+        let start = p1.clone().subtract(d0.multiplyScalar(dist))
+        let end = p1.clone().add(d1.multiplyScalar(dist))
+        let sweepFag = sinh > 0 ? true : false
+        this.lineTo(start.x, start.y)
+        this.arcToSvg(start.x, start.y, radius, radius, 0, false, sweepFag, end.x, end.y)
     }
     /**
      * 添加圆弧连接（arcTo）

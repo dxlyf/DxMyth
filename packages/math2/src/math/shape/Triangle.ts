@@ -63,6 +63,62 @@ export class Triangle extends Geometry {
         return r
     }
 
+    /**
+     * 内心（Incenter）：三条角平分线的交点，即内切圆圆心。
+     * 坐标为顶点按对边边长加权的重心组合：
+     *   I = (a·A + b·B + c·C) / (a + b + c)
+     * 其中 a = |BC|（顶点 A 的对边）、b = |CA|、c = |AB|。
+     * 推导：内心到三边距离均为内切圆半径 r，故每个顶点处的
+     * 权重正比于该顶点对边的长度（面积法：S = a·r/2 + b·r/2 + c·r/2）。
+     * @param out 可选输出对象，避免分配
+     */
+    incenter(out?: PointOut): PointOut {
+        const r = out || { x: 0, y: 0 }
+        // 三边边长（标准记号：a 为 A 的对边）
+        const a = Math.hypot(this.cx - this.bx, this.cy - this.by) // |BC|
+        const b = Math.hypot(this.ax - this.cx, this.ay - this.cy) // |CA|
+        const c = Math.hypot(this.bx - this.ax, this.by - this.ay) // |AB|
+        const p = a + b + c
+        if (p === 0) {
+            // 三点重合，三角形退化
+            r.x = 0
+            r.y = 0
+            return r
+        }
+        r.x = (a * this.ax + b * this.bx + c * this.cx) / p
+        r.y = (a * this.ay + b * this.by + c * this.cy) / p
+        return r
+    }
+
+    /**
+     * 外心（Circumcenter）：三条垂直平分线的交点，即外接圆圆心。
+     * 采用行列式推导的解析公式（2D 平面）：
+     *   d  = 2 * [ ax*(by-cy) + bx*(cy-ay) + cx*(ay-by) ]
+     *   ux = [ (ax²+ay²)*(by-cy) + (bx²+by²)*(cy-ay) + (cx²+cy²)*(ay-by) ] / d
+     *   uy = [ (ax²+ay²)*(cx-bx) + (bx²+by²)*(ax-cx) + (cx²+cy²)*(bx-ax) ] / d
+     * 推导：外心到三顶点距离相等，令 |U-A|² = |U-B|² = |U-C|²，
+     * 两两相减得两条线性方程（垂直平分线），联立解出 U。
+     * 注意：三点共线时无外心（d = 0），返回 (0, 0)。
+     * @param out 可选输出对象，避免分配
+     */
+    circumcenter(out?: PointOut): PointOut {
+        const r = out || { x: 0, y: 0 }
+        const { ax, ay, bx, by, cx, cy } = this
+        const d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
+        if (d === 0) {
+            // 三点共线，三角形退化，外接圆不存在
+            r.x = 0
+            r.y = 0
+            return r
+        }
+        const aSq = ax * ax + ay * ay
+        const bSq = bx * bx + by * by
+        const cSq = cx * cx + cy * cy
+        r.x = (aSq * (by - cy) + bSq * (cy - ay) + cSq * (ay - by)) / d
+        r.y = (aSq * (cx - bx) + bSq * (ax - cx) + cSq * (bx - ax)) / d
+        return r
+    }
+
     perimeter(): number {
         const abx = this.bx - this.ax, aby = this.by - this.ay
         const bcx = this.cx - this.bx, bcy = this.cy - this.by

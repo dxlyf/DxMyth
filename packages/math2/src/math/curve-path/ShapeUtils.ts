@@ -5,8 +5,92 @@
 
 import earcut from '../earcut'
 import type { Vector2Like } from '../Vector2'
+import { Shape } from './Shape'
+
+
 
 export class ShapeUtils {
+    addShapes(shapes:Shape[],curveSegments:number=12){
+        const vertices:number[] = []
+        const normals:number[] = []
+        const uvs:number[] = []
+        const indices:number[] = []
+        function addShape( shape:Shape,curveSegments:number = 12 ) {
+
+            const indexOffset = vertices.length / 3;
+            const points = shape.extractPoints( curveSegments );
+
+            let shapeVertices = points.shape;
+            const shapeHoles = points.holes;
+
+            // check direction of vertices
+
+            if ( ShapeUtils.isClockWise( shapeVertices ) === false ) {
+
+                shapeVertices = shapeVertices.reverse();
+
+            }
+
+            for ( let i = 0, l = shapeHoles.length; i < l; i ++ ) {
+
+                const shapeHole = shapeHoles[ i ];
+
+                if ( ShapeUtils.isClockWise( shapeHole ) === true ) {
+
+                    shapeHoles[ i ] = shapeHole.reverse();
+
+                }
+
+            }
+
+            const faces = ShapeUtils.triangulateShape( shapeVertices, shapeHoles );
+
+            // join vertices of inner and outer paths to a single array
+
+            for ( let i = 0, l = shapeHoles.length; i < l; i ++ ) {
+
+                const shapeHole = shapeHoles[ i ];
+                shapeVertices = shapeVertices.concat( shapeHole );
+
+            }
+
+            // vertices, normals, uvs
+
+            for ( let i = 0, l = shapeVertices.length; i < l; i ++ ) {
+
+                const vertex = shapeVertices[ i ];
+
+                vertices.push( vertex.x, vertex.y, 0 );
+                normals.push( 0, 0, 1 );
+                uvs.push( vertex.x, vertex.y ); // world uvs
+
+            }
+
+            // indices
+
+            for ( let i = 0, l = faces.length; i < l; i ++ ) {
+
+                const face = faces[ i ];
+
+                const a = face[ 0 ] + indexOffset;
+                const b = face[ 1 ] + indexOffset;
+                const c = face[ 2 ] + indexOffset;
+
+                indices.push( a, b, c );
+
+            }
+
+        }
+        shapes.forEach(shape=>{
+            addShape(shape,curveSegments)
+        })
+        return {
+            vertices,
+            normals,
+            uvs,
+            indices
+        }
+    }
     /**
      * 计算 2D 轮廓多边形面积（鞋带公式）。
      * @param contour 2D 点数组
