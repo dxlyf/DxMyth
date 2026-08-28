@@ -10,7 +10,7 @@ import { Geometry, PointOut, distPointToSegmentSquared } from './Geometry'
 export class Polygon extends Geometry {
     /** 扁平顶点数据 [x0,y0,x1,y1,...] */
     points: number[]
-
+    closed: boolean = false
     constructor(points: number[] = []) {
         super()
         this.points = points

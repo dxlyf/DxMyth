@@ -6,6 +6,12 @@ import { Vector2, type Vector2Like } from './Vector2'
 import type { Matrix2DLike } from './Matrix2D'
 import { CachePool } from './CachePool'
 
+export type BoundingRectLike = {
+    x: number
+    y: number
+    width: number
+    height: number
+}
 export class BoundingRect {
     static pool = CachePool.create({
         initSize: 10,

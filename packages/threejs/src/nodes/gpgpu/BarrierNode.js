@@ -21,6 +21,15 @@ class BarrierNode extends Node {
 
 		this.scope = scope;
 
+		this.isBarrierNode = true;
+
+	}
+
+	setup( builder ) {
+
+		builder.allowEarlyReturns = false;
+		builder.allowGlobalVariables = false;
+
 	}
 
 	generate( builder ) {
@@ -52,7 +61,7 @@ export default BarrierNode;
  * @param {string} scope - The scope defines the behavior of the node..
  * @returns {BarrierNode}
  */
-const barrier = nodeProxy( BarrierNode );
+const barrier = /*@__PURE__*/ nodeProxy( BarrierNode );
 
 /**
  * TSL function for creating a workgroup barrier. All compute shader

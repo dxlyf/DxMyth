@@ -58,7 +58,9 @@ export class Matrix2D extends Float32Array {
     static identity(): Matrix2D {
         return new Matrix2D(1, 0, 0, 1, 0, 0)
     }
-
+    static from(arr: Matrix2DLike): Matrix2D {
+        return new Matrix2D(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
+    }
     static fromArray(arr: ArrayLike<number>): Matrix2D {
         return new Matrix2D(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
     }

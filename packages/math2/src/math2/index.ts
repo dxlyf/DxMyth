@@ -1,5 +1,0 @@
-export * from './Color'
-export * from './Transform'
-export * from './mat2d'
-export * from './vec2'
-export * from './mat3'

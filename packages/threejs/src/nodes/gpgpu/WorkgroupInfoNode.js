@@ -1,6 +1,7 @@
 import ArrayElementNode from '../utils/ArrayElementNode.js';
 import Node from '../core/Node.js';
 import { warn } from '../../utils.js';
+import StackTrace from '../core/StackTrace.js';
 
 /**
  * Represents an element of a 'workgroup' scoped buffer.
@@ -34,7 +35,7 @@ class WorkgroupInfoElementNode extends ArrayElementNode {
 
 		let snippet;
 
-		const isAssignContext = builder.context.assign;
+		const isAssignContext = builder.isContextAssign();
 		snippet = super.generate( builder );
 
 		if ( isAssignContext !== true ) {
@@ -68,9 +69,9 @@ class WorkgroupInfoElementNode extends ArrayElementNode {
 class WorkgroupInfoNode extends Node {
 
 	/**
-	 * Constructs a new buffer scoped to type scope.
+	 * Constructs a new workgroup info node.
 	 *
-	 * @param {string} scope - TODO.
+	 * @param {string} scope - The address space the buffer is scoped to. Currently only `'Workgroup'` is used.
 	 * @param {string} bufferType - The data type of a 'workgroup' scoped buffer element.
 	 * @param {number} [bufferCount=0] - The number of elements in the buffer.
 	 */
@@ -110,7 +111,7 @@ class WorkgroupInfoNode extends Node {
 		this.elementType = bufferType;
 
 		/**
-		 * TODO.
+		 * The address space the buffer is scoped to. Currently only `'Workgroup'` is used.
 		 *
 		 * @type {string}
 		 */
@@ -149,7 +150,7 @@ class WorkgroupInfoNode extends Node {
 	 */
 	label( name ) {
 
-		warn( 'TSL: "label()" has been deprecated. Use "setName()" instead.' ); // @deprecated r179
+		warn( 'TSL: "label()" has been deprecated. Use "setName()" instead.', new StackTrace() ); // @deprecated r179
 
 		return this.setName( name );
 

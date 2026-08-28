@@ -59,14 +59,18 @@ export abstract class Renderer extends EventEmitter<RendererEvents>{
     setClearColor(color:ColorInput){
         this.clearColor=Color.fromInput(color)
     }
-    abstract clear():void
-    abstract save():void
-    abstract restore():void
+    // 变换
     abstract transform(matrix:Matrix2D):void
     abstract translate(x:number,y:number):void
     abstract scale(scale:number):void
     abstract rotate(angle:number):void
-    abstract moveTo(x:number,y:number):void
+
+
+    abstract clear():void // 清除画布
+    abstract save():void // 保存上下文
+    abstract restore():void // 恢复上下文
+    abstract moveTo(x:number,y:number):void // 移动到指定位置
+    abstract lineTo(x:number,y:number):void // 绘制到指定位置
     abstract rect(x:number,y:number,width:number,height:number):void
     abstract render(renderOptions:RenderOptions):void
     abstract drawRect(x:number,y:number,width:number,height:number,paint:Paint):void
