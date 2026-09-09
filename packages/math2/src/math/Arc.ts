@@ -3,7 +3,8 @@
 // 参考：https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
 // ══════════════════════════════════════════════
 
-import { Vector2,type Vector2Like } from "./Vector2"
+import { clamp } from "./MathUtils"
+import { Vector2, type Vector2Like } from "./Vector2"
 
 /** SVG 弧线的端点参数化 */
 export interface EndpointArcParams {
@@ -567,18 +568,18 @@ export function ellipseSvgArcFromPath(path: Pick<Path2D, 'lineTo' | 'ellipse'>, 
     path.lineTo(x2, y2)
     return
   }
-  const {cx,cy,rx:rx2,ry:ry2,startAngle,sweepAngle}=endpointToCenter({
+  const { cx, cy, rx: rx2, ry: ry2, startAngle, sweepAngle } = endpointToCenter({
     x1,
     y1,
     x2,
     y2,
     rx,
     ry,
-    xAxisRotation:rotation,
+    xAxisRotation: rotation,
     largeArcFlag,
     sweepFlag
   })
-   path.ellipse(cx, cy, rx2, ry2, rotation, startAngle, startAngle+sweepAngle, !sweepFlag)
+  path.ellipse(cx, cy, rx2, ry2, rotation, startAngle, startAngle + sweepAngle, !sweepFlag)
   // const cosRot = Math.cos(rotation)
   // const sinRot = Math.sin(rotation)
 
@@ -634,3 +635,19 @@ function angleBetween(ux: number, uy: number, vx: number, vy: number): number {
   return Math.atan2(cross, dot)
 }
 
+export const buildArc = (points: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw: boolean = false,tolerance=0.5) => {
+  const { startAngle, endAngle } = normalizeAngles(start, end, ccw)
+  const delta = endAngle - startAngle
+  if (Math.abs(delta) <= 1e-6) {
+    return
+  }
+  let segmentCount = Math.max(1, Math.ceil(Math.min(Math.PI, Math.abs(delta)) / (Math.acos(clamp(1 - tolerance / r,0,1)))))
+  let segmentAngle = delta / segmentCount
+  let angle = startAngle
+  for (let i = 0; i <= segmentCount; i++) {
+    let x = cx + r * Math.cos(angle)
+    let y = cy + r * Math.sin(angle)
+    points.push({ x: x, y: y })
+    angle += segmentAngle
+  }
+}

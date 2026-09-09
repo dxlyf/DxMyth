@@ -4,9 +4,10 @@
 // ============================================================
 
 import { clamp } from '../MathUtils'
-import { Vector2 } from '../Vector2'
+import { Vector2, Vector2Like } from '../Vector2'
 import { Vector3 } from '../Vector3'
 import { Matrix4 } from '../Matrix4'
+import { buildStrokePoints } from '../shape'
 
 /** 曲线序列化 JSON 结构（宽松类型） */
 export interface CurveJSON {
@@ -66,7 +67,7 @@ export abstract class Curve<T extends CurvePoint = CurvePoint> {
     isCatmullRomCurve3?: boolean
     /** SplineCurve / CatmullRomCurve3 的控制点 */
     points?: T[]
-
+    
     /**
      * 返回曲线上参数 t 处的点。
      * @param t 插值因子，范围 [0,1]
@@ -93,6 +94,10 @@ export abstract class Curve<T extends CurvePoint = CurvePoint> {
             points.push(this.getPoint(d / divisions))
         }
         return points
+    }
+    getStrokePoints(options: { divisions?: number, width: number, align?: 'inside' | 'outside'|'center', join: 'round' | 'bevel' | 'miter', cap: 'round' | 'butt' | 'square', miterLimit?: number }) {
+        const points = this.getPoints(options.divisions || 5)
+        return  buildStrokePoints(points, options)
     }
 
     /**

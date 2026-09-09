@@ -17,7 +17,7 @@ export declare class PointerEvent<T = string, D = any> extends NodeEvent<T, D> {
 export type PointerEventSystemOptions = {
     target: HTMLElement;
     screenToWorld: (out: Point, x: number, y: number, element: HTMLElement) => Point;
-    hitTest: (x: number, y: number) => any | null;
+    hitTest: (e: PointerEvent) => any | null;
     /** 拖拽触发阈值（像素），移动超过此距离才触发 dragstart，默认 4 */
     dragThreshold?: number;
     /** 双击间隔（毫秒），两次 click 在此间隔内触发 dblclick，默认 300 */
@@ -31,6 +31,7 @@ export type PointerEventsMaps = {
     pointerup: [e: PointerEvent];
     pointerleave: [e: PointerEvent];
     pointerenter: [e: PointerEvent];
+    pointercancel: [e: PointerEvent];
     wheel: [e: PointerEvent];
     click: [e: PointerEvent];
     dblclick: [e: PointerEvent];

@@ -35,7 +35,7 @@ export declare class Viewport implements IViewport {
     private _screenToWorldMatrixDirty;
     private _cachedVisibleBounds;
     private _visibleBoundsDirty;
-    constructor(width: number, height: number);
+    constructor(width?: number, height?: number);
     get zoom(): number;
     set zoom(value: number);
     get rotation(): number;

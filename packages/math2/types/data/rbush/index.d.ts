@@ -5,7 +5,7 @@ export interface BBox {
     maxY: number;
 }
 
-export default class RBush<T> {
+export  class RBush<T> {
     /**
      * Constructs an `RBush`, a high-performance 2D spatial index for points and
      * rectangles. Based on an optimized __R-tree__ data structure with

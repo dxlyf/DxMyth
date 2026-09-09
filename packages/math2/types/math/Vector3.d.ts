@@ -25,27 +25,27 @@ export declare class Vector3 implements Vector3Like {
     /** Z 轴单位向量 */
     static unitZ(): Vector3;
     /** out = a + b */
-    static add(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static add<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = a - b */
-    static subtract(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static subtract<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = a ⊙ b（逐分量相乘） */
-    static multiply(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static multiply<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = v * s */
-    static multiplyScalar(out: Vector3, v: Vector3Like, s: number): Vector3;
+    static multiplyScalar<T extends Vector3Like>(out: T, v: Vector3Like, s: number): T;
     /** out = v / s */
-    static divide(out: Vector3, v: Vector3Like, s: number): Vector3;
+    static divide<T extends Vector3Like>(out: T, v: Vector3Like, s: number): T;
     /** out = -v */
-    static negate(out: Vector3, v: Vector3Like): Vector3;
+    static negate<T extends Vector3Like>(out: T, v: Vector3Like): T;
     /** out = normalized(v)；零向量时返回零向量 */
-    static normalize(out: Vector3, v: Vector3Like): Vector3;
+    static normalize<T extends Vector3Like>(out: T, v: Vector3Like): T;
     /** a · b */
     static dot(a: Vector3Like, b: Vector3Like): number;
     /** out = a × b（3D 叉积） */
-    static cross(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static cross<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = a 在 b 上的投影 */
-    static project(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static project<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = lerp(a, b, t)；t=0 得 a，t=1 得 b */
-    static lerp(out: Vector3, a: Vector3Like, b: Vector3Like, t: number): Vector3;
+    static lerp<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like, t: number): T;
     /** |a - b| */
     static distance(a: Vector3Like, b: Vector3Like): number;
     /** |a - b|²（避免 sqrt） */
@@ -56,17 +56,17 @@ export declare class Vector3 implements Vector3Like {
     /** 判断 a 与 b 是否近似相等 */
     static equalsEpsilon(a: Vector3Like, b: Vector3Like, epsilon?: number): boolean;
     /** out = min(a, b)（逐分量取最小） */
-    static min(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static min<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = max(a, b)（逐分量取最大） */
-    static max(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3;
+    static max<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = clamp(v, min, max) */
-    static clamp(out: Vector3, v: Vector3Like, min: Vector3Like, max: Vector3Like): Vector3;
+    static clamp<T extends Vector3Like>(out: T, v: Vector3Like, min: Vector3Like, max: Vector3Like): T;
     /** out = reflect(v, normal)；normal 需为单位向量 */
-    static reflect(out: Vector3, v: Vector3Like, normal: Vector3Like): Vector3;
+    static reflect<T extends Vector3Like>(out: T, v: Vector3Like, normal: Vector3Like): T;
     /** out = m * v（3x3 矩阵变换，列主序） */
-    static applyMatrix3(out: Vector3, v: Vector3Like, m: Matrix3Like): Vector3;
+    static applyMatrix3<T extends Vector3Like>(out: T, v: Vector3Like, m: Matrix3Like): T;
     /** out = m * v（4x4 矩阵变换，w=1 带透视除法，列主序） */
-    static applyMatrix4(out: Vector3, v: Vector3Like, m: Matrix4Like): Vector3;
+    static applyMatrix4<T extends Vector3Like>(out: T, v: Vector3Like, m: Matrix4Like): T;
     x: number;
     y: number;
     z: number;

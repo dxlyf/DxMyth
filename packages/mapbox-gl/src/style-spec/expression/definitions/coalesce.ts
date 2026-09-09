@@ -1,0 +1,95 @@
+import assert from '../../util/assert';
+import {checkSubtype, ValueType} from '../types';
+import ResolvedImage from '../types/resolved_image';
+
+import type {Expression, SerializedExpression} from '../expression';
+import type ParsingContext from '../parsing_context';
+import type EvaluationContext from '../evaluation_context';
+import type {Type} from '../types';
+
+class Coalesce implements Expression {
+    type: Type;
+    args: Array<Expression>;
+
+    constructor(type: Type, args: Array<Expression>) {
+        this.type = type;
+        this.args = args;
+    }
+
+    static parse(args: ReadonlyArray<unknown>, context: ParsingContext): Coalesce | null | undefined {
+        if (args.length < 2) {
+            context.error("Expectected at least one argument.");
+            return null;
+        }
+        let outputType: Type | null = null;
+        const expectedType = context.expectedType;
+        if (expectedType && expectedType.kind !== 'value') {
+            outputType = expectedType;
+        }
+        const parsedArgs: Expression[] = [];
+
+        for (const arg of args.slice(1)) {
+            const parsed = context.parse(arg, 1 + parsedArgs.length, outputType, undefined, {typeAnnotation: 'omit'});
+            if (!parsed) return null;
+            outputType = outputType || parsed.type;
+            parsedArgs.push(parsed);
+        }
+        assert(outputType);
+
+        // Above, we parse arguments without inferred type annotation so that
+        // they don't produce a runtime error for `null` input, which would
+        // preempt the desired null-coalescing behavior.
+        // Thus, if any of our arguments would have needed an annotation, we
+        // need to wrap the enclosing coalesce expression with it instead.
+        const needsAnnotation = expectedType &&
+            parsedArgs.some(arg => checkSubtype(expectedType, arg.type));
+
+        return needsAnnotation ?
+            new Coalesce(ValueType, parsedArgs) :
+            new Coalesce(outputType, parsedArgs);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    evaluate(ctx: EvaluationContext): any {
+        let result = null;
+        let argCount = 0;
+        let firstImage: ResolvedImage | undefined;
+        for (const arg of this.args) {
+            argCount++;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            result = arg.evaluate(ctx);
+            // we need to keep track of the first requested image in a coalesce statement
+            // if coalesce can't find a valid image, we return the first image so styleimagemissing can fire
+            if (result && result instanceof ResolvedImage && !result.available) {
+                // set to first image
+                if (!firstImage) {
+                    firstImage = result;
+                }
+                result = null;
+                // if we reach the end, return the first image
+                if (argCount === this.args.length) {
+                    return firstImage;
+                }
+            }
+
+            if (result !== null) break;
+        }
+        return result;
+    }
+
+    eachChild(fn: (_: Expression) => void) {
+        this.args.forEach(fn);
+    }
+
+    outputDefined(): boolean {
+        return this.args.every(arg => arg.outputDefined());
+    }
+
+    serialize(): SerializedExpression {
+        const serialized: Array<SerializedExpression> = ["coalesce"];
+        this.eachChild(child => { serialized.push(child.serialize()); });
+        return serialized;
+    }
+}
+
+export default Coalesce;

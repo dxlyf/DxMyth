@@ -163,6 +163,10 @@ export class Transform<Events extends TransformEvents=any> extends EventEmitter<
         this._localMatrixDirty = true
         this._worldMatrixDirty = true
         this.emit('transform:change', this)
+        this.onTransformChange()
+    }
+    onTransformChange(){
+       
     }
 
     /** 重置所有变换为默认值 */

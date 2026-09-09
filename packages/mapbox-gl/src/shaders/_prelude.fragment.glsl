@@ -1,0 +1,133 @@
+// NOTE: This prelude is injected in the fragment shader only
+
+// Normalized viewport UV from gl_FragCoord uses bottom-left origin by default.
+// Metal (VIEWPORT_ORIGIN_TOP_LEFT) and Vulkan (FLIP_Y) use top-left; flip Y when either is defined.
+#if defined(VIEWPORT_ORIGIN_TOP_LEFT) || defined(FLIP_Y)
+#define FLIP_VIEWPORT_UV_Y(uv) (uv).y = 1.0 - (uv).y
+#else
+#define FLIP_VIEWPORT_UV_Y(uv)
+#endif
+
+// DUAL_SOURCE_BLENDING and USE_MRT1 are mutually exclusive. Please define only one.
+#ifdef DUAL_SOURCE_BLENDING
+layout(location = 0, index = 0) out vec4 glFragColor;
+layout(location = 0, index = 1) out vec4 glFragColorSrc1;
+#elif defined(FLOAT_RENDER_TARGET)
+layout(location = 0) out highp vec4 glFragColor;
+#else
+layout(location = 0) out vec4 glFragColor;
+#endif
+
+#ifdef USE_MRT1
+layout(location = 1) out vec4 out_Target1;
+#endif
+
+highp float unpack_depth(highp vec4 rgba_depth)
+{
+    const highp vec4 bit_shift = vec4(1.0 / (255.0 * 255.0 * 255.0), 1.0 / (255.0 * 255.0), 1.0 / 255.0, 1.0);
+    return dot(rgba_depth, bit_shift) * 2.0 - 1.0;
+}
+
+// Pack depth to RGBA. A piece of code copied in various libraries and WebGL
+// shadow mapping examples.
+// https://aras-p.info/blog/2009/07/30/encoding-floats-to-rgba-the-final/
+highp vec4 pack_depth(highp float ndc_z) {
+#ifdef CLIP_ZERO_TO_ONE
+    // ndc_z is already in [0, 1] (Metal's native clip-space z range), so skip the GL-style remap.
+    highp float depth = ndc_z;
+#else
+    highp float depth = ndc_z * 0.5 + 0.5;
+#endif
+    const highp vec4 bit_shift = vec4(255.0 * 255.0 * 255.0, 255.0 * 255.0, 255.0, 1.0);
+    const highp vec4 bit_mask  = vec4(0.0, 1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0);
+    highp vec4 res = fract(depth * bit_shift);
+    res -= res.xxyz * bit_mask;
+    return res;
+}
+
+const float DITHER_THRESHOLDS[16] = float[16](
+    1.0 / 17.0,  9.0 / 17.0,  3.0 / 17.0, 11.0 / 17.0,
+    13.0 / 17.0,  5.0 / 17.0, 15.0 / 17.0,  7.0 / 17.0,
+    4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
+    16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
+);
+
+// Bayer dither index in gl_FragCoord framebuffer space (front-cutoff, GPU route cutout).
+// Top-origin backends reflect the Bayer row (height-free); OpenGL is bottom-left.
+int viewport_dither_index(vec2 fragCoordXY) {
+#if defined(VIEWPORT_ORIGIN_TOP_LEFT) || defined(FLIP_Y)
+    return (int(fragCoordXY.x) % 4) * 4 + (3 - int(fragCoordXY.y) % 4);
+#else
+    return (int(fragCoordXY.x) % 4) * 4 + (int(fragCoordXY.y) % 4);
+#endif
+}
+
+#ifdef DEBUG_WIREFRAME
+    // Debug wireframe uses premultiplied alpha blending (alpha channel is left unchanged)
+    #define HANDLE_WIREFRAME_DEBUG \
+        glFragColor = vec4(0.7, 0.0, 0.0, 0.7); \
+        gl_FragDepth = gl_FragCoord.z - 0.0001; // Apply depth for wireframe overlay to reduce z-fighting
+#else
+    #define HANDLE_WIREFRAME_DEBUG
+#endif
+
+#ifdef RENDER_CUTOFF
+uniform highp vec4 u_cutoff_params;
+in float v_cutoff_opacity;
+#endif
+
+// This function should be used in cases where mipmap usage is expected and
+// the sampling coordinates are not continous. The lod_parameter should be
+// a continous function derived from the sampling coordinates.
+vec4 textureLodCustom(sampler2D image, highp vec2 pos, highp vec2 lod_coord) {
+    highp vec2 size = vec2(textureSize(image, 0));
+    highp vec2 dx = dFdx(lod_coord.xy * size);
+    highp vec2 dy = dFdy(lod_coord.xy * size);
+    highp float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
+    highp float lod = 0.5 * log2(delta_max_sqr);
+    // Note: textureLod doesn't support anisotropic filtering
+    // We could use textureGrad instead which supports it, but it's discouraged
+    // in the ARM Developer docs:
+    // "Do not use textureGrad() unless absolutely necessary.
+    // It is much slower that texture() and textureLod()..."
+    // https://developer.arm.com/documentation/101897/0301/Buffers-and-textures/Texture-sampling-performance
+    return textureLod(image, pos, lod);
+}
+
+vec4 premultiplyColor(vec3 nonPremultipliedColor, float a) {
+    return vec4(nonPremultipliedColor * a, a);
+}
+
+vec3 unpremultiplyColor(vec4 premultipliedColor) {
+    if (premultipliedColor.a > 0.0) {
+        return premultipliedColor.rgb / premultipliedColor.a;
+    }
+    return premultipliedColor.rgb;
+}
+
+vec3 applyLUT(highp sampler3D lut, vec3 col) {
+    vec3 size = vec3(textureSize(lut, 0));
+    // Sample from the center of the pixel in the LUT
+    vec3 uvw = (col.rbg * float(size - 1.0) + 0.5) / size;
+    return texture(lut, uvw).rgb;
+}
+
+vec4 applyLUT(highp sampler3D lut, vec4 premultipliedColor) {
+    return premultiplyColor(applyLUT(lut, unpremultiplyColor(premultipliedColor)), premultipliedColor.a);
+}
+
+void storeEmissiveColor(vec4 color, float emissiveStrength) {
+#ifdef DUAL_SOURCE_BLENDING
+    glFragColorSrc1 = vec4(vec3(0.0), emissiveStrength);
+#else
+
+#ifdef USE_MRT1 
+#ifdef USE_MRT1_RGBA
+    out_Target1 = vec4(color.rgb * emissiveStrength, color.a);
+#else
+    out_Target1 = vec4(emissiveStrength * color.a, 0.0, 0.0, glFragColor.a);
+#endif
+#endif
+
+#endif
+}

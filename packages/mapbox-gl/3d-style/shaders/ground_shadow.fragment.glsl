@@ -1,0 +1,48 @@
+#include "_prelude_shadow.fragment.glsl"
+#include "_prelude_indicator_cutout.fragment.glsl"
+#include "_prelude_feature_cutout.fragment.glsl"
+
+precision highp float;
+
+uniform vec3 u_ground_shadow_factor;
+
+in vec4 v_pos_light_view_0;
+in vec4 v_pos_light_view_1;
+
+#ifdef FOG
+in float v_fog_opacity;
+#endif
+
+void main() {
+    float light = shadowed_light_factor_plane_bias(v_pos_light_view_0, v_pos_light_view_1, 1.0 / gl_FragCoord.w);
+    vec3 shadow = mix(u_ground_shadow_factor, vec3(1.0), light);
+
+#ifdef RENDER_CUTOFF
+    shadow = mix(vec3(1.0), shadow, cutoff_opacity(u_cutoff_params, 1.0 / gl_FragCoord.w));
+#endif
+#ifdef FOG
+    shadow = mix(shadow, vec3(1.0), v_fog_opacity);
+#endif
+
+#ifdef INDICATOR_CUTOUT
+    shadow = mix(shadow, vec3(1.0), 1.0 - applyCutout(vec4(1.0), 0.0).r);
+#endif
+#ifdef FEATURE_CUTOUT
+    vec2 uv = gl_FragCoord.xy * u_inv_viewport_size.xy;
+#ifdef FLIP_Y
+    uv.y = 1.0 - uv.y;
+#endif
+
+    highp float cutoutFactor = get_cutout_factors(gl_FragCoord).y;
+    highp float cutoutDepthNDC = sample_cutout_depth_bilinear(u_cutout_depth_image, uv);
+    highp float fragDepthNDC = gl_FragCoord.z / u_feature_cutout_params.w;
+    // Prevent cutting above ground
+    highp float groundThreshold = -0.001;
+    highp float groundLimit = clamp((fragDepthNDC + groundThreshold - cutoutDepthNDC) / groundThreshold + 0.5, 0.0, 1.0);
+    cutoutFactor = mix(0.0, cutoutFactor, groundLimit);
+
+    shadow = mix(shadow, vec3(1.0), cutoutFactor);
+#endif
+
+    glFragColor = vec4(shadow, 1.0);
+}

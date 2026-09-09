@@ -1,0 +1,159 @@
+import assert from '../../util/assert';
+import {typeOf} from '../values';
+import {typeEquals, ValueType} from '../types';
+
+import type {Type} from '../types';
+import type {Expression, SerializedExpression} from '../expression';
+import type ParsingContext from '../parsing_context';
+import type EvaluationContext from '../evaluation_context';
+
+// Map input label values to output expression index
+type Cases = Partial<Record<number | string, number>>;
+
+class Match implements Expression {
+    type: Type;
+    inputType: Type;
+
+    input: Expression;
+    cases: Cases;
+    outputs: Array<Expression>;
+    otherwise: Expression;
+
+    constructor(inputType: Type, outputType: Type, input: Expression, cases: Cases, outputs: Array<Expression>, otherwise: Expression) {
+        this.inputType = inputType;
+        this.type = outputType;
+        this.input = input;
+        this.cases = cases;
+        this.outputs = outputs;
+        this.otherwise = otherwise;
+    }
+
+    static parse(args: ReadonlyArray<unknown>, context: ParsingContext): Match | null | void {
+        if (args.length < 5)
+            return context.error(`Expected at least 4 arguments, but found only ${args.length - 1}.`);
+        if (args.length % 2 !== 1)
+            return context.error(`Expected an even number of arguments.`);
+
+        let inputType: Type | undefined;
+        let outputType: Type | null | undefined;
+        if (context.expectedType && context.expectedType.kind !== 'value') {
+            outputType = context.expectedType;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cases: Record<string, any> = {};
+        const outputs = [];
+        for (let i = 2; i < args.length - 1; i += 2) {
+            let labels = args[i];
+            const value = args[i + 1];
+
+            if (!Array.isArray(labels)) {
+                labels = [labels];
+            }
+
+            if ((labels as unknown[]).length === 0) {
+                return context.error('Expected at least one branch label.', i);
+            }
+
+            for (const label of (labels as unknown[])) {
+                if (typeof label !== 'number' && typeof label !== 'string') {
+                    return context.error(`Branch labels must be numbers or strings.`, i);
+                } else if (typeof label === 'number' && Math.abs(label) > Number.MAX_SAFE_INTEGER) {
+                    return context.error(`Branch labels must be integers no larger than ${Number.MAX_SAFE_INTEGER}.`, i);
+
+                } else if (typeof label === 'number' && Math.floor(label) !== label) {
+                    return context.error(`Numeric branch labels must be integer values.`, i);
+
+                } else if (!inputType) {
+                    inputType = typeOf(label);
+                } else if (context.checkSubtype(inputType, typeOf(label), i)) {
+                    return null;
+                }
+
+                if (typeof cases[String(label)] !== 'undefined') {
+                    return context.error('Branch labels must be unique.', i);
+                }
+
+                cases[String(label)] = outputs.length;
+            }
+
+            const result = context.parse(value, i, outputType);
+            if (!result) return null;
+            outputType = outputType || result.type;
+            outputs.push(result);
+        }
+
+        const input = context.parse(args[1], 1, ValueType);
+        if (!input) return null;
+
+        const otherwise = context.parse(args.at(-1), args.length - 1, outputType);
+        if (!otherwise) return null;
+
+        assert(inputType && outputType);
+
+        if (input.type.kind !== 'value' && context.checkSubtype((inputType), input.type, 1)) {
+            return null;
+        }
+
+        return new Match(inputType, outputType, input, cases, outputs, otherwise);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    evaluate(ctx: EvaluationContext): any {
+        const input = (this.input.evaluate(ctx)) as number | string;
+        const output = (typeEquals(typeOf(input), this.inputType) && this.outputs[this.cases[input]!]) || this.otherwise;
+        return output.evaluate(ctx);
+    }
+
+    eachChild(fn: (_: Expression) => void) {
+        fn(this.input);
+        this.outputs.forEach(fn);
+        fn(this.otherwise);
+    }
+
+    outputDefined(): boolean {
+        return this.outputs.every(out => out.outputDefined()) && this.otherwise.outputDefined();
+    }
+
+    serialize(): SerializedExpression {
+        const serialized = ["match", this.input.serialize()];
+
+        // Sort so serialization has an arbitrary defined order, even though
+        // branch order doesn't affect evaluation
+        const sortedLabels = Object.keys(this.cases).sort();
+
+        // Group branches by unique match expression to support condensed
+        // serializations of the form [case1, case2, ...] -> matchExpression
+        const groupedByOutput: Array<[number, Array<number | string>]> = [];
+        const outputLookup: {
+            [index: number]: number;
+        } = {}; // lookup index into groupedByOutput for a given output expression
+        for (const label of sortedLabels) {
+            const outputIndex = outputLookup[this.cases[label]!];
+            if (outputIndex === undefined) {
+                // First time seeing this output, add it to the end of the grouped list
+                outputLookup[this.cases[label]!] = groupedByOutput.length;
+                groupedByOutput.push([this.cases[label]!, [label]]);
+            } else {
+                // We've seen this expression before, add the label to that output's group
+                groupedByOutput[outputIndex]![1].push(label);
+            }
+        }
+
+        const coerceLabel = (label: number | string) => (this.inputType.kind === 'number' ? Number(label) : label);
+
+        for (const [outputIndex, labels] of groupedByOutput) {
+            if (labels.length === 1) {
+                // Only a single label matches this output expression
+                serialized.push(coerceLabel(labels[0]!));
+            } else {
+                // Array of literal labels pointing to this output expression
+                serialized.push(labels.map(coerceLabel));
+            }
+            serialized.push(this.outputs[outputIndex]!.serialize());
+        }
+        serialized.push(this.otherwise.serialize());
+        return serialized;
+    }
+}
+
+export default Match;

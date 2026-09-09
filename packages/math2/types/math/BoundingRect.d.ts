@@ -1,6 +1,12 @@
 import { Vector2, Vector2Like } from './Vector2';
 import { Matrix2DLike } from './Matrix2D';
 import { CachePool } from './CachePool';
+export type BoundingRectLike = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
 export declare class BoundingRect {
     static pool: CachePool<BoundingRect, []>;
     static default(): BoundingRect;

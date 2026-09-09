@@ -1,54 +1,40 @@
 
 import { loadImage } from 'src/utils/loadResource'
+import { Matrix2D } from './Matrix2D'
 
-export type IPattern = {
-    type: 'pattern'
-    elementType: 'image'
-    repeat?: 'repeat' | 'repeat-x' | 'repeat-y'
-    source: CanvasImageSource
-    clone(): Pattern
-    copy(source: Pattern): void
-}
-export class Pattern implements IPattern{
-    type:'pattern'='pattern'
-    elementType:'image'
-    repeat?: 'repeat' | 'repeat-x' | 'repeat-y'='repeat'
-    source: CanvasImageSource
-    clone(): IPattern {
-        throw new Error('Method not implemented.')
-    }
-    copy(source: IPattern): void {
-        throw new Error('Method not implemented.')
-    }
 
-}
-export class ImagePattern extends Pattern{
-    static fromUrl(url:string){
-        const pattern = new ImagePattern()
+export class Pattern {
+     static fromUrl(url:string){
+        const pattern = new Pattern()
         loadImage(url).then((image)=>{
             pattern.source=image
         })
         return pattern
     }
     static fromImage(image:CanvasImageSource){
-        const pattern = new ImagePattern()
+        const pattern = new Pattern()
         pattern.source=image
         return pattern
     }
-    elementType:'image'='image'
-    source: CanvasImageSource=null
-    constructor(){
-        super()
+    type:'pattern'='pattern'
+    elementType:'image'
+    repeat?: 'repeat' | 'repeat-x' | 'repeat-y'='repeat'
+    source: CanvasImageSource
+    matrix:Matrix2D
+    ref:any
+    constructor(image?:CanvasImageSource,repeat:'repeat' | 'repeat-x' | 'repeat-y'='repeat'){
+        this.source=image||null
+        this.repeat=repeat||'repeat'
     }
-    clone() {
-        const pattern = new ImagePattern()
+    clone(): Pattern {
+        const pattern = new Pattern(this.source,this.repeat)
         pattern.copy(this)
         return pattern
     }
-    copy(source: ImagePattern): void {
+    copy(source: Pattern): void {
         this.source=source.source
         this.repeat=source.repeat
-        this.elementType=source.elementType
-        this.type=source.type
+        this.matrix=source.matrix?.clone()
     }
+
 }

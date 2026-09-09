@@ -1,6 +1,6 @@
 import { BoundingRect } from '../BoundingRect';
 /** 描边对齐方式 */
-export type StrokeAlign = 'inner' | 'outer' | 'center';
+type StrokeAlign = 'inner' | 'outer' | 'center';
 /** 输出点（避免分配） */
 export interface PointOut {
     x: number;
@@ -67,3 +67,4 @@ export declare function normalizeAnglePositive(a: number): number;
 export declare function isAngleInRange(angle: number, start: number, end: number, ccw: boolean): boolean;
 /** 两个角度之间的最短角度差（绝对值） */
 export declare function angleDelta(a: number, b: number): number;
+export {};

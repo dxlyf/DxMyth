@@ -1,5 +1,12 @@
 import { Vector2Like } from '../Vector2';
+import { Shape } from './Shape';
 export declare class ShapeUtils {
+    addShapes(shapes: Shape[], curveSegments?: number): {
+        vertices: number[];
+        normals: number[];
+        uvs: number[];
+        indices: number[];
+    };
     /**
      * 计算 2D 轮廓多边形面积（鞋带公式）。
      * @param contour 2D 点数组

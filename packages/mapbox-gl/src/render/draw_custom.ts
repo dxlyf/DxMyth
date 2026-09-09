@@ -1,0 +1,126 @@
+export default drawCustom;
+
+import DepthMode from '../gl/depth_mode';
+import StencilMode from '../gl/stencil_mode';
+import {warnOnce} from '../util/util';
+import {globeToMercatorTransition} from './../geo/projection/globe_util';
+import assert from '../style-spec/util/assert';
+
+import type Painter from './painter';
+import type {EmissiveMode} from './painter';
+import type {OverscaledTileID} from '../source/tile_id';
+import type SourceCache from '../source/source_cache';
+import type CustomStyleLayer from '../style/style_layer/custom_style_layer';
+import type {CustomLayerRenderEmissiveMode} from '../style/style_layer/custom_style_layer';
+
+// Map internal EmissiveMode to values exposed via public custom layer API.
+// 'constant' is intentionnally missing -> mapped to undefined.
+const emissiveModeToCustomLayerMode: Partial<Record<EmissiveMode, CustomLayerRenderEmissiveMode>> = {
+    'dual-source-blending': 'dual-source-blending',
+    'mrt-fallback': 'mrt',
+    'mrt-full-rgba': 'mrt-rgba'
+};
+
+function drawCustom(painter: Painter, sourceCache: SourceCache, layer: CustomStyleLayer, coords: Array<OverscaledTileID>) {
+
+    const context = painter.context;
+    const implementation = layer.implementation;
+
+    if (painter.transform.projection.unsupportedLayers && painter.transform.projection.unsupportedLayers.includes("custom") &&
+        !(painter.terrain && (painter.terrain.renderingToTexture || painter.renderPass === 'offscreen') && layer.isDraped(sourceCache))) {
+        warnOnce('Custom layers are not yet supported with this projection. Use mercator or globe to enable usage of custom layers.');
+        return;
+    }
+
+    if (painter.renderPass === 'offscreen') {
+
+        const prerender = implementation.prerender;
+        if (prerender) {
+            painter.setCustomLayerDefaults();
+            context.setColorMode(painter.colorModeForRenderPass());
+
+            if (painter.transform.projection.name === "globe") {
+                const center = painter.transform.pointMerc;
+                prerender.call(implementation, context.gl, painter.transform.customLayerMatrix() as number[], painter.transform.getProjection(), painter.transform.globeToMercatorMatrix(),  globeToMercatorTransition(painter.transform.zoom), [center.x, center.y], painter.transform.pixelsPerMeterRatio);
+            } else {
+                prerender.call(implementation, context.gl, painter.transform.customLayerMatrix() as number[]);
+            }
+
+            context.setDirty();
+            painter.setBaseState();
+        }
+
+    } else if (painter.renderPass === 'translucent') {
+
+        if (painter.terrain && painter.terrain.renderingToTexture) {
+            assert(implementation.renderToTile);
+            assert(coords.length === 1);
+            const renderToTile = implementation.renderToTile;
+            if (renderToTile) {
+                const c = coords[0].canonical;
+                const renderCoords = {
+                    /*
+                     * We intentionally baked wrap into x coordinate before and
+                     * we need to keep backward-compatibility.
+                     *
+                     * https://github.com/mapbox/mapbox-gl-js/pull/12182/commits/8b9071f751b9ed9ae4389dce7fb2e30aae984f9d
+                     */
+                    x: c.x + coords[0].wrap * (implementation.wrapTileId ? 0 : (1 << c.z)),
+                    y: c.y,
+                    z: c.z
+                };
+
+                context.setDepthMode(DepthMode.disabled);
+                context.setStencilMode(StencilMode.disabled);
+                context.setColorMode(painter.colorModeForRenderPass());
+                painter.setCustomLayerDefaults();
+
+                const emissiveMode = emissiveModeToCustomLayerMode[painter.emissiveMode];
+
+                const gl = context.gl;
+                const supportsEmissiveMode = implementation.supportsEmissiveMode;
+                const outputsEmissiveColor = emissiveMode && supportsEmissiveMode && supportsEmissiveMode.call(implementation, emissiveMode);
+                if (painter.isEmissiveMrtActive() && !outputsEmissiveColor) {
+                    // In the emissive MRT-fallback path the proxy tile FBO is bound with two draw
+                    // buffers ([COLOR_ATTACHMENT0, COLOR_ATTACHMENT1]). A custom layer's fragment
+                    // shader only declares a single color output, so with both buffers enabled its
+                    // color never lands in attachment 0. Restrict the custom draw to attachment 0.
+                    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+                }
+
+                renderToTile.call(implementation, context.gl, renderCoords, emissiveMode);
+
+                if (painter.isEmissiveMrtActive() && !outputsEmissiveColor) {
+                    // Restore the draw buffer state expected by the rest of the render pipeline.
+                    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+                }
+
+                context.setDirty();
+                painter.setBaseState();
+            }
+            return;
+        }
+
+        painter.setCustomLayerDefaults();
+
+        context.setColorMode(painter.colorModeForRenderPass());
+        context.setStencilMode(StencilMode.disabled);
+
+        const depthMode = implementation.renderingMode === '3d' ?
+            new DepthMode(painter.context.gl.LEQUAL, DepthMode.ReadWrite, painter.depthRangeFor3D) :
+            painter.depthModeForSublayer(0, DepthMode.ReadOnly);
+
+        context.setDepthMode(depthMode);
+
+        if (painter.transform.projection.name === "globe") {
+            const center = painter.transform.pointMerc;
+            implementation.render(context.gl, painter.transform.customLayerMatrix() as number[], painter.transform.getProjection(), painter.transform.globeToMercatorMatrix(), globeToMercatorTransition(painter.transform.zoom), [center.x, center.y], painter.transform.pixelsPerMeterRatio);
+        } else {
+            implementation.render(context.gl, painter.transform.customLayerMatrix() as number[]);
+        }
+
+        context.setDirty();
+        painter.setBaseState();
+        context.bindFramebuffer.set(null);
+    }
+}

@@ -8,6 +8,8 @@ export interface IDisposable extends IDispose {
 type DPRegisterOptions<T> = {
     dispose?: (obj: T) => void;
 };
+export declare const pushDisposableManager: (manager: DisposableManager) => DisposableManager;
+export declare const popDisposableManager: () => void;
 export declare const addDisposable: (target: IDispose) => void;
 export declare class DisposableManager {
     static add: (target: IDispose) => void;

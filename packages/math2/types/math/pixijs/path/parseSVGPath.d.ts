@@ -1,19 +1,4 @@
 import { GraphicsPath } from '../path/GraphicsPath';
-/** A parsed path command: the command letter followed by its numeric arguments. */
-export type Command = [string, ...number[]];
-/**
- * Parse an SVG path `d` attribute string into an array of commands.
- *
- * Each command is a tuple of `[letter, ...args]`. Relative commands use
- * lowercase letters; absolute commands use uppercase. An implicit `lineto`
- * is inserted after the first coordinate pair of a `moveto` with extra args,
- * per the SVG spec.
- *
- * @param path - The raw SVG path data string (e.g. `"M0,0 L10,10 Z"`).
- * @returns Array of parsed commands.
- * @throws {Error} if a command has fewer arguments than expected.
- */
-export declare function parse(path: string): Command[];
 /**
  * Parses an SVG path data string and builds a GraphicsPath object from the commands.
  * This function handles all standard SVG path commands including moves, lines, curves and arcs.

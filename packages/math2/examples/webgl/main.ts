@@ -1,251 +1,305 @@
 
 import { ExampleManager, Example, Canvas } from '../lib/Example'
-import { WebGL2Helper, Stats, Ruler, ZoomTranslate, CanvasRenderer, random, Path2D as SPath2D, pathBooleanOp, Line, PathBuilder, Point, Conic, PointerEventSystem, PathStroke, Matrix2D, Transform, clipper2, BoolOp, ShapePath } from 'src'
-
+import { createWebGLProgram, glMatrix ,getWebGLActiveUniforms,getWebGLActiveUniformBlocks} from 'src'
 class WeblglExample extends Example {
     constructor() {
         super()
     }
-    canvas: CanvasRenderer
+    canvas: HTMLCanvasElement
+    gl!: WebGL2RenderingContext
+    progam: WebGLProgram
+    init(): void {
+        this.canvas = document.createElement('canvas')
+        this.canvas.width = 500
+        this.canvas.height = 500
+        document.body.appendChild(this.canvas)
+        this.gl = this.canvas.getContext('webgl2', {
+            antialias: true,
+            depth: true,
+            stencil: true,
+            premultipliedAlpha: false
+        })!
+        this.gl.disable(this.gl.DEPTH_TEST)
+        this.gl.disable(this.gl.STENCIL_TEST)
+        this.progam = createWebGLProgram(this.gl, this.createVert(), this.createFrag())
+        this.gl.useProgram(this.progam)
 
-    webgl!: WebGL2Helper
-    private gl!:WebGL2RenderingContext
-    private _program!: WebGLProgram
-    private _vao!: WebGLVertexArrayObject
-    private _ubo!: WebGLBuffer
-    private _rotY: number = 0
+    }
+    createVert() {
+        // highp medium lowp
 
-    getState(): Record<string, { label?: string; floder?: boolean; min?: number; max?: number; step?: number; value?: any; options?: any[] }> {
-        return {
+        return `#version 300 es
+        layout(location=0) in vec2 aPos; // 顶点位置
+        uniform mat3 uProjMat; // 投影矩阵
+     //   uniform mat3 uModelMat; // 模型矩阵
+     //   uniform vec2 uViewportSize; // 视口口大小
+        // uniform buffer ubo
+        uniform MatricesBlock {
+            mat3 uProjMat;
+            mat3 uModelMat;
+            vec2 uVec;
+        } matrices;
 
+        // 数组定义
+        uniform vec3 uColors[4];
+        out vec3 vColor;
+        void main() {
+            vColor=uColors[0];
+            vec3 outPos=matrices.uProjMat*matrices.uModelMat*vec3(aPos,1);
+            gl_Position = vec4(outPos, 1.0);
+        }`
+    }
+    createFrag() {
+        return `#version 300 es
+        precision mediump float;
+        uniform vec3 uColor;
+        uniform vec2 uViewportSize; // 视口口大小
+        // 结构体定义
+        struct MM{
+            int a;
+            vec2 c;
+            vec2 d[2];
+        };
+        uniform struct {
+            int type;
+            vec3 position;
+            vec3 color;
+            vec3 normal[2];
+            MM mm[4];
+        } uSdf;
+
+        out vec4 fragColor;
+        in vec3 vColor;
+
+        float sdfCircle(vec2 p,float d){
+            return length(p)-d;
         }
+        vec2 projectUV(vec2 p){
+            return vec2(p.x,uViewportSize.y-p.y);
+          //  return 2.*(p-uViewportSize*0.5)/min(uViewportSize.x,uViewportSize.y);
+        }
+        void main() {
+            vec2 uv=projectUV(gl_FragCoord.xy);
+            if(uSdf.type==1){
+                float d=sdfCircle(uv-uSdf.position.xy,uSdf.position.z);
+                if(d<=0.0){
+                    fragColor = vec4(uSdf.color, 1.0);
+                }else{
+                    // 丢弃
+                    discard;
+                }
+            }else{
+                fragColor = vec4(uColor*vColor, 1.0);
+            }
+        }`
     }
-
     enter(): void {
-        super.enter()
-        const webgl = new WebGL2Helper(document.createElement('canvas'), {
-            mode: '3d',
-            clearColor: [0.1, 0.1, 0.15, 1],
-            debug: true,
-        })
-        this.webgl = webgl
-        webgl.setSize(800, 600)
-        document.body.appendChild(webgl.canvas)
 
-        // ============================================================
-        // 顶点着色器：position + MVP 变换 + 颜色传递
-        // ============================================================
-        const vertexSource = `#version 300 es
-precision highp float;
+        const gl = this.gl;
+        const progam = this.progam;
+        gl.useProgram(progam)
+        gl.clearColor(1, 1, 1, 1)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+        const attributes = []
+        const attributeCount = gl.getProgramParameter(progam, gl.ACTIVE_ATTRIBUTES)
+        for (let i = 0; i < attributeCount; i++) {
+            const info = gl.getActiveAttrib(progam, i)
+            if (!info) {
+                continue
+            }
+            const location = gl.getAttribLocation(progam, info.name)
+            attributes.push({
+                name: info.name,
+                type: info.type,
+                size: info.size,
+                location,
+            })
+        }
 
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec3 a_color;
-
-// UBO：采用 std140 布局，与 JS 端列主序矩阵匹配
-layout(std140) uniform Matrices {
-    mat4 u_mvp;
-};
-
-out vec3 v_color;
-
-void main() {
-    gl_Position = u_mvp * vec4(a_position, 1.0);
-    v_color = a_color;
-}
-`
-
-        // ============================================================
-        // 片元着色器：简单颜色输出
-        // ============================================================
-        const fragmentSource = `#version 300 es
-precision mediump float;
-
-in vec3 v_color;
-out vec4 o_fragColor;
-
-void main() {
-    o_fragColor = vec4(v_color, 1.0);
-}
-`
-
-        this._program = webgl.createProgram(vertexSource, fragmentSource)
-
-        // ============================================================
-        // 创建立方体顶点数据（交错：position(3) + color(3) = 6 floats/vertex）
-        // ============================================================
-        const vertices = new Float32Array([
-            // ---- 前面 (z = 0.5, 红) ----
-            -0.5, -0.5, 0.5, 1, 0, 0,
-            0.5, -0.5, 0.5, 1, 0, 0,
-            0.5, 0.5, 0.5, 1, 0, 0,
-            -0.5, 0.5, 0.5, 1, 0, 0,
-            // ---- 后面 (z = -0.5, 绿) ----
-            -0.5, -0.5, -0.5, 0, 1, 0,
-            -0.5, 0.5, -0.5, 0, 1, 0,
-            0.5, 0.5, -0.5, 0, 1, 0,
-            0.5, -0.5, -0.5, 0, 1, 0,
-            // ---- 顶面 (y = 0.5, 蓝) ----
-            -0.5, 0.5, -0.5, 0, 0, 1,
-            -0.5, 0.5, 0.5, 0, 0, 1,
-            0.5, 0.5, 0.5, 0, 0, 1,
-            0.5, 0.5, -0.5, 0, 0, 1,
-            // ---- 底面 (y = -0.5, 黄) ----
-            -0.5, -0.5, -0.5, 1, 1, 0,
-            0.5, -0.5, -0.5, 1, 1, 0,
-            0.5, -0.5, 0.5, 1, 1, 0,
-            -0.5, -0.5, 0.5, 1, 1, 0,
-            // ---- 右面 (x = 0.5, 品红) ----
-            0.5, -0.5, -0.5, 1, 0, 1,
-            0.5, 0.5, -0.5, 1, 0, 1,
-            0.5, 0.5, 0.5, 1, 0, 1,
-            0.5, -0.5, 0.5, 1, 0, 1,
-            // ---- 左面 (x = -0.5, 青) ----
-            -0.5, -0.5, -0.5, 0, 1, 1,
-            -0.5, -0.5, 0.5, 0, 1, 1,
-            -0.5, 0.5, 0.5, 0, 1, 1,
-            -0.5, 0.5, -0.5, 0, 1, 1,
-        ])
-
-        const indices = new Uint16Array([
-            0, 1, 2, 0, 2, 3,       // 前面
-            4, 5, 6, 4, 6, 7,       // 后面
-            8, 9, 10, 8, 10, 11,    // 顶面
-            12, 13, 14, 12, 14, 15, // 底面
-            16, 17, 18, 16, 18, 19, // 右面
-            20, 21, 22, 20, 22, 23, // 左面
-        ])
-
-        // ============================================================
-        // VAO：绑定顶点属性 + 索引缓冲
-        // ============================================================
-        const { gl } = webgl
-        this.gl=gl
-        const vbo = webgl.createBuffer(vertices, gl.ARRAY_BUFFER)
-        const ibo = webgl.createIndexBuffer(indices)
-
-        this._vao = webgl.createVAO(() => {
-            gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-            // stride = 6 * 4 bytes (3 pos + 3 color)
-            webgl.setAttributeByLocation(0, 3, gl.FLOAT, false, 24, 0)   // position
-            webgl.setAttributeByLocation(1, 3, gl.FLOAT, false, 24, 12)  // color
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
-        })
-
-        // ============================================================
-        // UBO：MVP 矩阵（16 floats * 4 bytes = 64 bytes）
-        // ============================================================
-        this._ubo = webgl.createEmptyBuffer(64, gl.UNIFORM_BUFFER, gl.DYNAMIC_DRAW)
-        webgl.bindUniformBlock(this._program, 'Matrices', 0)
-
-        // 启动渲染循环
-        this._loop()
-    }
-
-    private _loop = (): void => {
-        const { gl, webgl } = this
-
-        this._rotY += 0.01
-
-        // 构建 MVP 矩阵
-        const mvp = this._computeMVP()
-
-        // 更新 UBO
-        webgl.useProgram(this._program)
-        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this._ubo)
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, mvp)
-
-        // 清屏 + 绘制索引化立方体
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-        webgl.bindVAO(this._vao)
-        webgl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0)
-
-        requestAnimationFrame(this._loop)
-    }
-
-    // ---- 简易矩阵运算（列主序 4x4） ----
-
-    private _computeMVP(): Float32Array {
-        const w = this.webgl.canvas.width / (this.webgl.dpr || 1)
-        const h = this.webgl.canvas.height / (this.webgl.dpr || 1)
-
-        const proj = this._perspective(Math.PI / 3, w / h, 0.1, 100)
-        const view = this._lookAt([0, 1.5, 4], [0, 0, 0], [0, 1, 0])
-        const model = this._rotateY(this._rotY)
-
-        const vp = this._multiply4(proj, view)
-        return this._multiply4(vp, model)
-    }
-
-    /** 透视投影矩阵 */
-    private _perspective(fovy: number, aspect: number, near: number, far: number): Float32Array {
-        const f = 1 / Math.tan(fovy / 2)
-        const nf = 1 / (near - far)
-        const m = new Float32Array(16)
-        m[0] = f / aspect
-        m[5] = f
-        m[10] = (far + near) * nf
-        m[11] = -1
-        m[14] = 2 * far * near * nf
-        return m
-    }
-
-    /** 视图矩阵（lookAt） */
-    private _lookAt(eye: number[], center: number[], up: number[]): Float32Array {
-        const f = this._norm3(this._sub3(center, eye))
-        const s = this._norm3(this._cross3(f, up))
-        const u = this._cross3(s, f)
-        const m = new Float32Array(16)
-        m[0] = s[0]; m[1] = u[0]; m[2] = -f[0]
-        m[4] = s[1]; m[5] = u[1]; m[6] = -f[1]
-        m[8] = s[2]; m[9] = u[2]; m[10] = -f[2]
-        m[12] = -this._dot3(s, eye)
-        m[13] = -this._dot3(u, eye)
-        m[14] = this._dot3(f, eye)
-        m[15] = 1
-        return m
-    }
-
-    /** Y 轴旋转矩阵 */
-    private _rotateY(angle: number): Float32Array {
-        const c = Math.cos(angle)
-        const s = Math.sin(angle)
-        const m = new Float32Array(16)
-        m[0] = c; m[2] = s
-        m[5] = 1
-        m[8] = -s; m[10] = c
-        m[15] = 1
-        return m
-    }
-
-    /** 列主序矩阵乘法：a * b */
-    private _multiply4(a: Float32Array, b: Float32Array): Float32Array {
-        const out = new Float32Array(16)
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < 4; j++) {
-                out[j * 4 + i] =
-                    a[i] * b[j * 4] +
-                    a[4 + i] * b[j * 4 + 1] +
-                    a[8 + i] * b[j * 4 + 2] +
-                    a[12 + i] * b[j * 4 + 3]
+        const uniforms = []
+        const uniformCount = gl.getProgramParameter(progam, gl.ACTIVE_UNIFORMS)
+        const uniformIndices:number[]=[]
+        const uniformData:any[]=[]
+        for (let i = 0; i < uniformCount; i++) {
+            const info = gl.getActiveUniform(progam, i)
+            const location = gl.getUniformLocation(progam, info.name)
+            uniformData[i]={name:info.name,location};
+            uniformIndices.push(i)
+           
+            const isArray = info.name.indexOf('[') !== -1
+            if (isArray) {
+                const name = info.name.substring(0, info.name.indexOf('['))
+                for (let j = 0; j < info.size; j++) {
+                    const uniformName = name + '[' + j + ']'
+                    const location = gl.getUniformLocation(progam, uniformName)
+                    uniforms.push({
+                        name: uniformName,
+                        type: info.type,
+                        size: 1,
+                        location,
+                    })
+                }
+            } else {
+                const location = gl.getUniformLocation(progam, info.name)
+                if (location) {
+                    const isStruct=info.name.indexOf('.')!==-1
+                    uniforms.push({
+                        name: info.name,
+                        type: info.type,
+                        size: info.size,
+                        location,
+                        isStruct:isStruct
+                    })
+                }else{
+                
+                    uniforms.push({
+                        name: info.name,
+                        type: info.type,
+                        size: info.size,
+                    })
+                }
             }
         }
-        return out
+        const uniformBlocks=[]
+        const uniformBlockCount=gl.getProgramParameter(progam,gl.ACTIVE_UNIFORM_BLOCKS)
+        for(let i=0;i<uniformBlockCount;i++){
+            const blockName=gl.getActiveUniformBlockName(progam,i)
+            const blockIndex=gl.getUniformBlockIndex(progam,blockName)
+            const bindingIndex=gl.getActiveUniformBlockParameter(progam,blockIndex,gl.UNIFORM_BLOCK_BINDING)
+            const blockMemberCount=gl.getActiveUniformBlockParameter(progam,blockIndex,gl.UNIFORM_BLOCK_ACTIVE_UNIFORMS)
+            const indecies=gl.getActiveUniformBlockParameter(progam,blockIndex,gl.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES)
+            const blockSize = gl.getActiveUniformBlockParameter(progam, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+            const uniformsIndex=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_BLOCK_INDEX)
+            const uniformsSize=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_SIZE)
+            const uniformsType=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_TYPE)
+            const uniformsOffset=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_OFFSET)
+            //const uniformsArrayStride=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_ARRAY_STRIDE)
+           // const uniformsMatrixStride=gl.getActiveUniforms(progam,indecies,gl.UNIFORM_MATRIX_STRIDE)
+
+       let memberBlocks=[]
+        for(let j=0;j<blockMemberCount;j++){
+                const info=gl.getActiveUniform(progam,indecies[j])
+                if(!info){
+                    continue
+                }
+                const offset=uniformsOffset[j]
+                memberBlocks.push({
+                    name:info.name,       
+                    type:info.type,
+                    uniformsType:uniformsType[j],
+                    uniformsSize:uniformsSize[j],
+                    index:j,
+                    uniformsIndex:uniformsIndex[j],
+                    size:info.size,
+                    offset:offset
+                })
+            }
+            uniformBlocks.push({
+                name:blockName,
+                index:blockIndex,
+                indecies:indecies,
+                uniformsSize:blockSize,
+                bindingIndex:bindingIndex,
+                memberBlocks
+            })
+        }
+
+         [
+            [ "UNIFORM_TYPE", "type" ],
+            [ "UNIFORM_SIZE", "size" ],  // num elements
+            [ "UNIFORM_BLOCK_INDEX", "blockNdx" ],
+            [ "UNIFORM_OFFSET", "offset", ],
+        ].forEach(function(pair) {
+            const pname = pair[0] as keyof typeof gl;
+            const key = pair[1];
+            gl.getActiveUniforms(progam, uniformIndices, gl[pname]).forEach(function(value, ndx) {
+             uniformData[ndx][key] = value;
+            });
+        });
+        console.log('attributes', attributes)
+        console.log('uniforms', uniforms)
+        console.log('uniformBlocks', uniformBlocks)
+        console.log('uniformData', uniformData)
+        console.log('getWebGLActiveUniformBlocks',getWebGLActiveUniformBlocks(gl,progam))
+      //  console.log('getWebGLActiveUniforms',getWebGLActiveUniforms(gl,progam))
+        const uniformsMap = new Map(uniforms.map(item => [item.name, item]))
+        const vertices = new Float32Array([
+            100, 100,
+            200, 100,
+            200, 200,
+            100, 200,
+        ])
+        const indices = new Uint16Array([
+            0, 1, 3,
+            1, 3, 2,
+        ])
+        const vbo = gl.createBuffer()
+        const ibo = gl.createBuffer();
+
+        const vao = gl.createVertexArray()
+        gl.bindVertexArray(vao)
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+        gl.enableVertexAttribArray(0)
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 2 * Float32Array.BYTES_PER_ELEMENT, 0)
+
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+        gl.bindVertexArray(null)
+
+        const projMatrix = glMatrix.mat3.create()
+        glMatrix.mat3.projection(projMatrix, gl.canvas.width, gl.canvas.height)
+        const modelMatrix = glMatrix.mat3.create()
+        glMatrix.mat3.identity(modelMatrix)
+       // glMatrix.mat3.translate(modelMatrix,modelMatrix, [100, 100])
+        // ubo uniform block
+        const matricesBlockIndex=gl.getUniformBlockIndex(progam,'MatricesBlock')
+
+        const mat3ToMat12=(mat:Float32Array)=>{
+            const m= new Float32Array(12)
+            for(let i=0;i<3;i++){
+                let index=i*3;
+                let targetIndex=i*4
+                m[targetIndex]=mat[index]
+                m[targetIndex+1]=mat[index+1]
+                m[targetIndex+2]=mat[index+2]
+                m[targetIndex+3]=0
+            }
+            return m;
+        }
+ 
+        const ubo=gl.createBuffer()
+        const uboArray=new Float32Array(26)
+        uboArray.set(mat3ToMat12(projMatrix),0)
+        uboArray.set(mat3ToMat12(modelMatrix),12)
+        //console.log('uboArray',uboArray)
+        gl.bindBuffer(gl.UNIFORM_BUFFER, ubo)
+        gl.bufferData(gl.UNIFORM_BUFFER, uboArray,
+        gl.DYNAMIC_DRAW)
+        gl.bindBuffer(gl.UNIFORM_BUFFER,null)
+        gl.uniformBlockBinding(progam,matricesBlockIndex,0)
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, matricesBlockIndex, ubo)
+      
+
+  
+     //   gl.uniformMatrix3fv(uniformsMap.get('uProjMat').location, false, projMatrix)
+     //   gl.uniformMatrix3fv(uniformsMap.get('uModelMat').location, false, modelMatrix)
+        gl.uniform2f(uniformsMap.get('uViewportSize').location, gl.canvas.width, gl.canvas.height)
+        gl.uniform3fv(uniformsMap.get('uColors[0]').location, new Float32Array([1, 0.1, 0.1]))
+        gl.uniform3fv(uniformsMap.get('uColor').location, new Float32Array([1, 0, 0]))
+
+        gl.uniform1i(uniformsMap.get('uSdf.type').location, 0)
+        gl.uniform3fv(uniformsMap.get('uSdf.position').location, new Float32Array([150, 150, 30]))
+        gl.uniform3fv(uniformsMap.get('uSdf.color').location, new Float32Array([0, 1, 0]))
+
+        gl.bindVertexArray(vao)
+        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0)
+        // gl.flush()
     }
 
-    private _norm3(v: number[]): number[] {
-        const len = Math.hypot(v[0], v[1], v[2])
-        return [v[0] / len, v[1] / len, v[2] / len]
-    }
-    private _sub3(a: number[], b: number[]): number[] { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]] }
-    private _cross3(a: number[], b: number[]): number[] { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]] }
-    private _dot3(a: number[], b: number[]): number { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] }
-
-    onChange(): void {
-
-    }
-    render() {
-
-    }
 }
 
 ExampleManager.create({ examples: [WeblglExample] }).init()

@@ -8,26 +8,41 @@ import type { Vec2 } from './math'
 export type TextureFilter = 'nearest' | 'linear'
 export type TextureWrap = 'clamp' | 'repeat'
 
-/** CPU 纹理（模拟 WebGL 的 2D 纹理） */
+/** CPU 纹理（模拟 WebGL 的 2D 纹理；createTexture 后未上传时无存储） */
 export class CPUTexture {
-    readonly width: number
-    readonly height: number
-    /** RGBA 像素数据（0-255） */
-    readonly data: Uint8ClampedArray
+    width: number
+    height: number
+    /** RGBA 像素数据（0-255）；未分配存储时为 null */
+    data: Uint8ClampedArray | null
 
     filter: TextureFilter = 'linear'
     wrapS: TextureWrap = 'clamp'
     wrapT: TextureWrap = 'clamp'
 
-    constructor(width: number, height: number, data?: ArrayLike<number> | null) {
-        if (width <= 0 || height <= 0) throw new Error('Texture size must be positive')
+    constructor(width = 0, height = 0, data?: ArrayLike<number> | null) {
         this.width = Math.floor(width)
         this.height = Math.floor(height)
-        this.data = new Uint8ClampedArray(this.width * this.height * 4)
-        if (data) {
-            const src = data instanceof Uint8ClampedArray ? data : Uint8ClampedArray.from(data)
-            this.data.set(src.subarray(0, Math.min(src.length, this.data.length)))
+        if (width > 0 && height > 0) {
+            this.data = new Uint8ClampedArray(this.width * this.height * 4)
+            if (data) {
+                const src = data instanceof Uint8ClampedArray ? data : Uint8ClampedArray.from(data)
+                this.data.set(src.subarray(0, Math.min(src.length, this.data.length)))
+            }
+        } else {
+            this.data = null
         }
+    }
+
+    /** 分配/替换 RGBA8 存储（对应 texImage2D 上传；未提供数据时分配全零存储） */
+    setStorage(width: number, height: number, rgba?: ArrayLike<number>): void {
+        this.width = Math.floor(width)
+        this.height = Math.floor(height)
+        const next = new Uint8ClampedArray(this.width * this.height * 4)
+        if (rgba) {
+            const src = rgba instanceof Uint8ClampedArray ? rgba : Uint8ClampedArray.from(rgba)
+            next.set(src.subarray(0, Math.min(src.length, next.length)))
+        }
+        this.data = next
     }
 
     /** 从 ImageData / ImageBitmap 风格源创建（需要 RGBA Uint8ClampedArray） */
@@ -38,11 +53,12 @@ export class CPUTexture {
     /** 创建单色纹理 */
     static solid(width: number, height: number, r: number, g: number, b: number, a = 255): CPUTexture {
         const tex = new CPUTexture(width, height)
-        for (let i = 0; i < tex.data.length; i += 4) {
-            tex.data[i] = r
-            tex.data[i + 1] = g
-            tex.data[i + 2] = b
-            tex.data[i + 3] = a
+        const data = tex.data!
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = r
+            data[i + 1] = g
+            data[i + 2] = b
+            data[i + 3] = a
         }
         return tex
     }
@@ -50,29 +66,30 @@ export class CPUTexture {
     /** 创建棋盘格纹理（调试纹理坐标用） */
     static checkerboard(width: number, height: number, cell = 8, c1 = [255, 255, 255, 255], c2 = [0, 0, 0, 255]): CPUTexture {
         const tex = new CPUTexture(width, height)
+        const data = tex.data!
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const color = Math.floor(x / cell) % 2 === Math.floor(y / cell) % 2 ? c1 : c2
                 const i = (y * width + x) * 4
-                tex.data[i] = color[0]
-                tex.data[i + 1] = color[1]
-                tex.data[i + 2] = color[2]
-                tex.data[i + 3] = color[3]
+                data[i] = color[0]
+                data[i + 1] = color[1]
+                data[i + 2] = color[2]
+                data[i + 3] = color[3]
             }
         }
         return tex
     }
 
-    /** 读取像素（RGBA，各通道 0-255），越界返回 [0,0,0,0] */
+    /** 读取像素（RGBA，各通道 0-255），越界或未上传返回 [0,0,0,0] */
     getPixel(x: number, y: number): [number, number, number, number] {
-        if (x < 0 || x >= this.width || y < 0 || y >= this.height) return [0, 0, 0, 0]
+        if (!this.data || x < 0 || x >= this.width || y < 0 || y >= this.height) return [0, 0, 0, 0]
         const i = (y * this.width + x) * 4
         return [this.data[i], this.data[i + 1], this.data[i + 2], this.data[i + 3]]
     }
 
     /** 写入像素（RGBA，各通道 0-255） */
     setPixel(x: number, y: number, r: number, g: number, b: number, a: number): void {
-        if (x < 0 || x >= this.width || y < 0 || y >= this.height) return
+        if (!this.data || x < 0 || x >= this.width || y < 0 || y >= this.height) return
         const i = (y * this.width + x) * 4
         this.data[i] = r
         this.data[i + 1] = g
@@ -86,6 +103,7 @@ export class CPUTexture {
      */
     sample(uv: Vec2): Vec4 {
         const { width, height } = this
+        if (!this.data || width === 0 || height === 0) return new Vec4(0, 0, 0, 1)
 
         const wrap = (coord: number, mode: TextureWrap, size: number): number => {
             if (mode === 'repeat') {

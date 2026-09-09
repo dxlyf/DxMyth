@@ -1,25 +1,14 @@
-export type IPattern = {
+import { Matrix2D } from './Matrix2D';
+export declare class Pattern {
+    static fromUrl(url: string): Pattern;
+    static fromImage(image: CanvasImageSource): Pattern;
     type: 'pattern';
     elementType: 'image';
     repeat?: 'repeat' | 'repeat-x' | 'repeat-y';
     source: CanvasImageSource;
+    matrix: Matrix2D;
+    ref: any;
+    constructor(image?: CanvasImageSource, repeat?: 'repeat' | 'repeat-x' | 'repeat-y');
     clone(): Pattern;
     copy(source: Pattern): void;
-};
-export declare class Pattern implements IPattern {
-    type: 'pattern';
-    elementType: 'image';
-    repeat?: 'repeat' | 'repeat-x' | 'repeat-y';
-    source: CanvasImageSource;
-    clone(): IPattern;
-    copy(source: IPattern): void;
-}
-export declare class ImagePattern extends Pattern {
-    static fromUrl(url: string): ImagePattern;
-    static fromImage(image: CanvasImageSource): ImagePattern;
-    elementType: 'image';
-    source: CanvasImageSource;
-    constructor();
-    clone(): ImagePattern;
-    copy(source: ImagePattern): void;
 }

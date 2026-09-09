@@ -21,6 +21,8 @@ export declare class EllipseCurve extends Curve<Vector2> {
     aRotation: number;
     constructor(aX?: number, aY?: number, xRadius?: number, yRadius?: number, aStartAngle?: number, aEndAngle?: number, aClockwise?: boolean, aRotation?: number);
     getPoint(t: number, optionalTarget?: Vector2): Vector2;
+    /** 椭圆是曲线，加倍细分以获得更平滑的采样 */
+    getResolution(divisions: number): number;
     copy(source: EllipseCurve): this;
     toJSON(): Record<string, unknown>;
     fromJSON(json: Record<string, any>): this;

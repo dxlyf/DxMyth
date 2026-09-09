@@ -1,0 +1,166 @@
+import type {TouchZoomHandler, TouchRotateHandler} from '../touch_zoom_rotate';
+import type TapDragZoomHandler from '../tap_drag_zoom';
+
+export type TouchZoomRotateHandlerOptions = {
+    around?: 'center';
+};
+
+/**
+ * The `TouchZoomRotateHandler` allows the user to zoom and rotate the map by
+ * pinching on a touchscreen.
+ *
+ * They can zoom with one finger by double tapping and dragging. On the second tap,
+ * hold the finger down and drag up or down to zoom in or out.
+ *
+ * @see [Example: Toggle interactions](https://docs.mapbox.com/mapbox-gl-js/example/toggle-interaction-handlers/)
+ */
+export default class TouchZoomRotateHandler {
+    _el: HTMLElement;
+    _touchZoom: TouchZoomHandler;
+    _touchRotate: TouchRotateHandler;
+    _tapDragZoom: TapDragZoomHandler;
+    _rotationDisabled: boolean;
+    _tapDragZoomDisabled: boolean;
+    _enabled: boolean;
+
+    /**
+     * @private
+    */
+    constructor(el: HTMLElement, touchZoom: TouchZoomHandler, touchRotate: TouchRotateHandler, tapDragZoom: TapDragZoomHandler) {
+        this._el = el;
+        this._touchZoom = touchZoom;
+        this._touchRotate = touchRotate;
+        this._tapDragZoom = tapDragZoom;
+        this._rotationDisabled = false;
+        this._tapDragZoomDisabled = false;
+        this._enabled = true;
+    }
+
+    /**
+     * Enables the "pinch to rotate and zoom" interaction.
+     *
+     * @param {Object} [options] Options object.
+     * @param {string} [options.around] If "center" is passed, map will zoom around the center.
+     *
+     * @example
+     * map.touchZoomRotate.enable();
+     * @example
+     * map.touchZoomRotate.enable({around: 'center'});
+     */
+    enable(options?: TouchZoomRotateHandlerOptions) {
+        this._touchZoom.enable(options);
+        if (!this._rotationDisabled) this._touchRotate.enable(options);
+        if (!this._tapDragZoomDisabled) this._tapDragZoom.enable();
+        this._el.classList.add('mapboxgl-touch-zoom-rotate');
+    }
+
+    /**
+     * Disables the "pinch to rotate and zoom" interaction.
+     *
+     * @example
+     * map.touchZoomRotate.disable();
+     */
+    disable() {
+        this._touchZoom.disable();
+        this._touchRotate.disable();
+        this._tapDragZoom.disable();
+        this._el.classList.remove('mapboxgl-touch-zoom-rotate');
+    }
+
+    /**
+     * Returns a Boolean indicating whether the "pinch to rotate and zoom" interaction is enabled.
+     *
+     * @returns {boolean} `true` if the "pinch to rotate and zoom" interaction is enabled.
+     * @example
+     * const isTouchZoomRotateEnabled = map.touchZoomRotate.isEnabled();
+     */
+    isEnabled(): boolean {
+        return this._touchZoom.isEnabled() ||
+            (!this._rotationDisabled && this._touchRotate.isEnabled()) ||
+            (!this._tapDragZoomDisabled && this._tapDragZoom.isEnabled());
+    }
+
+    /**
+     * Returns true if the handler is enabled and has detected the start of a zoom/rotate gesture.
+     *
+     * @returns {boolean} `true` if enabled and a zoom/rotate gesture was detected.
+     * @example
+     * const isTouchZoomRotateActive = map.touchZoomRotate.isActive();
+     */
+    isActive(): boolean {
+        return this._touchZoom.isActive() || this._touchRotate.isActive() || this._tapDragZoom.isActive();
+    }
+
+    /**
+     * Disables the "pinch to rotate" interaction, leaving the "pinch to zoom"
+     * interaction enabled.
+     *
+     * @example
+     * map.touchZoomRotate.disableRotation();
+     */
+    disableRotation() {
+        this._rotationDisabled = true;
+        this._touchRotate.disable();
+    }
+
+    /**
+     * Enables the "pinch to rotate" interaction.
+     *
+     * @example
+     * map.touchZoomRotate.enable();
+     * map.touchZoomRotate.enableRotation();
+     */
+    enableRotation() {
+        this._rotationDisabled = false;
+        if (this._touchZoom.isEnabled()) this._touchRotate.enable();
+    }
+
+    /**
+     * Returns a Boolean indicating whether the "pinch to rotate" interaction is enabled.
+     *
+     * @returns {boolean} `true` if the "pinch to rotate" interaction is enabled.
+     * @example
+     * const isRotationEnabled = map.touchZoomRotate.isRotationEnabled();
+     */
+    isRotationEnabled(): boolean {
+        return !this._rotationDisabled;
+    }
+
+    /**
+     * Disables the "tap and drag to zoom" interaction (single-finger zoom by
+     * tapping, then on a second tap holding and dragging vertically), leaving
+     * pinch-zoom and pinch-rotate enabled. Useful on touchscreen-equipped
+     * desktops where the gesture can fire unintentionally from successive
+     * clicks.
+     *
+     * @example
+     * map.touchZoomRotate.disableTapDragZoom();
+     */
+    disableTapDragZoom() {
+        this._tapDragZoomDisabled = true;
+        this._tapDragZoom.disable();
+    }
+
+    /**
+     * Enables the "tap and drag to zoom" interaction.
+     *
+     * @example
+     * map.touchZoomRotate.enable();
+     * map.touchZoomRotate.enableTapDragZoom();
+     */
+    enableTapDragZoom() {
+        this._tapDragZoomDisabled = false;
+        if (this._touchZoom.isEnabled()) this._tapDragZoom.enable();
+    }
+
+    /**
+     * Returns a Boolean indicating whether the "tap and drag to zoom" interaction is enabled.
+     *
+     * @returns {boolean} `true` if the "tap and drag to zoom" interaction is enabled.
+     * @example
+     * const isTapDragZoomEnabled = map.touchZoomRotate.isTapDragZoomEnabled();
+     */
+    isTapDragZoomEnabled(): boolean {
+        return !this._tapDragZoomDisabled;
+    }
+}

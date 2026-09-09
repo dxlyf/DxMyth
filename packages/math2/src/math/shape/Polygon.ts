@@ -4,9 +4,365 @@
 // 内部使用扁平数组 [x0,y0,x1,y1,...] 以提高缓存命中率
 // ============================================================
 
+import { normalizeAngles } from '../Arc'
 import { BoundingRect } from '../BoundingRect'
+import { Vector2, Vector2Like } from '../Vector2'
 import { Geometry, PointOut, distPointToSegmentSquared } from './Geometry'
+import { buildArc } from '../Arc'
+import { normal } from '../Bezier'
 
+type JoinProc = (outer: Vector2Like[], inner: Vector2Like[], prevUnitNormal: Vector2, pivot: Vector2, afterUnitNormal: Vector2, radius: number, invMiterLimit: number) => void
+type CapProc = (outer: Vector2Like[], inner: Vector2Like[], normal: Vector2, pivot: Vector2, stop: Vector2Like, radius: number) => void
+
+
+export const isPointInPolygon = (points: Vector2Like[], x: number, y: number, fillRule: CanvasFillRule = 'nonzero') => {
+    let winding = 0
+    let len = points.length
+    for (let k = 0; k < len; k++) {
+        const p0 = points[k]
+        const p1 = points[(k + 1) % len]
+        if (p0.y > y !== p1.y > y && x <= p0.x + (p1.x - p0.x) * (y - p0.y) / (p1.y - p0.y)) {
+            if (p0.y < p1.y) {
+                winding++
+            } else {
+                winding--
+            }
+        }
+    }
+    return fillRule === 'evenodd' ? winding % 2 !== 0 : winding !== 0
+}
+const handleInnerJoin = (inner: Vector2Like[], pivot: Vector2, afterNormal: Vector2) => {
+    inner.push({
+        x: pivot.x,
+        y: pivot.y,
+    })
+    inner.push({
+        x: pivot.x - afterNormal.x,
+        y: pivot.y - afterNormal.y,
+    })
+}
+const processJoinRound: JoinProc = (outer, inner, prevUnitNormal, pivot, afterUnitNormal, radius, invMiterLimit) => {
+    const sinh = prevUnitNormal.cross(afterUnitNormal)
+    const clockwise = sinh > 0
+    if (Math.abs(sinh) <= 1e-2) {
+        return
+    }
+    const prevNormal = Vector2.from(prevUnitNormal).multiplyScalar(radius)
+    const afterNormal = Vector2.from(afterUnitNormal).multiplyScalar(radius)
+    if (!clockwise) {
+        let tmp = outer
+        outer = inner
+        inner = tmp
+        prevNormal.negate()
+        afterNormal.negate()
+    }
+
+    const startAngle = Math.atan2(prevNormal.y, prevNormal.x)
+    const endAngle = Math.atan2(afterNormal.y, afterNormal.x)
+    buildArc(outer, pivot.x, pivot.y, radius, startAngle, endAngle, !clockwise)
+    handleInnerJoin(inner, pivot, afterNormal)
+}
+const processJoinMiter: JoinProc = (outer, inner, prevUnitNormal, pivot, afterUnitNormal, radius, invMiterLimit) => {
+    const cosh = prevUnitNormal.dot(afterUnitNormal)
+    const sinh = prevUnitNormal.cross(afterUnitNormal)
+    const clockwise = sinh > 0
+
+    if (Math.abs(sinh) <= 1e-2) {
+        return
+    }
+    const halfCos = Math.sqrt((1 + cosh) / 2)
+    const afterNormal = Vector2.from(afterUnitNormal).multiplyScalar(radius)
+    //    const prevNormal=Vector2.from(prevUnitNormal).normalize()
+    if (halfCos < invMiterLimit) {
+        processJoinBevel(outer, inner, prevUnitNormal, pivot, afterUnitNormal, radius, invMiterLimit)
+        return
+    }
+    const mid = Vector2.from(prevUnitNormal).add(afterUnitNormal).normalize().multiplyScalar(radius / halfCos)
+    if (!clockwise) {
+        let tmp = outer;
+        outer = inner;
+        inner = tmp;
+        mid.negate()
+        afterNormal.negate()
+    }
+    outer[outer.length - 1] = {
+        x: pivot.x + mid.x,
+        y: pivot.y + mid.y,
+    }
+    handleInnerJoin(inner, pivot, afterNormal)
+}
+const processJoinBevel: JoinProc = (outer, inner, prevUnitNormal, pivot, afterUnitNormal, radius, invMiterLimit) => {
+    const sinh = prevUnitNormal.cross(afterUnitNormal)
+    if (Math.abs(sinh) <= 1e-2) {
+        return
+    }
+    const clockwise = sinh > 0
+    const afterNormal = Vector2.from(afterUnitNormal).multiplyScalar(radius)
+    if (!clockwise) {
+        let tmp = outer;
+        outer = inner;
+        inner = tmp;
+        afterNormal.negate()
+    }
+    outer.push({
+        x: pivot.x + afterNormal.x,
+        y: pivot.y + afterNormal.y,
+    })
+    handleInnerJoin(inner, pivot, afterNormal)
+}
+
+const processCapButt: CapProc = (outer, inner, normal, pivot, stop) => {
+    outer.push({
+        x: stop.x,
+        y: stop.y,
+    })
+}
+const processCapSquare: CapProc = (outer, inner, normal, pivot, stop) => {
+    const parallelNormal = Vector2.create(normal.x, normal.y).rotateCW()
+    outer[outer.length - 1] = {
+        x: pivot.x + parallelNormal.x + normal.x,
+        y: pivot.y + parallelNormal.y + normal.y,
+    }
+    outer.push({
+        x: pivot.x + parallelNormal.x - normal.x,
+        y: pivot.y + parallelNormal.y - normal.y,
+    })
+}
+const processCapRound: CapProc = (outer, inner, normal, pivot, stop, radius) => {
+    const v0 = Vector2.from(normal)
+    const v1 = Vector2.from(normal).negate()
+    const startAngle = Math.atan2(v0.y, v0.x)
+    const endAngle = Math.atan2(v1.y, v1.x)
+    buildArc(outer, pivot.x, pivot.y, radius, startAngle, endAngle, false)
+}
+const joinFactor = {
+    round: processJoinRound,
+    miter: processJoinMiter,
+    bevel: processJoinBevel,
+}
+const capFactor = {
+    round: processCapRound,
+    butt: processCapButt,
+    square: processCapSquare,
+}
+export function isPolygonClockwise(points: Vector2Like[]) {
+    let area = 0
+    for (let i = 0, len = points.length; i < len; i++) {
+        area += Vector2.cross(points[i], points[(i + 1) % len])
+    }
+    return area > 0
+}
+export function polygonOffset(points: Vector2Like[], width: number) {
+    let absWidth = Math.abs(width)
+    let newPoints: Vector2Like[] = []
+    let firstUnitNormal = Vector2.create()
+    let prevUnitNormal = Vector2.create()
+    let unitNormal = Vector2.create()
+  //  let first = Vector2.create()
+    let prev = Vector2.create()
+    let cur = Vector2.create()
+    let normal = Vector2.create()
+    const _isPolygonClockwise = isPolygonClockwise(points)
+    const invMiterLimit = 1 / Number.MAX_SAFE_INTEGER
+    const closed = Vector2.equalsEpsilon(points[0], points[points.length - 1], 1e-6)
+    console.log('_isPolygonClockwise', _isPolygonClockwise)
+    for (let i = 0, len = points.length; i < len; i++) {
+        cur.copy(points[i])
+        if (i > 0) {
+            if (width > 0) {
+                unitNormal.copy(cur).subtract(prev).normalize().rotateCCW()
+            } else {
+                unitNormal.copy(cur).subtract(prev).normalize().rotateCW()
+            }
+            normal.copy(unitNormal).multiplyScalar(absWidth)
+            if (!_isPolygonClockwise) {
+                normal.negate()
+            }
+            if (i === 1) {
+
+                if(!closed){
+                    newPoints.push({
+                        x: prev.x + normal.x,
+                        y: prev.y + normal.y
+                    })
+                }
+                firstUnitNormal.copy(unitNormal)
+            }
+            else {
+
+                const cosh = prevUnitNormal.dot(unitNormal)
+                const sinh = prevUnitNormal.cross(unitNormal)
+                if (Math.abs(sinh) > 1e-2) {
+                    const halfCos = Math.sqrt((1 + cosh) / 2)
+                    const mid = Vector2.from(prevUnitNormal).add(unitNormal).normalize().multiplyScalar(absWidth / halfCos)
+                    if (!_isPolygonClockwise) {
+                        mid.negate()
+                    }
+                    newPoints[newPoints.length - 1] = {
+                        x: prev.x + mid.x,
+                        y: prev.y + mid.y,
+                    }
+                }
+                // if (Math.abs(sinh) > 1e-2) {
+                //     processJoinMiter(clockwise ? newPoints : [], clockwise ? [] : newPoints, prevUnitNormal, prev, unitNormal, absWidth, invMiterLimit)
+                // }
+            }
+
+            newPoints.push({
+                x: cur.x + normal.x,
+                y: cur.y + normal.y
+            })
+            if (i === len - 1) {
+                if (closed) {
+                    const cosh = unitNormal.dot(firstUnitNormal)
+                    const sinh = unitNormal.cross(firstUnitNormal)
+                    if (Math.abs(sinh) > 1e-2) {
+                        const halfCos = Math.sqrt((1 + cosh) / 2)
+                        const mid = Vector2.from(unitNormal).add(firstUnitNormal).normalize().multiplyScalar(absWidth / halfCos)
+                        if (!_isPolygonClockwise) {
+                            mid.negate()
+                        }
+                        newPoints[newPoints.length - 1] = {
+                            x: cur.x + mid.x,
+                            y: cur.y + mid.y,
+                        }
+                    }
+                    
+                    newPoints.push({
+                        x: newPoints[0].x,
+                        y: newPoints[0].y
+                    })
+                }
+            }
+            prevUnitNormal.copy(unitNormal)
+        }
+        prev.copy(cur)
+    }
+    return newPoints
+}
+
+
+
+export function buildStrokePoints(points: Vector2Like[], options: { align?: 'outside' | 'inside' | 'center', width?: number, join?: 'round' | 'bevel' | 'miter', cap?: 'round' | 'butt' | 'square', miterLimit?: number }) {
+    let { miterLimit = 10, width = 1, cap = 'butt', join = 'miter', align = 'center' } = options
+
+    const halfWidth = width / 2
+    const invMiterLimit = 1 / miterLimit
+
+    let newPoints: Vector2Like[] = []
+    // 去掉重复点
+    let lastPoint = points[0]
+    for (let i = 1; i < points.length; i++) {
+        if (!Vector2.equalsEpsilon(points[i], lastPoint, 1e-6)) {
+            newPoints.push(points[i])
+            lastPoint = points[i]
+        }
+    }
+    newPoints.unshift(points[0])
+
+    if (newPoints.length < 2) {
+        return []
+    }
+    if (align === 'outside') {
+        newPoints = polygonOffset(newPoints, halfWidth)
+    } else if (align === 'inside') {
+        newPoints = polygonOffset(newPoints, -halfWidth)
+    }
+
+    const closed = Vector2.equalsEpsilon(newPoints[0], newPoints[points.length - 1], 1e-6)
+    let newLength = newPoints.length
+    let innerPoints: Vector2Like[] = []
+    let outerPoints: Vector2Like[] = []
+
+    let first = Vector2.create()
+    let prev = Vector2.create()
+    let cur = Vector2.create()
+    let firstOffsetPoint = Vector2.create()
+
+    let firstNormal = Vector2.create()
+    let firstUnitNormal = Vector2.create()
+    let prevNormal = Vector2.create()
+    let prevUnitNormal = Vector2.create()
+
+    let normal = Vector2.create()
+    let unitNormal = Vector2.create()
+
+    // join
+    const joinProc = joinFactor[join]
+    const capProc = capFactor[cap]
+
+    for (let i = 0; i < newLength; i++) {
+        cur.copy(newPoints[i])
+        if (i > 0) {
+            unitNormal.copy(cur).subtract(prev).normalize().rotateCCW()
+            normal.copy(unitNormal).multiplyScalar(halfWidth)
+            if (i === 1) {
+                firstNormal.copy(normal)
+                first.copy(prev)
+                firstUnitNormal.copy(unitNormal)
+                firstOffsetPoint.set(first.x + normal.x, first.y + normal.y)
+                outerPoints.push({
+                    x: firstOffsetPoint.x,
+                    y: firstOffsetPoint.y,
+                })
+                innerPoints.push({
+                    x: first.x - normal.x,
+                    y: first.y - normal.y,
+                })
+            } else {
+                joinProc(outerPoints, innerPoints, prevUnitNormal, prev, unitNormal, halfWidth, invMiterLimit)
+            }
+            outerPoints.push({
+                x: cur.x + normal.x,
+                y: cur.y + normal.y,
+            })
+            innerPoints.push({
+                x: cur.x - normal.x,
+                y: cur.y - normal.y,
+            })
+            if (i === newLength - 1) {
+
+                if (closed) {
+                    joinProc(outerPoints, innerPoints, unitNormal, cur, firstUnitNormal, halfWidth, invMiterLimit)
+                    outerPoints.push({
+                        x: firstOffsetPoint.x,
+                        y: firstOffsetPoint.y,
+                    })
+                    let lastX = innerPoints[innerPoints.length - 1].x
+                    let lastY = innerPoints[innerPoints.length - 1].y
+                    innerPoints.push({
+                        x: lastX,
+                        y: lastY,
+                    })
+                    outerPoints = outerPoints.concat(innerPoints.reverse().slice(1))
+                    outerPoints.push({
+                        x: lastX,
+                        y: lastY,
+                    })
+
+                } else {
+
+                    capProc(outerPoints, innerPoints, normal, cur, innerPoints[innerPoints.length - 1], halfWidth)
+                    outerPoints = outerPoints.concat(innerPoints.slice().reverse().slice(1))
+                    capProc(outerPoints, innerPoints, Vector2.create(-firstNormal.x, -firstNormal.y), first, firstOffsetPoint, halfWidth)
+
+                    if (!Vector2.equals(outerPoints[outerPoints.length - 1], firstOffsetPoint)) {
+                        outerPoints.push({
+                            x: firstOffsetPoint.x,
+                            y: firstOffsetPoint.y,
+                        })
+                    }
+                }
+            }
+
+            prevNormal.copy(normal)
+            prevUnitNormal.copy(unitNormal)
+        }
+        prev.copy(cur)
+    }
+    return outerPoints
+
+}
 export class Polygon extends Geometry {
     /** 扁平顶点数据 [x0,y0,x1,y1,...] */
     points: number[]

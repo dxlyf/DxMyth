@@ -24,59 +24,59 @@ export class Vector3 implements Vector3Like {
 
     // ---- 静态工厂 ----
 
-    static default(): Vector3 {
+    static default() {
         return this.create()
     }
 
-    static create(x: number = 0, y: number = 0, z: number = 0): Vector3 {
+    static create(x: number = 0, y: number = 0, z: number = 0) {
         return new Vector3(x, y, z)
     }
 
-    static zero(): Vector3 {
+    static zero() {
         return new Vector3(0, 0, 0)
     }
 
-    static one(): Vector3 {
+    static one() {
         return new Vector3(1, 1, 1)
     }
 
-    static fromValues(x: number, y: number, z: number): Vector3 {
+    static fromValues(x: number, y: number, z: number) {
         return new Vector3(x, y, z)
     }
 
-    static fromScalar(s: number): Vector3 {
+    static fromScalar(s: number) {
         return new Vector3(s, s, s)
     }
 
     /** 从类向量对象创建 */
-    static from(v: Vector3Like): Vector3 {
+    static from(v: Vector3Like) {
         return new Vector3(v.x, v.y, v.z)
     }
 
     /** 从数组创建 */
-    static fromArray(arr: ArrayLike<number>): Vector3 {
+    static fromArray(arr: ArrayLike<number>) {
         return new Vector3(arr[0], arr[1], arr[2])
     }
 
     /** X 轴单位向量 */
-    static unitX(): Vector3 {
+    static unitX() {
         return new Vector3(1, 0, 0)
     }
 
     /** Y 轴单位向量 */
-    static unitY(): Vector3 {
+    static unitY() {
         return new Vector3(0, 1, 0)
     }
 
     /** Z 轴单位向量 */
-    static unitZ(): Vector3 {
+    static unitZ() {
         return new Vector3(0, 0, 1)
     }
 
     // ---- 静态运算（out 可复用） ----
 
     /** out = a + b */
-    static add(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static add<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = a.x + b.x
         out.y = a.y + b.y
         out.z = a.z + b.z
@@ -84,7 +84,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = a - b */
-    static subtract(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static subtract<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = a.x - b.x
         out.y = a.y - b.y
         out.z = a.z - b.z
@@ -92,7 +92,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = a ⊙ b（逐分量相乘） */
-    static multiply(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static multiply<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = a.x * b.x
         out.y = a.y * b.y
         out.z = a.z * b.z
@@ -100,7 +100,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = v * s */
-    static multiplyScalar(out: Vector3, v: Vector3Like, s: number): Vector3 {
+    static multiplyScalar<T extends Vector3Like>(out: T, v: Vector3Like, s: number) {
         out.x = v.x * s
         out.y = v.y * s
         out.z = v.z * s
@@ -108,7 +108,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = v / s */
-    static divide(out: Vector3, v: Vector3Like, s: number): Vector3 {
+    static divide<T extends Vector3Like>(out: T, v: Vector3Like, s: number) {
         out.x = v.x / s
         out.y = v.y / s
         out.z = v.z / s
@@ -116,7 +116,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = -v */
-    static negate(out: Vector3, v: Vector3Like): Vector3 {
+    static negate<T extends Vector3Like>(out: T, v: Vector3Like) {
         out.x = -v.x
         out.y = -v.y
         out.z = -v.z
@@ -124,7 +124,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = normalized(v)；零向量时返回零向量 */
-    static normalize(out: Vector3, v: Vector3Like): Vector3 {
+    static normalize<T extends Vector3Like>(out: T, v: Vector3Like) {
         const len = Math.hypot(v.x, v.y, v.z)
         if (len === 0) {
             out.x = 0
@@ -144,7 +144,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = a × b（3D 叉积） */
-    static cross(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static cross<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         const ax = a.x, ay = a.y, az = a.z
         const bx = b.x, by = b.y, bz = b.z
         out.x = ay * bz - az * by
@@ -154,7 +154,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = a 在 b 上的投影 */
-    static project(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static project<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         const dot = Vector3.dot(a, b)
         const lenSq = Vector3.dot(b, b)
         if (lenSq === 0) {
@@ -171,7 +171,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = lerp(a, b, t)；t=0 得 a，t=1 得 b */
-    static lerp(out: Vector3, a: Vector3Like, b: Vector3Like, t: number): Vector3 {
+    static lerp<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like, t: number) {
         out.x = a.x + (b.x - a.x) * t
         out.y = a.y + (b.y - a.y) * t
         out.z = a.z + (b.z - a.z) * t
@@ -211,7 +211,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = min(a, b)（逐分量取最小） */
-    static min(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static min<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = Math.min(a.x, b.x)
         out.y = Math.min(a.y, b.y)
         out.z = Math.min(a.z, b.z)
@@ -219,7 +219,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = max(a, b)（逐分量取最大） */
-    static max(out: Vector3, a: Vector3Like, b: Vector3Like): Vector3 {
+    static max<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = Math.max(a.x, b.x)
         out.y = Math.max(a.y, b.y)
         out.z = Math.max(a.z, b.z)
@@ -227,7 +227,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = clamp(v, min, max) */
-    static clamp(out: Vector3, v: Vector3Like, min: Vector3Like, max: Vector3Like): Vector3 {
+    static clamp<T extends Vector3Like>(out: T, v: Vector3Like, min: Vector3Like, max: Vector3Like) {
         out.x = Math.max(min.x, Math.min(max.x, v.x))
         out.y = Math.max(min.y, Math.min(max.y, v.y))
         out.z = Math.max(min.z, Math.min(max.z, v.z))
@@ -235,7 +235,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = reflect(v, normal)；normal 需为单位向量 */
-    static reflect(out: Vector3, v: Vector3Like, normal: Vector3Like): Vector3 {
+    static reflect<T extends Vector3Like>(out: T, v: Vector3Like, normal: Vector3Like) {
         const d = 2 * Vector3.dot(v, normal)
         out.x = v.x - d * normal.x
         out.y = v.y - d * normal.y
@@ -244,7 +244,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = m * v（3x3 矩阵变换，列主序） */
-    static applyMatrix3(out: Vector3, v: Vector3Like, m: Matrix3Like): Vector3 {
+    static applyMatrix3<T extends Vector3Like>(out: T, v: Vector3Like, m: Matrix3Like) {
         const x = v.x, y = v.y, z = v.z
         out.x = m[0] * x + m[3] * y + m[6] * z
         out.y = m[1] * x + m[4] * y + m[7] * z
@@ -253,7 +253,7 @@ export class Vector3 implements Vector3Like {
     }
 
     /** out = m * v（4x4 矩阵变换，w=1 带透视除法，列主序） */
-    static applyMatrix4(out: Vector3, v: Vector3Like, m: Matrix4Like): Vector3 {
+    static applyMatrix4<T extends Vector3Like>(out: T, v: Vector3Like, m: Matrix4Like) {
         const x = v.x, y = v.y, z = v.z
         const w = m[3] * x + m[7] * y + m[11] * z + m[15]
         const invW = w === 0 ? 1 : 1 / w
@@ -391,7 +391,7 @@ export class Vector3 implements Vector3Like {
         return Vector3.dot(this, v)
     }
 
-    crossWith(v: Vector3Like): Vector3 {
+    crossWith(v: Vector3Like) {
         const r = Vector3.cross(Vector3.pool.get(), this, v)
         return r
     }
@@ -430,7 +430,7 @@ export class Vector3 implements Vector3Like {
 
     // ---- 工具 ----
 
-    clone(): Vector3 {
+    clone() {
         return new Vector3(this.x, this.y, this.z)
     }
 

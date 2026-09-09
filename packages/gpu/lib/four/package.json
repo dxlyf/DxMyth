@@ -1,0 +1,41 @@
+{
+  "name": "fourwastaken",
+  "version": "0.4.3",
+  "description": "Minimal three.js alternative.",
+  "keywords": [
+    "3d",
+    "graphics",
+    "compute",
+    "webgl",
+    "webgpu",
+    "webxr",
+    "shaders",
+    "three",
+    "minimal"
+  ],
+  "author": "Cody Bennett (https://github.com/CodyJasonBennett)",
+  "homepage": "https://github.com/CodyJasonBennett/four",
+  "repository": "https://github.com/CodyJasonBennett/four",
+  "license": "MIT",
+  "files": [
+    "dist/*",
+    "src/*"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "sideEffects": false,
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.5"
+  },
+  "dependencies": {
+    "@webgpu/types": "^0.1.68"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "tsc"
+  }
+}

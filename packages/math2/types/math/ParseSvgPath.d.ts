@@ -1,4 +1,19 @@
 import { PathBuilder } from './PathBuilder';
+/** A parsed path command: the command letter followed by its numeric arguments. */
+type Command = [string, ...number[]];
+/**
+ * Parse an SVG path `d` attribute string into an array of commands.
+ *
+ * Each command is a tuple of `[letter, ...args]`. Relative commands use
+ * lowercase letters; absolute commands use uppercase. An implicit `lineto`
+ * is inserted after the first coordinate pair of a `moveto` with extra args,
+ * per the SVG spec.
+ *
+ * @param path - The raw SVG path data string (e.g. `"M0,0 L10,10 Z"`).
+ * @returns Array of parsed commands.
+ * @throws {Error} if a command has fewer arguments than expected.
+ */
+export declare function parseSvgPath(path: string): Command[];
 export declare const fromSvgPathToCmds: (svgPath: string) => {
     cmd: string;
     params: number[];
@@ -16,3 +31,4 @@ export declare const fromSvgPathToCmds: (svgPath: string) => {
     * @returns PathBuilder 实例
     */
 export declare function fromSvgPath(svgPath: string): PathBuilder;
+export {};

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { CachePool } from "./CachePool"
-import { degToRad } from "./MathUtils"
+import { clamp, degToRad } from "./MathUtils"
 import type { Matrix2DLike } from "./Matrix2D"
 
 export type Vector2Like = {
@@ -62,47 +62,57 @@ export class Vector2 implements Vector2Like {
     // ---- 静态运算（out 可复用） ----
 
     /** out = a + b */
-    static add(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static add<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         out.x = a.x + b.x
         out.y = a.y + b.y
         return out
     }
+    static addScalar<T extends Vector2Like>(out: T, a: Vector2Like, s: number) {
+        out.x = a.x + s
+        out.y = a.y + s;
+        return out
+    }
+    static addScaledVector<T extends Vector2Like>(out: T, a: Vector2Like, v: Vector2Like, s: number) {
+        out.x = a.x + v.x * s
+        out.y = a.y + v.y * s
+        return out
+    }
 
     /** out = a - b */
-    static subtract(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static subtract<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         out.x = a.x - b.x
         out.y = a.y - b.y
         return out
     }
-    static multiply(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static multiply<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         out.x = a.x * b.x
         out.y = a.y * b.y
         return out
     }
     /** out = v * s */
-    static multiplyScalar(out: Vector2, v: Vector2Like, s: number): Vector2 {
+    static multiplyScalar<T extends Vector2Like>(out: T, v: Vector2Like, s: number) {
         out.x = v.x * s
         out.y = v.y * s
         return out
     }
 
     /** out = v / s */
-    static divide(out: Vector2, v: Vector2Like, s: number): Vector2 {
+    static divide<T extends Vector2Like>(out: T, v: Vector2Like, s: number) {
         out.x = v.x / s
         out.y = v.y / s
         return out
     }
 
     /** out = -v */
-    static negate(out: Vector2, v: Vector2Like): Vector2 {
+    static negate<T extends Vector2Like>(out: T, v: Vector2Like) {
         out.x = -v.x
         out.y = -v.y
         return out
     }
 
     /** out = normalized(v)；零向量时返回零向量 */
-    static normalize(out: Vector2, v: Vector2Like): Vector2 {
-        const len = Math.hypot(v.x, v.y)
+    static normalize<T extends Vector2Like>(out: T, v: Vector2Like) {
+        const len = Vector2.magnitude(v)
         if (len === 0) {
             out.x = 0
             out.y = 0
@@ -124,7 +134,7 @@ export class Vector2 implements Vector2Like {
     }
 
     /** out = a 在 b 上的投影 */
-    static project(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static project<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         const dot = Vector2.dot(a, b)
         const lenSq = Vector2.dot(b, b)
         if (lenSq === 0) {
@@ -137,29 +147,29 @@ export class Vector2 implements Vector2Like {
         out.y = b.y * s
         return out
     }
-    static perp(out: Vector2, v: Vector2Like): Vector2 {
-        out.x = -v.y
-        out.y = v.x
+    static set<T extends Vector2Like>(out: T, x: number, y: number) {
+        out.x = x
+        out.y = y
         return out
     }
-    /** out = a 在 b 上的垂直（正交）分量 */
-    static perpendicular(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
-        const proj = Vector2.pool.get()
-        Vector2.project(proj, a, b)
-        Vector2.subtract(out, a, proj)
-        Vector2.pool.release(proj)
-        return out
+    static perpendicular<T extends Vector2Like>(out: T, v: Vector2Like) {
+        return Vector2.set(out, -v.y, v.x)
     }
-
+    static rotateCW<T extends Vector2Like>(out: T, v: Vector2Like) {
+        return Vector2.set(out, -v.y, v.x)
+    }
+    static rotateCCW<T extends Vector2Like>(out: T, v: Vector2Like) {
+        return Vector2.set(out, v.y, -v.x)
+    }
     /** out = lerp(a, b, t)；t=0 得 a，t=1 得 b */
-    static lerp(out: Vector2, a: Vector2Like, b: Vector2Like, t: number): Vector2 {
+    static lerp<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like, t: number) {
         out.x = a.x + (b.x - a.x) * t
         out.y = a.y + (b.y - a.y) * t
         return out
     }
 
     /** out = a 沿 b 方向按指定距离移动 */
-    static moveTo(out: Vector2, a: Vector2Like, b: Vector2Like, distance: number): Vector2 {
+    static moveTo<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like, distance: number) {
         const dx = b.x - a.x
         const dy = b.y - a.y
         const len = Math.hypot(dx, dy)
@@ -185,13 +195,23 @@ export class Vector2 implements Vector2Like {
         return dx * dx + dy * dy
     }
 
-    /** a 和 b 之间的夹角 (rad) */
-    static angleBetween(a: Vector2Like, b: Vector2Like): number {
+    /** a 和 b 之间的夹角 (rad),[0,PI] */
+    static angleTo(a: Vector2Like, b: Vector2Like): number {
         const dot = Vector2.dot(a, b)
         const lenProd = Math.hypot(a.x, a.y) * Math.hypot(b.x, b.y)
         if (lenProd === 0) return 0
         return Math.acos(Math.max(-1, Math.min(1, dot / lenProd)))
     }
+    // [-pi,pi]
+    static angleToSigned(a: Vector2Like, b: Vector2Like): number {
+        return Math.atan2(Vector2.cross(a, b), Vector2.dot(a, b))
+    }
+    // [-PI,PI]
+    static angle(v: Vector2Like): number {
+        return Math.atan2(v.y, v.x)
+    }
+
+
     static equals(a: Vector2Like, b: Vector2Like): boolean {
         return a.x === b.x && a.y === b.y
     }
@@ -201,28 +221,42 @@ export class Vector2 implements Vector2Like {
     }
 
     /** out = min(a, b)（逐分量取最小） */
-    static min(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static min<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         out.x = Math.min(a.x, b.x)
         out.y = Math.min(a.y, b.y)
         return out
     }
 
     /** out = max(a, b)（逐分量取最大） */
-    static max(out: Vector2, a: Vector2Like, b: Vector2Like): Vector2 {
+    static max<T extends Vector2Like>(out: T, a: Vector2Like, b: Vector2Like) {
         out.x = Math.max(a.x, b.x)
         out.y = Math.max(a.y, b.y)
         return out
     }
 
     /** out = clamp(v, min, max) */
-    static clamp(out: Vector2, v: Vector2Like, min: Vector2Like, max: Vector2Like): Vector2 {
-        out.x = Math.max(min.x, Math.min(max.x, v.x))
-        out.y = Math.max(min.y, Math.min(max.y, v.y))
+    static clamp<T extends Vector2Like>(out: T, v: Vector2Like, min: Vector2Like, max: Vector2Like) {
+        out.x = clamp(v.x, min.x, max.x)
+        out.y = clamp(v.y, min.y, max.y)
         return out
     }
-
+    static clampScalar<T extends Vector2Like>(out: T, v: Vector2Like, min: number, max: number) {
+        out.x = clamp(v.x, min, max)
+        out.y = clamp(v.y, min, max)
+        return out
+    }
+    static clampLength<T extends Vector2Like>(out: T, v: Vector2Like, min: number, max: number) {
+        const length = Vector2.magnitude(v) || 1
+        const s = clamp(length, min, max)
+        out.x = v.x / length * s
+        out.y = v.y / length * s
+        return out
+    }
+    static magnitude(v: Vector2Like) {
+        return Math.sqrt(v.x * v.x + v.y * v.y)
+    }
     /** out = reflect(v, normal)；normal 需为单位向量 */
-    static reflect(out: Vector2, v: Vector2Like, normal: Vector2Like): Vector2 {
+    static reflect<T extends Vector2Like>(out: T, v: Vector2Like, normal: Vector2Like) {
         const d = 2 * Vector2.dot(v, normal)
         out.x = v.x - d * normal.x
         out.y = v.y - d * normal.y
@@ -232,18 +266,18 @@ export class Vector2 implements Vector2Like {
     /**
      * out = m * v（矩阵变换）
      */
-    static applyMatrix2D(out: Vector2, v: Vector2Like, m: Matrix2DLike): Vector2 {
+    static applyMatrix2D<T extends Vector2Like>(out: T, v: Vector2Like, m: Matrix2DLike) {
         const x = v.x, y = v.y
         out.x = m[0] * x + m[2] * y + m[4]
         out.y = m[1] * x + m[3] * y + m[5]
         return out
     }
-    static translate(out: Vector2, v: Vector2Like, tx: number, ty: number): Vector2 {
+    static translate<T extends Vector2Like>(out: T, v: Vector2Like, tx: number, ty: number) {
         out.x = v.x + tx
         out.y = v.y + ty
         return out
     }
-    static rotate(out: Vector2, v: Vector2Like, angle: number, origin?: Vector2Like): Vector2 {
+    static rotate<T extends Vector2Like>(out: T, v: Vector2Like, angle: number, origin?: Vector2Like) {
         const c = Math.cos(angle)
         const s = Math.sin(angle)
         const ox = origin?.x ?? 0
@@ -254,7 +288,7 @@ export class Vector2 implements Vector2Like {
         out.y = y * s + x * c + oy
         return out
     }
-    static scale(out: Vector2, v: Vector2Like, sx: number, sy: number): Vector2 {
+    static scale<T extends Vector2Like>(out: T, v: Vector2Like, sx: number, sy: number) {
         out.x = v.x * sx
         out.y = v.y * sy
         return out
@@ -300,7 +334,7 @@ export class Vector2 implements Vector2Like {
     /**
      * 判断点是否在线段上（考虑线宽）
      */
-    static isPointOnSegment(p: Vector2, a: Vector2, b: Vector2, lineWidth: number): boolean {
+    static isPointOnSegment(p: Vector2Like, a: Vector2Like, b: Vector2Like, lineWidth: number): boolean {
         const dist = this.pointToSegmentDistance(p, a, b);
         return dist <= lineWidth / 2;
     }
@@ -308,7 +342,7 @@ export class Vector2 implements Vector2Like {
     /**
      * 计算两条线段的交点
      */
-    static segmentIntersection(a1: Vector2Like, a2: Vector2Like, b1: Vector2Like, b2: Vector2Like): Vector2Like | null {
+    static segmentIntersection(a1: Vector2Like, a2: Vector2Like, b1: Vector2Like, b2: Vector2Like) {
         const d1x = a2.x - a1.x;
         const d1y = a2.y - a1.y;
         const d2x = b2.x - b1.x;
@@ -328,6 +362,16 @@ export class Vector2 implements Vector2Like {
         }
         return null;
     }
+    static random<T extends Vector2Like>(out: T, min: Vector2Like, max: Vector2Like) {
+        out.x = Math.floor(Math.random() * (max.x - min.x + 1) + min.x);
+        out.y = Math.floor(Math.random() * (max.y - min.y + 1) + min.y);
+        return out
+    }
+    static randomScalar<T extends Vector2Like>(out: T, min: number, max: number) {
+        out.x = Math.floor(Math.random() * (max - min + 1) + min);
+        out.y = Math.floor(Math.random() * (max - min + 1) + min);
+        return out
+    }
     // ==================== 实例部分 ====================
 
     x: number
@@ -340,83 +384,107 @@ export class Vector2 implements Vector2Like {
 
     // ---- 写入 ----
 
-    set(x: number, y: number): this {
+    set(x: number, y: number) {
         this.x = x
         this.y = y
         return this
     }
 
-    copy(v: Vector2Like): this {
+    copy(v: Vector2Like) {
         this.x = v.x
         this.y = v.y
         return this
     }
 
-    zero(): this {
+    zero() {
         return this.set(0, 0)
     }
 
     // ---- 运算（委托给静态方法） ----
 
-    add(v: Vector2Like): this {
+    add(v: Vector2Like) {
         Vector2.add(this, this, v)
         return this
     }
-
-    subtract(v: Vector2Like): this {
+    addScalar(s: number) {
+        Vector2.addScalar(this, this, s)
+        return this
+    }
+    addScaledVector(v: Vector2Like, s: number) {
+        Vector2.addScaledVector(this, this, v, s)
+        return this
+    }
+    subtract(v: Vector2Like) {
         Vector2.subtract(this, this, v)
         return this
     }
-    multiply(v: Vector2Like): this {
+    multiply(v: Vector2Like) {
         Vector2.multiply(this, this, v)
         return this
     }
 
-    multiplyScalar(s: number): this {
+    multiplyScalar(s: number) {
         Vector2.multiplyScalar(this, this, s)
         return this
     }
 
-    divide(s: number): this {
+    divide(s: number) {
         Vector2.divide(this, this, s)
         return this
     }
-
-    negate(): this {
+    divideScalar(scalar: number) {
+        return this.multiplyScalar(1 / scalar)
+    }
+    negate() {
         Vector2.negate(this, this)
         return this
     }
 
-    normalize(): this {
+    normalize() {
         Vector2.normalize(this, this)
         return this
     }
 
 
-    lerp(to: Vector2Like, t: number): this {
+    lerp(to: Vector2Like, t: number) {
         Vector2.lerp(this, this, to, t)
         return this
     }
 
-    project(onto: Vector2Like): this {
+    project(onto: Vector2Like) {
         Vector2.project(this, this, onto)
         return this
     }
 
     /** this = min(this, v)（逐分量取最小） */
-    min(v: Vector2Like): this {
+    min(v: Vector2Like) {
         Vector2.min(this, this, v)
         return this
     }
 
     /** this = max(this, v)（逐分量取最大） */
-    max(v: Vector2Like): this {
+    max(v: Vector2Like) {
         Vector2.max(this, this, v)
         return this
     }
-    perp(): this {
-        Vector2.perp(this, this)
+    perp() {
+        Vector2.perpendicular(this, this)
         return this
+    }
+    perpendicular() {
+        Vector2.perpendicular(this, this)
+        return this
+    }
+    rotateCW() {
+        Vector2.rotateCW(this, this)
+        return this
+    }
+    rotateCCW() {
+        Vector2.rotateCCW(this, this)
+        return this
+    }
+    setLength(len: number) {
+        return this.normalize().multiplyScalar(len)
     }
     setLengthTo(x: number, y: number, length: number, originLength?: { value: number }) {
         const dmag = Math.sqrt(x * x + y * y)
@@ -434,11 +502,22 @@ export class Vector2 implements Vector2Like {
         return true
     }
     /** 应用矩阵变换 this = m * this */
-    applyMatrix2D(m: Matrix2DLike): this {
+    applyMatrix2D(m: Matrix2DLike) {
         Vector2.applyMatrix2D(this, this, m)
         return this
     }
-
+    clamp(min: Vector2Like, max: Vector2Like) {
+        Vector2.clamp(this, this, min, max)
+        return this;
+    }
+    clampScalar(min: number, max: number) {
+        Vector2.clampScalar(this, this, min, max)
+        return this
+    }
+    clampLength(min: number, max: number) {
+        Vector2.clampLength(this, this, min, max)
+        return this
+    }
     // ---- 查询 ----
 
     /** 长度 */
@@ -458,15 +537,18 @@ export class Vector2 implements Vector2Like {
     cross(v: Vector2Like): number {
         return Vector2.cross(this, v)
     }
-
-    angle(v: Vector2Like): number {
-        return Vector2.angleBetween(this, v)
+    angle() {
+        return Vector2.angle(this)
     }
-
+    angleTo(v: Vector2Like): number {
+        return Vector2.angleTo(this, v)
+    }
+    angleToSigned(v: Vector2Like): number {
+        return Vector2.angleToSigned(this, v)
+    }
     distanceTo(v: Vector2Like): number {
         return Vector2.distance(this, v)
     }
-
     distanceSquaredTo(v: Vector2Like): number {
         return Vector2.distanceSquared(this, v)
     }
@@ -479,12 +561,6 @@ export class Vector2 implements Vector2Like {
     rotate(angle: number, origin?: Vector2Like) {
         Vector2.rotate(this, this, angle, origin)
         return this
-    }
-    equals(v: Vector2Like): boolean {
-        return Vector2.equals(this, v)
-    }
-    equalsEpsilon(v: Vector2Like, epsilon?: number): boolean {
-        return Vector2.equalsEpsilon(this, v, epsilon)
     }
     isFinite() {
         return Number.isFinite(this.x) && Number.isFinite(this.y)
@@ -499,7 +575,7 @@ export class Vector2 implements Vector2Like {
     // ---- 工具 ----
 
     clone(): Vector2 {
-        return new Vector2(this.x, this.y)
+        return new (this.constructor as typeof Vector2)(this.x, this.y)
     }
 
     toArray(): [number, number] {
@@ -508,5 +584,11 @@ export class Vector2 implements Vector2Like {
 
     toString(): string {
         return `Vector2(${this.x}, ${this.y})`
+    }
+    equals(v: Vector2Like): boolean {
+        return Vector2.equals(this, v)
+    }
+    equalsEpsilon(v: Vector2Like, epsilon?: number): boolean {
+        return Vector2.equalsEpsilon(this, v, epsilon)
     }
 }

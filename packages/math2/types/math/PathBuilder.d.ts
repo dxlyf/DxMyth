@@ -1,6 +1,7 @@
 import { Vector2Like as PointLike } from './Vector2';
 import { BoundingRect } from './BoundingRect';
 import { Matrix2DLike } from './Matrix2D';
+import { CachePool } from './CachePool';
 export declare enum PathVerb {
     MoveTo = 1,
     LineTo = 2,
@@ -13,6 +14,7 @@ export declare const PathSegmentType: {
     Rect: number;
     Ellipse: number;
     RoundRect: number;
+    EllipseSvgArc: number;
 };
 export declare const PathVerbCount: {
     1: number;
@@ -47,6 +49,7 @@ export declare enum PathDirection {
 export declare class PathBuilder {
     static fromSvgPath(svgPath: string): PathBuilder;
     static default(): PathBuilder;
+    static pool: CachePool<PathBuilder, []>;
     verbs: PathVerb[];
     points: PointLike[];
     lastMoveIndex: number;
@@ -127,7 +130,8 @@ export declare class PathBuilder {
      * @param y2 - 第二条切线的终点 Y
      * @param radius - 圆弧半径
      */
-    arcToConic(x1: number, y1: number, x2: number, y2: number, radius: number): void;
+    conicArcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
+    private svgArcTo;
     /**
      * 添加圆弧连接（arcTo）
      *
@@ -169,15 +173,15 @@ export declare class PathBuilder {
      *
      * @param x1 - 起点 X
      * @param y1 - 起点 Y
-     * @param x2 - 终点 X
-     * @param y2 - 终点 Y
      * @param rx - X 轴半径
      * @param ry - Y 轴半径
      * @param rotation - 椭圆的旋转角度（弧度）
      * @param largeArcFlag - true=大弧, false=小弧
      * @param sweepFlag - true=顺时针, false=逆时针
+     * @param x - 终点 X
+     * @param y - 终点 Y
      */
-    ellipseSvgArc(x1: number, y1: number, x2: number, y2: number, rx: number, ry: number, rotation: number, largeArcFlag: boolean, sweepFlag: boolean): void;
+    arcToSvg(x1: number, y1: number, rx: number, ry: number, rotation: number, largeArcFlag: boolean, sweepFlag: boolean, x: number, y: number): void;
     closePath(): void;
     /**
      * 判断点是否在路径填充区域内

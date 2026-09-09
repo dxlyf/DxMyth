@@ -18,6 +18,7 @@ export declare class Path extends CurvePath<Vector2> {
     bezierCurveTo(aCP1x: number, aCP1y: number, aCP2x: number, aCP2y: number, aX: number, aY: number): this;
     /** 添加一条经过给定点列表的 SplineCurve（起点为当前点） */
     splineThru(pts: Vector2[]): this;
+    arcTo(x0: number, y0: number, x: number, y: number, radius: number): this;
     /** 添加一条相对当前点的圆弧（作为 EllipseCurve） */
     arc(aX: number, aY: number, aRadius: number, aStartAngle: number, aEndAngle: number, aClockwise: boolean): this;
     /** 添加一条绝对定位的圆弧（作为 EllipseCurve） */

@@ -24,7 +24,7 @@ export type StageInitializeProps = {
     rendererConfig?:Partial<RendererProps>
 }
 export class Stage extends EventEmitter<StageEvents> {
-    static renderers: Map<string, RendererConstructor> = new Map([
+    static renderers = new Map<string, RendererConstructor>([
         ['canvas',CanvasRenderer],
         ['webgl',WebGLRenderer],
     ])

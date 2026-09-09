@@ -1,8 +1,20 @@
 import { BoundingRect } from '../BoundingRect';
+import { Vector2Like } from '../Vector2';
 import { Geometry, PointOut } from './Geometry';
+export declare const isPointInPolygon: (points: Vector2Like[], x: number, y: number, fillRule?: CanvasFillRule) => boolean;
+export declare function isPolygonClockwise(points: Vector2Like[]): boolean;
+export declare function polygonOffset(points: Vector2Like[], width: number): Vector2Like[];
+export declare function buildStrokePoints(points: Vector2Like[], options: {
+    align?: 'outside' | 'inside' | 'center';
+    width?: number;
+    join?: 'round' | 'bevel' | 'miter';
+    cap?: 'round' | 'butt' | 'square';
+    miterLimit?: number;
+}): Vector2Like[];
 export declare class Polygon extends Geometry {
     /** 扁平顶点数据 [x0,y0,x1,y1,...] */
     points: number[];
+    closed: boolean;
     constructor(points?: number[]);
     /** 顶点数 */
     get vertexCount(): number;

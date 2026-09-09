@@ -28,7 +28,6 @@ export * from './math/PathBuilder'
 export * from './math/PathIntersection'
 export * from './math/PathStroke'
 export * from './math/Point'
-export * from './math/MirrorPath2D'
 export * from './math/QuadraticBezier'
 export * from './math/RTree'
 export * from './math/Transform'
@@ -85,11 +84,10 @@ export type {PluginContext as PluginServiceContext,IPlugin as PluginServicePlugi
 // animation
 export * from './animation'
 export * from './tapable'
-export * from './rendering/Stage'
-export * from './rendering/Paint'
-export * from './rendering/renderer/canvas/CanvasRenderer'
-export * from './rendering/renderer/webgl/WebGL2Helper'
-export * from './rendering/renderer/webgpu/WebGPUHelper'
+export * from './rendering'
+
+
+
 
 //pre-text
 export * as pretext from './pretext'
@@ -109,6 +107,9 @@ export * from './utils/decimal'
 export * from './utils/bignumber'
 export * from './utils/loadResource'
 export * from './utils/stats.module'
+export * from './utils/template'
+export * from './utils/uid'
+export * from './utils/merge'
 
 export * from './controls/Ruler'
 export * from './controls/ZoomTranslate'

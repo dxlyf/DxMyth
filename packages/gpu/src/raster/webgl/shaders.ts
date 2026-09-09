@@ -69,6 +69,8 @@ export const textureVertexStage: VertexStageSource = {
 
 export const textureFragmentStage: FragmentStageSource = {
     uniforms: ['uTexture', 'uColor'],
+    // 声明采样器：可用 uniform1i(uTexture, 单元号) + bindTexture 绑定纹理，也可直接传 CPUTexture
+    samplers: ['uTexture'],
     main(input: FragmentInput, uniforms: Uniforms): Vec4 {
         const texture = uniforms.uTexture
         const color = (uniforms.uColor as Vec4 | undefined) ?? new Vec4(1, 1, 1, 1)

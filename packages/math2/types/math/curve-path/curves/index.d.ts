@@ -1,4 +1,5 @@
 export { ArcCurve } from './ArcCurve';
+export { ArcToCurve } from './ArcToCurve';
 export { CatmullRomCurve3 } from './CatmullRomCurve3';
 export type { CatmullRomCurveType } from './CatmullRomCurve3';
 export { CubicBezierCurve } from './CubicBezierCurve';

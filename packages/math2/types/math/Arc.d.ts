@@ -1,3 +1,4 @@
+import { Vector2Like } from './Vector2';
 /** SVG 弧线的端点参数化 */
 export interface EndpointArcParams {
     x1: number;
@@ -91,6 +92,10 @@ export interface ArcOvalResult {
  * 方便直接用于 canvas arc() 等 API。
  */
 export declare function arcToOval(params: EndpointArcParams): ArcOvalResult;
+export declare function pointOnEllipse(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, theta: number): {
+    x: number;
+    y: number;
+};
 /** 三次贝塞尔曲线段 */
 export interface CubicBezierPoints {
     /** 起点 */
@@ -114,6 +119,16 @@ export interface CubicBezierPoints {
         y: number;
     };
 }
+/**
+ * 四分之一椭圆弧转贝塞尔曲线段
+ * @param cx
+ * @param cy
+ * @param rx
+ * @param ry
+ * @param theta1
+ * @param theta2
+ */
+export declare function quarterArcToCubicBezier(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, theta1: number, theta2: number): number[];
 /**
  * 将椭圆弧近似为三次贝塞尔曲线。
  *
@@ -148,4 +163,13 @@ export declare function ellipticalArcToCubicBezier(cx: number, cy: number, rx: n
  * @param counterclockwise 是否逆时针，默认 false（顺时针）
  * @param segmentAngle 每段最大角度（弧度），默认 π/2（90°）
  */
-export declare function ellipseToCubics(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, startAngle: number, endAngle: number, counterclockwise?: boolean, segmentAngle?: number): CubicBezierPoints[];
+export declare function ellipseToCubicBezier(cx: number, cy: number, rx: number, ry: number, xAxisRotation: number, startAngle: number, endAngle: number, counterclockwise?: boolean, segmentAngle?: number): CubicBezierPoints[];
+export declare function ellipseToQuadraticBezier(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, axisAngle: number, largeArc: number | boolean, sweepClockwise: number | boolean): number[][];
+export declare function ellipseCubicBezierFromPath(path: Pick<Path2D, 'moveTo' | 'lineTo' | 'bezierCurveTo'> & {
+    isEmpty: boolean;
+}, x: number, y: number, radiusX: number, radiusY: number, rotation: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void;
+export declare function arcCubicBezierFromPath(path: Pick<Path2D, 'moveTo' | 'lineTo' | 'bezierCurveTo'> & {
+    isEmpty: boolean;
+}, x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void;
+export declare function ellipseSvgArcFromPath(path: Pick<Path2D, 'lineTo' | 'ellipse'>, x1: number, y1: number, rx: number, ry: number, rotation: number, largeArcFlag: boolean, sweepFlag: boolean, x2: number, y2: number): void;
+export declare const buildArc: (points: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw?: boolean, tolerance?: number) => void;

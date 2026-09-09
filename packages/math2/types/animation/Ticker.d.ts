@@ -1,4 +1,5 @@
-export type TickerCallback = (delta: number, elapsed: number) => void;
+/** 回调返回 false 时自动从 tick 列表中移除 */
+export type TickerCallback = (delta: number, elapsed: number) => boolean | void;
 /** 帧调度器接口 */
 export interface FrameScheduler {
     /** 请求下一帧，返回句柄 */

@@ -1,0 +1,31 @@
+import validateObject from './validate_object';
+import latestStyleSpec from '../reference/latest';
+import validateGlyphsURL from './validate_glyphs_url';
+
+import type ValidationError from '../error/validation_error';
+import type {StyleReference} from '../reference/latest';
+import type {StyleSpecification} from '../types';
+
+type StyleValidatorOptions = {
+    key?: string;
+};
+
+export default function validateStyle(style: unknown, styleSpec: StyleReference = latestStyleSpec, options: StyleValidatorOptions = {}): ValidationError[] {
+    const errors = validateObject({
+        key: options.key || '',
+        value: style,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        valueSpec: {
+            ...styleSpec.$root,
+            // Skip validation of the root properties that are not defined in the style spec (e.g. 'owner').
+            '*': {type: '*'},
+        },
+        styleSpec,
+        style: style as Partial<StyleSpecification>,
+        objectElementValidators: {
+            glyphs: validateGlyphsURL
+        }
+    });
+
+    return errors;
+}

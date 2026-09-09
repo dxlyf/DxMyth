@@ -7,26 +7,32 @@ export type OptionProps<Context, Value, Parameters = Value> = {
     map?(ctx: Context, value: Parameters): Value // 映射参数到状态值
     equals?(ctx: Context, current: Value, prev: Value): boolean // 状态值是否相等
 }
-export class Option<Context, Value, Parameters=Value> {
+export class Option<Context, Value, Parameters = Value> {
     ctx: Context
     private current: Value
+    private default: Value
     options: OptionProps<Context, Value, Parameters>
     dirty: boolean = false
     version: number = 0
     constructor(context: Context, options: OptionProps<Context, Value, Parameters>) {
         this.ctx = context
         this.options = options
-        this.current = this.options.default ? this.options.default(this.ctx) : null
+        this.default = this.options.default ? this.options.default(this.ctx) : null
+        this.current = this.default
+
     }
     // 重置状态值为默认值
-    default() {
-        this.update(this.options.default ? this.options.default(this.ctx) : null,true)
+    setDefault() {
+        this.update(this.default)
     }
-    markDrity(){
-        this.dirty=true
+    getDefault() {
+        return this.default
+    }
+    markDrity() {
+        this.dirty = true
     }
     refresh() {
-        this.update(this.current,true)
+        this.update(this.current, true)
     }
     get() {
         return this.current
@@ -43,9 +49,9 @@ export class Option<Context, Value, Parameters=Value> {
         }
         return current === prev
     }
-    update(value: Value,forceUpdate:boolean=false) {
+    update(value: Value, forceUpdate: boolean = false) {
         const prevValue = this.current
-        if (forceUpdate||this.dirty || !this.equals(prevValue, value)) {
+        if (forceUpdate || this.dirty || !this.equals(prevValue, value)) {
             this.dirty = false
             this.version++
             this.current = value

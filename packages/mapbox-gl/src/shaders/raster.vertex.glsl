@@ -1,0 +1,145 @@
+#include "_prelude_fog.vertex.glsl"
+#include "_prelude_terrain.vertex.glsl"
+
+uniform mat4 u_matrix;
+uniform mat4 u_normalize_matrix;
+uniform mat4 u_globe_matrix;
+uniform mat4 u_merc_matrix;
+uniform mat3 u_grid_matrix;
+uniform vec2 u_tl_parent;
+uniform float u_scale_parent;
+uniform vec2 u_perspective_transform;
+uniform vec2 u_texture_offset;
+uniform float u_raster_elevation;
+uniform float u_zoom_transition;
+uniform vec2 u_merc_center;
+
+#ifdef ELEVATED
+uniform lowp float u_zbias_factor;
+#endif
+
+#define GLOBE_UPSCALE GLOBE_RADIUS / 6371008.8
+
+#ifdef GLOBE_POLES
+in vec3 a_globe_pos;
+in vec2 a_uv;
+#else
+in ivec2 a_pos;
+in uvec2 a_texture_pos;
+#endif
+
+out vec2 v_pos0;
+out vec2 v_pos1;
+out float v_depth;
+#ifdef PROJECTION_GLOBE_VIEW
+out float v_split_fade;
+#endif
+
+void main() {
+    vec2 uv;
+#ifdef GLOBE_POLES
+    vec3 globe_pos = a_globe_pos;
+    uv = a_uv;
+    float ele = u_raster_elevation;
+#ifdef ELEVATION_REFERENCE_GROUND
+    ele += elevation(uv * EXTENT);
+#endif
+    globe_pos += normalize(globe_pos) * ele * GLOBE_UPSCALE;
+    gl_Position = u_matrix * u_globe_matrix * vec4(globe_pos, 1.0);
+
+#ifdef FOG
+    v_fog_pos = fog_position((u_normalize_matrix * vec4(a_globe_pos, 1.0)).xyz);
+#endif // FOG
+#else // else GLOBE_POLES
+vec4 world_pos;
+#ifdef PROJECTION_GLOBE_VIEW
+    vec2 texture_pos = vec2(a_texture_pos);
+    // We are using Int16 for texture position coordinates to give us enough precision for
+    // fractional coordinates. We use 8192 to scale the texture coordinates in the buffer
+    // as an arbitrarily high number to preserve adequate precision when rendering.
+    // This is also the same value as the EXTENT we are using for our tile buffer pos coordinates,
+    // so math for modifying either is consistent.
+    uv = texture_pos / 8192.0;
+    vec3 decomposed_pos_and_skirt = decomposeToPosAndSkirt(a_pos);
+    vec3 latLng = u_grid_matrix * vec3(decomposed_pos_and_skirt.xy, 1.0);
+    float mercatorY = mercatorYfromLat(latLng[0]);
+    float mercatorX = mercatorXfromLng(latLng[1]);  
+    
+    float tiles = u_grid_matrix[0][2];
+    if (tiles > 0.0) {
+        float idx = u_grid_matrix[1][2];
+        float idy = u_grid_matrix[2][2];
+        float uvY = mercatorY * tiles - idy;
+        float uvX = mercatorX * tiles - idx;
+        uv = vec2(uvX, uvY);
+    }
+
+    float ele = u_raster_elevation;
+#ifdef ELEVATION_REFERENCE_GROUND
+    ele += elevation(uv * EXTENT) - decomposed_pos_and_skirt.z;
+#endif
+
+    vec4 merc_world_pos = vec4(0.0);   
+    v_split_fade = 0.0;
+    if (u_zoom_transition > 0.0) {
+        vec2 merc_pos = vec2(mercatorX, mercatorY);
+        merc_world_pos = vec4(merc_pos, ele, 1.0);
+        merc_world_pos.xy -= u_merc_center;
+        merc_world_pos.x = wrap(merc_world_pos.x, -0.5, 0.5);
+        merc_world_pos = u_merc_matrix * merc_world_pos;
+
+        float opposite_merc_center = mod(u_merc_center.x + 0.5, 1.0);
+        float dist_from_poles = (abs(mercatorY - 0.5) * 2.0);
+        float range = 0.1;
+        v_split_fade = abs(opposite_merc_center - mercatorX);
+        v_split_fade = clamp(1.0 - v_split_fade, 0.0, 1.0);
+        v_split_fade = max(smoothstep(1.0 - range, 1.0, dist_from_poles), max(smoothstep(1.0 - range, 1.0, v_split_fade), smoothstep(1.0 - range, 1.0, 1.0 - v_split_fade)));
+    }
+    
+    vec3 globe_pos = latLngToECEF(latLng.xy);
+    globe_pos += normalize(globe_pos) * ele * GLOBE_UPSCALE;
+    vec4 globe_world_pos = u_globe_matrix * vec4(globe_pos, 1.0);
+
+    world_pos = vec4(mix(globe_world_pos.xyz, merc_world_pos.xyz, u_zoom_transition), 1.0);
+#ifdef FOG
+    v_fog_pos = fog_position((u_normalize_matrix * vec4(globe_pos, 1.0)).xyz);
+#endif // FOG
+#else // else PROJECTION_GLOBE_VIEW
+    float ele = 0.0;
+    vec2 decodedPos = vec2(a_pos);
+#ifdef ELEVATION_REFERENCE_GROUND
+    vec3 decomposedPosAndSkirt = decomposeToPosAndSkirt(a_pos);
+    float skirt = decomposedPosAndSkirt.z;
+    decodedPos = decomposedPosAndSkirt.xy;
+    uv = decodedPos / 8192.0;
+    ele = elevation(decodedPos) - skirt;
+#else // else ELEVATION_REFERENCE_GROUND
+    uv = vec2(a_texture_pos) / 8192.0;
+#endif // ELEVATION_REFERENCE_GROUND
+    world_pos = vec4(decodedPos, (u_raster_elevation + ele), 1.0);
+#ifdef FOG
+    v_fog_pos = fog_position(decodedPos);
+#endif // FOG
+#endif // else PROJECTION_GLOBE_VIEW
+    float w = 1.0 + dot(uv*EXTENT, u_perspective_transform);
+    gl_Position = u_matrix * world_pos * w;
+#endif // else GLOBE_POLES
+
+    v_pos0 = uv;
+    v_pos1 = (v_pos0 * u_scale_parent) + u_tl_parent;
+
+    // Correct the texture coord for a buffer, for example if tiles have a 1px buffer and
+    // are therefore 258 x 258 or 514 x 514.
+    v_pos0 = u_texture_offset.x + u_texture_offset.y * v_pos0;
+    v_pos1 = u_texture_offset.x + u_texture_offset.y * v_pos1;
+
+#ifdef ELEVATED
+    float z = clamp(gl_Position.z / gl_Position.w, 0.5, 1.0);
+    float zbias = max(0.00005, (pow(z, 0.8) - z) * u_zbias_factor);
+    gl_Position.z -= (gl_Position.w * zbias);
+#endif
+
+#ifdef RENDER_CUTOFF
+    v_depth = gl_Position.z;
+#endif
+}

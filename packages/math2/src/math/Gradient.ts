@@ -13,6 +13,7 @@ export abstract class Gradient   {
     elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
     stops: ColorStop[] = []
     matrix?: Matrix2D
+    ref:any
     addColorStop(offset: number, color: ColorInput): void {
         this.stops.push({
             offset: clamp(offset, 0, 1),
@@ -33,25 +34,29 @@ export abstract class Gradient   {
         this.matrix.fromValues(a, b, c, d, e, f)
     }
     getColorAt(t: number): ColorValue {
-        const stops = this.stops
-        if (t <= stops[0].offset) {
-            return stops[0].color
+        t = Math.max(0, Math.min(1, t))
+        const stops=this.stops
+        if (stops.length === 0){
+            return [0, 0, 0, 1]
         }
-        if (t >= stops[stops.length - 1].offset) {
-            return stops[stops.length - 1].color
+        if (stops.length === 1||t <= stops[0].offset){
+             return stops[0].color
         }
-        for (let i = 0; i < stops.length - 1; i++) {
-            const start = stops[i]
-            const end = stops[i + 1]
-            if (t >= start.offset && t <= end.offset) {
-                if (Math.abs(end.offset - start.offset) < 1e-6) {
-                    return end.color
-                }
-                const t2 = clamp((t - start.offset) / (end.offset - start.offset), 0, 1)
-                return Color.lerp(start.color, end.color, t2)
+        for (let i = 1; i < stops.length; i++) {
+            const s2 = stops[i]
+            if (t <= s2.offset) {
+                const s1 = stops[i - 1]
+                const span = s2.offset - s1.offset
+                const f = span > 0 ? (t - s1.offset) / span : 0
+                return [
+                    s1.color[0] + (s2.color[0] - s1.color[0]) * f,
+                    s1.color[1] + (s2.color[1] - s1.color[1]) * f,
+                    s1.color[2] + (s2.color[2] - s1.color[2]) * f,
+                    s1.color[3] + (s2.color[3] - s1.color[3]) * f,
+                ]
             }
         }
-        return stops[stops.length - 1].color
+        return stops[this.stops.length - 1].color
     }
     abstract getGradientColor(x: number, y: number): ColorValue
     copy(source: Gradient) {
@@ -95,7 +100,7 @@ export class LinearGradient extends Gradient {
             return this.getColorAt(0)
         }
         const t = ((x - this.x0) * dx + (y - this.y0) * dy) / lenSq
-        return this.getColorAt(clamp(t, 0, 1))
+        return this.getColorAt(t)
     }
 }
 export class RadialGradient extends Gradient {
@@ -126,7 +131,7 @@ export class RadialGradient extends Gradient {
         // 同心圆退化：直接用距离求 t
         if (dx === 0 && dy === 0) {
             const len = Math.hypot(px, py)
-            return this.getColorAt(clamp((len - this.r0) / dr, 0, 1))
+            return this.getColorAt((len - this.r0) / dr)
         }
         // P(t) = c0 + (c1-c0)·t, D(t) = r0 + (r1-r0)·t
         // |p - P(t)| = D(t) → A·t² + B·t + C = 0
@@ -138,24 +143,30 @@ export class RadialGradient extends Gradient {
             if (Math.abs(B) < 1e-12) {
                 return this.getColorAt(0)
             }
-            return this.getColorAt(clamp(-C / B, 0, 1))
+            return this.getColorAt(-C / B)
         }
         const d = B * B - 4 * A * C
         if (d < 0) {
-            return this.getColorAt(0)
+            // 无实根：点在圆锥之外（超出外圆），取 t=2 → clamp 到 1
+            return this.getColorAt(1)
         }
         const sqrtD = Math.sqrt(d)
         const inv = 0.5 / A
         const t0 = (-B + sqrtD) * inv
         const t1 = (-B - sqrtD) * inv
         // 取落在 [0,1] 内的根；都不在则按最近端点取色
-        if (t0 >= 0 && t0 <= 1) {
+        let isT0Valid = t0 >= 0 && t0 <= 1
+        let isT1Valid = t1 >= 0 && t1 <= 1
+        if (isT0Valid && isT1Valid) {
+            return this.getColorAt(Math.min(t0, t1))
+        }
+        if (isT0Valid) {
             return this.getColorAt(t0)
         }
-        if (t1 >= 0 && t1 <= 1) {
+        if (isT1Valid) {
             return this.getColorAt(t1)
         }
-        return this.getColorAt(clamp(Math.min(t0, t1), 0, 1))
+        return this.getColorAt(Math.min(t0, t1))
     }
 }
 export class ConicGradient extends Gradient {

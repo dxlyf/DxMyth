@@ -1,0 +1,58 @@
+import refProperties from './util/ref_properties';
+
+import type {LayerSpecification} from './types';
+
+function deref(layer: LayerSpecification, parent: LayerSpecification): LayerSpecification {
+    const result = {} as LayerSpecification;
+
+    const layerRec = layer as Record<string, unknown>;
+    const parentRec = parent as Record<string, unknown>;
+    const resultRec = result as Record<string, unknown>;
+
+    for (const k in layerRec) {
+        if (k !== 'ref') {
+            resultRec[k] = layerRec[k];
+        }
+    }
+
+    refProperties.forEach((k) => {
+        if (k in parentRec) {
+            resultRec[k] = parentRec[k];
+        }
+    });
+
+    return result;
+}
+
+/**
+ * Given an array of layers, some of which may contain `ref` properties
+ * whose value is the `id` of another property, return a new array where
+ * such layers have been augmented with the 'type', 'source', etc. properties
+ * from the parent layer, and the `ref` property has been removed.
+ *
+ * The input is not modified. The output may contain references to portions
+ * of the input.
+ *
+ * @private
+ * @param {Array<Layer>} layers
+ * @returns {Array<Layer>}
+ */
+export default function derefLayers(layers: Array<LayerSpecification>): Array<LayerSpecification> {
+    layers = layers.slice();
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const map: Record<string, LayerSpecification> = Object.create(null);
+    for (const layer of layers) {
+        map[layer.id] = layer;
+    }
+
+    for (let i = 0; i < layers.length; i++) {
+        const layer = layers[i];
+        if (layer && 'ref' in layer) {
+            const parent = map[(layer as LayerSpecification & {ref: string}).ref];
+            if (parent) layers[i] = deref(layer, parent);
+        }
+    }
+
+    return layers;
+}

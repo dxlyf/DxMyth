@@ -1,5 +1,6 @@
 import { CachePool } from './CachePool';
 import { Vector2Like } from './Vector2';
+import { Transform } from './Transform';
 /** 矩阵元素索引常量 */
 export declare const enum MatrixIndex {
     A = 0,// scaleX (cosθ)
@@ -19,6 +20,14 @@ export interface DecomposedTransform {
     origin: Vector2Like;
     pivot: Vector2Like;
 }
+export interface ITransform {
+    position: Vector2Like;
+    scale: Vector2Like;
+    skew: Vector2Like;
+    rotation: number;
+    origin: Vector2Like;
+    pivot: Vector2Like;
+}
 /**
  * 基于 Float32Array 的 2D 仿射变换矩阵。
  * 直接继承 Float32Array，与 WebGL / Skia / CanvasKit 的底层数据格式兼容。
@@ -26,6 +35,8 @@ export interface DecomposedTransform {
 export declare class Matrix2D extends Float32Array {
     static pool: CachePool<Matrix2D, []>;
     static identity(): Matrix2D;
+    static from(arr: Matrix2DLike): Matrix2D;
+    static fromValues(a: number, b: number, c: number, d: number, e: number, f: number): Matrix2D;
     static fromArray(arr: ArrayLike<number>): Matrix2D;
     static fromTranslate(tx: number, ty: number): Matrix2D;
     static fromScale(sx: number, sy: number): Matrix2D;
@@ -44,7 +55,7 @@ export declare class Matrix2D extends Float32Array {
      * @param origin   变换原点 { x, y }（默认 {0,0}）
      */
     static fromTranslateRotationSkewScaleOrigin(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): typeof Matrix2D;
-    static fromTranslationRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): typeof Matrix2D;
+    static fromTranslateRotationSkewScaleOriginPivot(out: Matrix2DLike, position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): typeof Matrix2D;
     /** out = a * b */
     static multiply(out: Matrix2DLike, a: Matrix2DLike, b: Matrix2DLike): Matrix2DLike;
     /** out = m 的逆矩阵；行列式为 0 时返回 null */
@@ -87,8 +98,10 @@ export declare class Matrix2D extends Float32Array {
     rotate(angle: number): this;
     skew(sx: number, sy: number): this;
     fromTranslationRotationScale(position: Vector2Like, angleInRad: number, scale: Vector2Like): this;
+    fromTranslationRotationSkewScalePivot(position: Vector2Like, angleInRad: number, skew: Vector2Like, scale: Vector2Like, pivot: Vector2Like): this;
     fromTranslationRotationScalePivot(position: Vector2Like, angleInRad: number, scale: Vector2Like, pivot: Vector2Like): this;
-    fromTranslationRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): this;
+    fromTranslateRotationSkewScaleOriginPivot(position: Vector2Like, rotation: number, skew: Vector2Like, scale: Vector2Like, origin: Vector2Like, pivot: Vector2Like): this;
+    fromTranslateRotationSkewScaleOrigin(position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): this;
     static decomposeAffine(matrix: Matrix2DLike): {
         translate: {
             x: number;
@@ -114,7 +127,7 @@ export declare class Matrix2D extends Float32Array {
      *
      * @returns out 对象（含 position/scale/skew/rotation/origin/pivot）
      */
-    static decomposeTransform(matrix: Matrix2DLike, out?: DecomposedTransform): DecomposedTransform;
+    static decomposeTransform(matrix: Matrix2DLike, transform: Transform): Transform;
     decomposeTRSP(matrix: Matrix2D, out?: {
         position?: Vector2Like;
         scale?: Vector2Like;
@@ -127,8 +140,8 @@ export declare class Matrix2D extends Float32Array {
         pivot?: Vector2Like;
     };
     /** 实例版：从自身矩阵逆解分量 */
-    decomposeTransform(out?: DecomposedTransform): DecomposedTransform;
-    fromTranslateRotationSkewScaleOrigin(position: Vector2Like, rotation: number, skew: Vector2Like, scale?: Vector2Like, origin?: Vector2Like): this;
+    decomposeTranslateRotationSkewScalePivotOrigin(out: Transform): Transform;
+    decomposeTranslateRotationSkewScalePivot(transform: ITransform): ITransform;
     invert(): Matrix2D;
     /**
      * 从变换对象构建矩阵（实例，写入 this）。

@@ -79,6 +79,7 @@ const POINTER_EVENTS={
     pointerup:'pointerup',
     pointerleave:'pointerleave',
     pointerenter:'pointerenter',
+    pointercancel:'pointercancel',
     wheel:'wheel',
 }
 export type PointerEventsMaps={
@@ -87,6 +88,7 @@ export type PointerEventsMaps={
     pointerup:[e:PointerEvent]
     pointerleave:[e:PointerEvent]
     pointerenter:[e:PointerEvent]
+    pointercancel:[e:PointerEvent]
     wheel:[e:PointerEvent]
     click:[e:PointerEvent]
     dblclick:[e:PointerEvent]
@@ -346,6 +348,38 @@ export class PointerEventSystem extends EventEmitter<PointerEventsMaps> {
                 //try { this.options.target.releasePointerCapture(e.pointerId) } catch {}
                 break
             }
+            case 'pointercancel': {
+                // 系统/浏览器取消指针事件流（如触摸滚动接管、指针被 OS 捕获），
+                // 该指针不会再产生后续事件，因此不触发 click / dblclick / drop
+                const cancelTarget = hitTarget || this._downTarget
+                event.target = cancelTarget
+                event.type = 'pointercancel'
+                this.emit('pointercancel', event)
+
+                // 结束进行中的按下/拖拽状态
+                if (this._isPointerDown) {
+                    if (this._isDragging) {
+                        if (this._dragHoverTarget) {
+                            const dlEvt = this.createEvent('dragleave', e)
+                            spawned.push(dlEvt)
+                            dlEvt.copyPointerData(event)
+                            dlEvt.target = this._dragHoverTarget
+                            this.emit('dragleave', dlEvt)
+                            this._dragHoverTarget = null
+                        }
+                        this._isDragging = false
+                        const deEvt = this.createEvent('dragend', e)
+                        spawned.push(deEvt)
+                        deEvt.copyPointerData(event)
+                        deEvt.target = this._downTarget
+                        this.emit('dragend', deEvt)
+                    }
+                    this._isPointerDown = false
+                    this._downTarget = null
+                }
+                break
+            }
+           
             case 'pointerleave': {
                 // 离开 canvas 区域，触发悬停元素的 leave
                 if (this._hoverTarget) {

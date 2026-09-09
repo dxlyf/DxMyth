@@ -10,7 +10,7 @@
 import { BoundingRect } from '../BoundingRect'
 
 /** 描边对齐方式 */
-export type StrokeAlign = 'inner' | 'outer' | 'center'
+type StrokeAlign = 'inner' | 'outer' | 'center'
 
 /** 输出点（避免分配） */
 export interface PointOut {

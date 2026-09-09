@@ -52,3 +52,4 @@ export declare const project: (points: PointLike[], px: number, py: number, samp
     t: number;
     distance: number;
 };
+export declare function conicToQuadratic(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, w: number): number[][][];

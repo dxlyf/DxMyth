@@ -52,8 +52,9 @@ import { CPUFramebuffer } from './Framebuffer'
 import { Mat4, Vec2, Vec3, Vec4 } from './math'
 import { Rasterizer } from './Rasterizer'
 import type { ClipVertex } from './Rasterizer'
+import { CPUTexture } from './Texture'
 import { AttribView } from './types'
-import type { BlendFactorFn, DepthFunc, DrawMode, FragmentStageSource, ShaderProgram, StencilOp, Uniforms, VertexStageSource } from './types'
+import type { BlendFactorFn, DepthFunc, DrawMode, FragmentStageSource, ShaderProgram, StencilOp, UniformBlockDecl, UniformBlockFieldType, Uniforms, VertexStageSource } from './types'
 
 /** CPU 着色器对象（模拟 gl.createShader 的结果） */
 export interface CPUShader {
@@ -74,6 +75,12 @@ export interface CPUProgram {
     activeUniforms: string[]
     /** 该程序保存的 uniform 值（draw 时传入顶点/片元着色器） */
     uniforms: Uniforms
+    /** 链接后收集的 uniform 块声明（顶点+片元，按名去重保持声明顺序） */
+    uniformBlocks: UniformBlockDecl[]
+    /** 每个 uniform 块的绑定绑定点（索引与 uniformBlocks 对齐；uniformBlockBinding 设置，默认 0） */
+    blockBindings: number[]
+    /** 链接后收集的采样器 uniform 名（uniform1i 设置纹理单元号时，draw 时解析为绑定的纹理） */
+    samplers: string[]
     /** transformFeedbackVaryings 设置的捕获列表（link 前设置，link 时编译） */
     tfVaryings: string[]
     /** SEPARATE_ATTRIBS | INTERLEAVED_ATTRIBS */
@@ -175,6 +182,22 @@ const STENCIL_OPS: Record<number, StencilOp> = {
 }
 
 /**
+ * std140 布局规则（字段对齐/大小，单位为 float 元素）：
+ * - float/vec2/vec3/vec4 分别占 1/2/3/4 个元素，对齐 1/2/4/4
+ * - mat4 视为 4 个 vec4 列，占 16 个元素，对齐 4
+ * - mat3 视为 3 个 vec3 列：每列对齐 4 元素、占 3 元素，列间跨步 4 元素（末列带填充），共 12 元素
+ * 字段起始 = 上界对齐到字段对齐值，与 GLSL std140 一致。
+ */
+const STD140_LAYOUT: Record<UniformBlockFieldType, { align: number; size: number }> = {
+    float: { align: 1, size: 1 },
+    vec2: { align: 2, size: 2 },
+    vec3: { align: 4, size: 3 },
+    vec4: { align: 4, size: 4 },
+    mat3: { align: 4, size: 12 },
+    mat4: { align: 4, size: 16 },
+}
+
+/**
  * 混合因子常量 -> 系数函数。
  * 对应 WebGL 的 blendFunc 因子：
  * SRC_COLOR 仅影响 rgb，alpha 因子恒为 1（规格如此）。
@@ -222,6 +245,13 @@ export class CPURenderer {
     readonly STATIC_DRAW = 0x88e4
     readonly DYNAMIC_DRAW = 0x88e8
     readonly STREAM_DRAW = 0x88e0
+
+    // WebGL2：bindBuffer 额外支持的通用缓冲目标
+    // （TRANSFORM_FEEDBACK_BUFFER 见下方变换反馈常量组）
+    readonly UNIFORM_BUFFER = 0x8a11
+    readonly COPY_READ_BUFFER = 0x8f36
+    readonly COPY_WRITE_BUFFER = 0x8f37
+    readonly PIXEL_UNPACK_BUFFER = 0x80ce
 
     // attribute 类型
     readonly FLOAT = 0x1406
@@ -315,6 +345,22 @@ export class CPURenderer {
     readonly SEPARATE_ATTRIBS = 0x8c8d
     readonly INTERLEAVED_ATTRIBS = 0x8c8c
 
+    // WebGL2：uniform 缓冲块
+    readonly INVALID_INDEX = 0xffffffff
+
+    // 纹理（TEXTURE0..TEXTURE31 = TEXTURE0 + 单元号）
+    readonly TEXTURE_2D = 0x0de1
+    readonly TEXTURE0 = 0x84c0
+    readonly TEXTURE_MIN_FILTER = 0x2801
+    readonly TEXTURE_MAG_FILTER = 0x2800
+    readonly TEXTURE_WRAP_S = 0x2802
+    readonly TEXTURE_WRAP_T = 0x2803
+    readonly NEAREST = 0x2600
+    readonly LINEAR = 0x2601
+    readonly CLAMP_TO_EDGE = 0x812f
+    readonly REPEAT = 0x2901
+    readonly MIRRORED_REPEAT = 0x8370
+
     // ==================== 内部状态 ====================
 
     /** 默认帧缓冲 */
@@ -325,6 +371,18 @@ export class CPURenderer {
     private currentVAO: CPUVertexArray
     private readonly defaultVAO: CPUVertexArray
     private arrayBufferBinding: CPUBuffer | null = null
+    /** 通用缓冲绑定点（target → buffer）：UNIFORM_BUFFER / COPY_READ_BUFFER / COPY_WRITE_BUFFER / PIXEL_UNPACK_BUFFER / TRANSFORM_FEEDBACK_BUFFER */
+    private bufferBindings = new Map<number, CPUBuffer | null>()
+    /** UNIFORM_BUFFER 索引绑定点（index → buffer；bindBufferBase/bindBufferRange 设置） */
+    private uniformBufferBindings = new Map<number, CPUBuffer | null>()
+    /** bindBufferRange(UNIFORM_BUFFER) 的 [字节偏移, 字节大小]（index → range；bindBufferBase 无 range） */
+    private uniformBufferRanges = new Map<number, [number, number]>()
+    /** bindBufferRange(TRANSFORM_FEEDBACK_BUFFER) 的写起始偏移（float 元素，buffer → offset；默认 0） */
+    private tfRangeOffsets = new Map<CPUBuffer, number>()
+
+    // 纹理状态（TEXTURE0..TEXTURE31，对应 32 个单元）
+    private activeTextureUnit = 0
+    private textureUnits: (CPUTexture | null)[] = new Array(32).fill(null)
 
     /** WebGL 语义视口（左下原点） */
     private viewportGL = { x: 0, y: 0, width: 0, height: 0 }
@@ -367,6 +425,7 @@ export class CPURenderer {
     private fbos = new Set<CPUFrameBufferObject>()
     private queries = new Set<CPUQuery>()
     private transformFeedbacks = new Set<CPUTransformFeedback>()
+    private textures = new Set<CPUTexture>()
 
     // WebGL2：查询与变换反馈状态
     private currentTransformFeedback: CPUTransformFeedback | null = null
@@ -456,6 +515,9 @@ export class CPURenderer {
             executable: null,
             activeUniforms: [],
             uniforms: {},
+            uniformBlocks: [],
+            blockBindings: [],
+            samplers: [],
             tfVaryings: [],
             tfBufferMode: null,
             tfIndices: [],
@@ -477,6 +539,9 @@ export class CPURenderer {
             program.linked = false
             program.executable = null
             program.activeUniforms = []
+            program.uniformBlocks = []
+            program.blockBindings = []
+            program.samplers = []
             program.tfIndices = []
             program.tfSizes = []
             program.infoLog = '需要已编译的顶点与片元着色器'
@@ -493,6 +558,24 @@ export class CPURenderer {
             }
         }
         program.activeUniforms = active
+        // 收集 uniform 块声明（顶点+片元，按名去重），供 getUniformBlockIndex/uniformBlockBinding 校验
+        const blocks: UniformBlockDecl[] = []
+        for (const list of [v.uniformBlocks, f.uniformBlocks]) {
+            for (const block of list ?? []) {
+                if (!blocks.some((b) => b.name === block.name)) blocks.push(block)
+            }
+        }
+        program.uniformBlocks = blocks
+        // 默认块绑定点为 0（同 WebGL：未调用 uniformBlockBinding 时绑定到绑定点 0）
+        program.blockBindings = blocks.map(() => 0)
+        // 收集采样器 uniform 名（顶点+片元，去重）
+        const samplers: string[] = []
+        for (const list of [v.samplers, f.samplers]) {
+            for (const name of list ?? []) {
+                if (!samplers.includes(name)) samplers.push(name)
+            }
+        }
+        program.samplers = samplers
         // 编译 transform feedback 捕获映射：tfVaryings 名 → varyings 输出数组中的 [起点, 分量数)
         // 顶点着色器声明 varyings 时按名查找（起点=前面声明的分量累计）；未声明时按顺序对应（每捕获 1 分量）
         const starts = new Map<string, [number, number]>()
@@ -576,6 +659,27 @@ export class CPURenderer {
         loc.program.uniforms[loc.name] = new Mat4(value.slice(0, 16))
     }
 
+    // ==================== uniform 缓冲块（WebGL2）====================
+
+    /** 返回 uniform 块在程序中的索引（对应 gl.getUniformBlockIndex）；未找到返回 INVALID_INDEX */
+    getUniformBlockIndex(program: CPUProgram, name: string): number {
+        const idx = program.uniformBlocks.findIndex((b) => b.name === name)
+        return idx === -1 ? this.INVALID_INDEX : idx
+    }
+
+    /** 把 uniform 块绑定到某个绑定点（对应 gl.uniformBlockBinding），draw 时读取该绑定点绑定的 UNIFORM_BUFFER */
+    uniformBlockBinding(program: CPUProgram, blockIndex: number, bindingIndex: number): void {
+        if (!program.linked) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        if (blockIndex < 0 || blockIndex >= program.uniformBlocks.length || bindingIndex < 0) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        program.blockBindings[blockIndex] = bindingIndex
+    }
+
     // ==================== 缓冲 ====================
 
     createBuffer(): CPUBuffer {
@@ -587,6 +691,18 @@ export class CPURenderer {
     deleteBuffer(buffer: CPUBuffer): void {
         this.buffers.delete(buffer)
         if (this.arrayBufferBinding === buffer) this.arrayBufferBinding = null
+        for (const [target, bound] of this.bufferBindings) {
+            if (bound === buffer) this.bufferBindings.set(target, null)
+        }
+        for (const [index, bound] of this.uniformBufferBindings) {
+            if (bound === buffer) this.uniformBufferBindings.set(index, null)
+        }
+        this.tfRangeOffsets.delete(buffer)
+        for (const tf of this.transformFeedbacks) {
+            for (let i = 0; i < tf.boundBuffers.length; i++) {
+                if (tf.boundBuffers[i] === buffer) tf.boundBuffers[i] = null
+            }
+        }
         for (const vao of this.vaos) {
             if (vao.elementBuffer === buffer) vao.elementBuffer = null
             for (const ptr of vao.attribs) {
@@ -601,9 +717,26 @@ export class CPURenderer {
         } else if (target === this.ELEMENT_ARRAY_BUFFER) {
             // WebGL2：ELEMENT_ARRAY_BUFFER 绑定属于 VAO 状态
             this.currentVAO.elementBuffer = buffer
+        } else if (
+            target === this.UNIFORM_BUFFER ||
+            target === this.TRANSFORM_FEEDBACK_BUFFER ||
+            target === this.COPY_READ_BUFFER ||
+            target === this.COPY_WRITE_BUFFER ||
+            target === this.PIXEL_UNPACK_BUFFER
+        ) {
+            // 通用绑定点：bufferData/bufferSubData/copyBufferSubData 通过它上传数据。
+            // 着色器读取 UNIFORM_BUFFER 走索引绑定点（bindBufferBase/bindBufferRange，见 uniformBufferBindings），二者互不干扰。
+            this.bufferBindings.set(target, buffer)
         } else {
             this.setError(this.INVALID_ENUM)
         }
+    }
+
+    /** 解析 target 当前绑定的缓冲：ARRAY_BUFFER 用专用字段，ELEMENT_ARRAY_BUFFER 在 VAO 中，其余读通用绑定表 */
+    private getBoundBuffer(target: number): CPUBuffer | null {
+        if (target === this.ARRAY_BUFFER) return this.arrayBufferBinding
+        if (target === this.ELEMENT_ARRAY_BUFFER) return this.currentVAO.elementBuffer
+        return this.bufferBindings.get(target) ?? null
     }
 
     /**
@@ -612,7 +745,7 @@ export class CPURenderer {
      * data 为 number 时表示分配 size 字节（WebGL 的 bufferData(target, size, usage)）。
      */
     bufferData(target: number, data: ArrayLike<number> | number, usage: number): void {
-        const buffer = target === this.ARRAY_BUFFER ? this.arrayBufferBinding : this.currentVAO.elementBuffer
+        const buffer = this.getBoundBuffer(target)
         if (!buffer) {
             this.setError(this.INVALID_OPERATION)
             return
@@ -631,7 +764,7 @@ export class CPURenderer {
     }
 
     bufferSubData(target: number, offsetBytes: number, data: ArrayLike<number>): void {
-        const buffer = target === this.ARRAY_BUFFER ? this.arrayBufferBinding : this.currentVAO.elementBuffer
+        const buffer = this.getBoundBuffer(target)
         if (!buffer?.data) {
             this.setError(this.INVALID_OPERATION)
             return
@@ -640,6 +773,43 @@ export class CPURenderer {
         for (let i = 0; i < data.length; i++) {
             buffer.data[start + i] = data[i]
         }
+    }
+
+    /**
+     * 在两个缓冲之间复制数据（对应 gl.copyBufferSubData，WebGL2）。
+     * 数据源/目标是 COPY_READ_BUFFER / COPY_WRITE_BUFFER（或任何缓冲绑定目标）绑定的缓冲，
+     * 偏移均为字节；目标空间不足时按目标元素类型自动扩容。
+     */
+    copyBufferSubData(readTarget: number, writeTarget: number, readOffset: number, writeOffset: number, size: number): void {
+        const src = this.getBoundBuffer(readTarget)
+        const dst = this.getBoundBuffer(writeTarget)
+        if (!src?.data || !dst?.data) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        if (readOffset < 0 || writeOffset < 0 || size < 0) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        if (src === dst) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        const srcBytes = new Uint8Array(src.data.buffer as ArrayBuffer, src.data.byteOffset, src.data.byteLength)
+        if (readOffset + size > srcBytes.length) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        let dest = dst.data
+        if (writeOffset + size > dest.byteLength) {
+            const Ctor = dest.constructor as new (len: number) => typeof dest
+            const grown = new Ctor(Math.ceil((writeOffset + size) / dest.BYTES_PER_ELEMENT))
+            grown.set(dest)
+            dest = grown
+            dst.data = grown
+        }
+        const dstBytes = new Uint8Array(dest.buffer as ArrayBuffer, dest.byteOffset, dest.byteLength)
+        for (let i = 0; i < size; i++) dstBytes[writeOffset + i] = srcBytes[readOffset + i]
     }
 
     // ==================== 查询对象（WebGL2）====================
@@ -738,16 +908,22 @@ export class CPURenderer {
     }
 
     /**
-     * 把缓冲绑定到变换反馈的某个索引（对应 gl.bindBufferBase，仅支持 TRANSFORM_FEEDBACK_BUFFER）。
+     * 把缓冲绑定到某个索引绑定点（对应 gl.bindBufferBase，WebGL2）。
+     * 支持 UNIFORM_BUFFER（uniform 块）与 TRANSFORM_FEEDBACK_BUFFER（变换反馈捕获）。
      * INTERLEAVED_ATTRIBS 用索引 0；SEPARATE_ATTRIBS 每个 varying 对应一个索引。
      */
     bindBufferBase(target: number, index: number, buffer: CPUBuffer | null): void {
-        if (target !== this.TRANSFORM_FEEDBACK_BUFFER) {
-            this.setError(this.INVALID_ENUM)
-            return
-        }
         if (index < 0) {
             this.setError(this.INVALID_VALUE)
+            return
+        }
+        if (target === this.UNIFORM_BUFFER) {
+            this.uniformBufferBindings.set(index, buffer)
+            this.uniformBufferRanges.delete(index)
+            return
+        }
+        if (target !== this.TRANSFORM_FEEDBACK_BUFFER) {
+            this.setError(this.INVALID_ENUM)
             return
         }
         if (!this.currentTransformFeedback) {
@@ -755,6 +931,33 @@ export class CPURenderer {
             return
         }
         this.currentTransformFeedback.boundBuffers[index] = buffer
+        if (buffer) this.tfRangeOffsets.delete(buffer)
+    }
+
+    /**
+     * 把缓冲的某个字节区间绑定到索引绑定点（对应 gl.bindBufferRange，WebGL2）。
+     * 支持 UNIFORM_BUFFER（读取该区间内的块数据）与 TRANSFORM_FEEDBACK_BUFFER（写起始为该区间偏移）。
+     */
+    bindBufferRange(target: number, index: number, buffer: CPUBuffer | null, offset: number, size: number): void {
+        if (index < 0 || offset < 0 || size < 0) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        if (target === this.UNIFORM_BUFFER) {
+            this.uniformBufferBindings.set(index, buffer)
+            this.uniformBufferRanges.set(index, [offset, size])
+            return
+        }
+        if (target !== this.TRANSFORM_FEEDBACK_BUFFER) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        if (!this.currentTransformFeedback) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        this.currentTransformFeedback.boundBuffers[index] = buffer
+        if (buffer) this.tfRangeOffsets.set(buffer, offset / 4)
     }
 
     /**
@@ -794,9 +997,9 @@ export class CPURenderer {
             return
         }
         this.transformFeedbackActive = true
-        // 重置所有绑定缓冲的写游标（覆盖写）
+        // 重置所有绑定缓冲的写游标（覆盖写；bindBufferRange 的从区间偏移开始）
         for (const buf of this.currentTransformFeedback?.boundBuffers ?? []) {
-            if (buf) this.tfWriteOffsets.set(buf, 0)
+            if (buf) this.tfWriteOffsets.set(buf, this.tfRangeOffsets.get(buf) ?? 0)
         }
     }
 
@@ -1115,6 +1318,187 @@ export class CPURenderer {
         if (this.framebufferBinding === framebuffer) this.framebufferBinding = null
     }
 
+    // ==================== 纹理（WebGL2）====================
+
+    /** 创建纹理对象（对应 gl.createTexture）；存储由 texImage2D 分配 */
+    createTexture(): CPUTexture {
+        const texture = new CPUTexture()
+        this.textures.add(texture)
+        return texture
+    }
+
+    deleteTexture(texture: CPUTexture): void {
+        this.textures.delete(texture)
+        for (let i = 0; i < this.textureUnits.length; i++) {
+            if (this.textureUnits[i] === texture) this.textureUnits[i] = null
+        }
+    }
+
+    /** 选择活动纹理单元（对应 gl.activeTexture；unit 为 TEXTURE0..TEXTURE31 常量） */
+    activeTexture(unit: number): void {
+        const index = unit - this.TEXTURE0
+        if (index < 0 || index >= this.textureUnits.length) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        this.activeTextureUnit = index
+    }
+
+    /** 把纹理绑定到活动纹理单元（对应 gl.bindTexture；target 必须为 TEXTURE_2D） */
+    bindTexture(target: number, texture: CPUTexture | null): void {
+        if (target !== this.TEXTURE_2D) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        this.textureUnits[this.activeTextureUnit] = texture
+    }
+
+    /** 当前活动单元绑定的纹理 */
+    private get boundTexture(): CPUTexture | null {
+        return this.textureUnits[this.activeTextureUnit]
+    }
+
+    /**
+     * 上传纹理数据（对应 gl.texImage2D，WebGL2 签名）。
+     * 仅支持 TEXTURE_2D + RGBA + UNSIGNED_BYTE。
+     * 数据来源：
+     * - 绑定了 PIXEL_UNPACK_BUFFER 时，从该缓冲读取（pixels 为字节偏移，默认 0）；
+     * - 否则使用 pixels（ArrayLike，各通道 0-255），null 时分配全零存储。
+     */
+    texImage2D(
+        target: number,
+        level: number,
+        internalformat: number,
+        width: number,
+        height: number,
+        border: number,
+        format: number,
+        type: number,
+        pixels: ArrayLike<number> | number | null,
+    ): void {
+        if (target !== this.TEXTURE_2D || level !== 0 || internalformat !== this.RGBA || format !== this.RGBA || type !== this.UNSIGNED_BYTE) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        if (border !== 0 || width < 0 || height < 0) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        const texture = this.boundTexture
+        if (!texture) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        const src = this.pixelSource(width, height, pixels)
+        if (src === undefined) return
+        texture.setStorage(width, height, src ?? undefined)
+    }
+
+    /**
+     * 更新纹理的某个区域（对应 gl.texSubImage2D）。
+     * 数据来源与 texImage2D 相同（支持 PIXEL_UNPACK_BUFFER）。
+     */
+    texSubImage2D(
+        target: number,
+        level: number,
+        xoffset: number,
+        yoffset: number,
+        width: number,
+        height: number,
+        format: number,
+        type: number,
+        pixels: ArrayLike<number> | number | null,
+    ): void {
+        if (target !== this.TEXTURE_2D || level !== 0 || format !== this.RGBA || type !== this.UNSIGNED_BYTE) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        if (xoffset < 0 || yoffset < 0 || width < 0 || height < 0) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        const texture = this.boundTexture
+        if (!texture?.data) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        if (xoffset + width > texture.width || yoffset + height > texture.height) {
+            this.setError(this.INVALID_VALUE)
+            return
+        }
+        const src = this.pixelSource(width, height, pixels)
+        if (src === undefined) return
+        if (!src) return
+        const data = texture.data
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const si = (y * width + x) * 4
+                const di = ((yoffset + y) * texture.width + (xoffset + x)) * 4
+                data[di] = src[si]
+                data[di + 1] = src[si + 1]
+                data[di + 2] = src[si + 2]
+                data[di + 3] = src[si + 3]
+            }
+        }
+    }
+
+    /**
+     * 解析上传数据源：
+     * - 绑定 PIXEL_UNPACK_BUFFER 时读该缓冲（pixels 为字节偏移，默认 0），返回 Uint8ClampedArray；
+     * - 未绑定且 pixels 为 ArrayLike 时直接使用；null 返回 null（分配全零存储）；
+     * - 未绑定却传 number（偏移）视为非法；越界返回 undefined（已置错误）。
+     */
+    private pixelSource(width: number, height: number, pixels: ArrayLike<number> | number | null): ArrayLike<number> | null | undefined {
+        const pbo = this.bufferBindings.get(this.PIXEL_UNPACK_BUFFER)?.data
+        if (pbo) {
+            const start = (typeof pixels === 'number' ? pixels : 0) / 4
+            const count = width * height * 4
+            if (start < 0 || start + count > pbo.length) {
+                this.setError(this.INVALID_OPERATION)
+                return undefined
+            }
+            // PBO 内按字节存储（float 元素），转 Uint8ClampedArray（自动取整/钳制 0-255）
+            return Uint8ClampedArray.from(pbo.subarray(start, start + count))
+        }
+        if (typeof pixels === 'number') {
+            this.setError(this.INVALID_OPERATION) // 未绑 PBO 却传入偏移
+            return undefined
+        }
+        return pixels
+    }
+
+    /** 设置纹理参数（对应 gl.texParameteri；仅支持过滤与包装模式） */
+    texParameteri(target: number, pname: number, param: number): void {
+        if (target !== this.TEXTURE_2D) {
+            this.setError(this.INVALID_ENUM)
+            return
+        }
+        const texture = this.boundTexture
+        if (!texture) {
+            this.setError(this.INVALID_OPERATION)
+            return
+        }
+        if (pname === this.TEXTURE_MIN_FILTER || pname === this.TEXTURE_MAG_FILTER) {
+            if (param === this.NEAREST) texture.filter = 'nearest'
+            else if (param === this.LINEAR) texture.filter = 'linear'
+            else this.setError(this.INVALID_ENUM)
+            return
+        }
+        if (pname === this.TEXTURE_WRAP_S || pname === this.TEXTURE_WRAP_T) {
+            let wrap: 'clamp' | 'repeat' | null = null
+            if (param === this.CLAMP_TO_EDGE) wrap = 'clamp'
+            else if (param === this.REPEAT) wrap = 'repeat'
+            else if (param === this.MIRRORED_REPEAT) wrap = 'repeat' // CPU 采样近似为 repeat
+            else this.setError(this.INVALID_ENUM)
+            if (wrap) {
+                if (pname === this.TEXTURE_WRAP_S) texture.wrapS = wrap
+                else texture.wrapT = wrap
+            }
+            return
+        }
+        this.setError(this.INVALID_ENUM)
+    }
+
     // ==================== 绘制 ====================
 
     /** 基于顶点顺序绘制（对应 gl.drawArrays），支持 strips/fans/loop 自动展开 */
@@ -1255,6 +1639,9 @@ export class CPURenderer {
         const executable = program?.executable
         if (!program || !executable) return
 
+        // 合并 UNIFORM_BUFFER 的块数据 + 解析采样器纹理单元（UBO/纹理状态本次 draw 内不变）
+        const drawUniforms = this.resolveSamplers(program, this.buildDrawUniforms(program))
+
         // 实例化：divisor>0 的 attribute 每实例取值不同，顶点着色器需逐实例重跑
         for (let inst = 0; inst < instanceCount; inst++) {
             // 1. 顶点着色（每个被引用的顶点 id 只执行一次）
@@ -1265,7 +1652,7 @@ export class CPURenderer {
                 if (ci === undefined) {
                     ci = clipVertices.length
                     idMap.set(id, ci)
-                    clipVertices.push(this.runVertexShader(executable, program.uniforms, id, inst))
+                    clipVertices.push(this.runVertexShader(executable, drawUniforms, id, inst))
                 }
             }
             if (clipVertices.length === 0) return
@@ -1309,7 +1696,7 @@ export class CPURenderer {
                 },
                 framebuffer: this.framebuffer,
             })
-            const written = rasterizer.draw(executable, program.uniforms, clipVertices, packed)
+            const written = rasterizer.draw(executable, drawUniforms, clipVertices, packed)
 
             // 4. 更新激活的查询对象（WebGL2）
             this.updateQueries(written, ids.length / this.perPrimCount(mode))
@@ -1319,6 +1706,80 @@ export class CPURenderer {
     /** 图元类型的每图元顶点数（points=1, lines=2, triangles=3） */
     private perPrimCount(mode: DrawMode): number {
         return mode === 'triangles' ? 3 : mode === 'lines' ? 2 : 1
+    }
+
+    /**
+     * 把 UNIFORM_BUFFER 绑定的 uniform 块数据合并进程序 uniform（供顶点/片元着色器读取）。
+     * 每个块的绑定点 = uniformBlockBinding 设置的值；数据从该绑定点绑定的缓冲读取，
+     * 字段按 std140 布局（bindBufferRange 时基址为该区间偏移、字段须完整落在区间内）。
+     */
+    private buildDrawUniforms(program: CPUProgram): Uniforms {
+        if (program.uniformBlocks.length === 0) return program.uniforms
+        const out: Uniforms = { ...program.uniforms }
+        program.uniformBlocks.forEach((block, blockIndex) => {
+            const binding = program.blockBindings[blockIndex]
+            const buffer = this.uniformBufferBindings.get(binding)
+            const data = buffer?.data
+            if (!(data instanceof Float32Array)) return
+            const base = (this.uniformBufferRanges.get(binding)?.[0] ?? 0) / 4
+            // 有效读取上界：bindBufferRange 限定为区间终点，bindBufferBase 为整个缓冲
+            const limit = (this.uniformBufferRanges.get(binding)?.[1] ?? data.length * 4) / 4
+            let offset = base
+            for (const field of block.fields) {
+                const { align, size } = STD140_LAYOUT[field.type]
+                offset = Math.ceil(offset / align) * align
+                if (offset + size <= data.length && offset + size <= limit) {
+                    switch (field.type) {
+                        case 'float':
+                            out[field.name] = data[offset]
+                            break
+                        case 'vec2':
+                            out[field.name] = new Vec2(data[offset], data[offset + 1])
+                            break
+                        case 'vec3':
+                            out[field.name] = new Vec3(data[offset], data[offset + 1], data[offset + 2])
+                            break
+                        case 'vec4':
+                            out[field.name] = new Vec4(data[offset], data[offset + 1], data[offset + 2], data[offset + 3])
+                            break
+                        case 'mat3': {
+                            // std140：3 个 vec3 列，每列跨步 4 元素；提取为列主序 9 元素（去掉列间填充）
+                            const m = new Float32Array(9)
+                            for (let c = 0; c < 3; c++) {
+                                const base = offset + c * 4
+                                m[c * 3] = data[base]
+                                m[c * 3 + 1] = data[base + 1]
+                                m[c * 3 + 2] = data[base + 2]
+                            }
+                            out[field.name] = m
+                            break
+                        }
+                        case 'mat4':
+                            out[field.name] = new Mat4(data.slice(offset, offset + 16))
+                            break
+                    }
+                }
+                offset += size
+            }
+        })
+        return out
+    }
+
+    /**
+     * 把采样器 uniform 从纹理单元号解析为绑定的纹理（对应 WebGL 的 uniform1i 设置单元 + 采样）。
+     * uniform 值已是 CPUTexture（直接传入纹理）时保持原样，兼容两种用法。
+     */
+    private resolveSamplers(program: CPUProgram, uniforms: Uniforms): Uniforms {
+        if (program.samplers.length === 0) return uniforms
+        const out: Uniforms = { ...uniforms }
+        for (const name of program.samplers) {
+            const value = out[name]
+            if (typeof value === 'number') {
+                const texture = this.textureUnits[value] ?? null
+                if (texture) out[name] = texture
+            }
+        }
+        return out
     }
 
     /**
@@ -1401,6 +1862,7 @@ export class CPURenderer {
         this.fbos.clear()
         this.queries.clear()
         this.transformFeedbacks.clear()
+        this.textures.clear()
         this.activeQueries.clear()
         this.tfWriteOffsets.clear()
         this.currentProgram = null
@@ -1408,6 +1870,12 @@ export class CPURenderer {
         this.currentTransformFeedback = null
         this.transformFeedbackActive = false
         this.arrayBufferBinding = null
+        this.bufferBindings.clear()
+        this.uniformBufferBindings.clear()
+        this.uniformBufferRanges.clear()
+        this.tfRangeOffsets.clear()
+        this.textureUnits.fill(null)
+        this.activeTextureUnit = 0
         this.framebufferBinding = null
     }
 }

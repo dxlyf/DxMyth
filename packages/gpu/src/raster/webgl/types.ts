@@ -45,6 +45,21 @@ export type UniformValue =
 /** uniform 集合 */
 export type Uniforms = Record<string, UniformValue>
 
+/** uniform 缓冲块字段类型（数据按 std140 布局规则排布） */
+export type UniformBlockFieldType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat3' | 'mat4'
+
+/** uniform 缓冲块字段声明 */
+export interface UniformBlockField {
+    name: string
+    type: UniformBlockFieldType
+}
+
+/** uniform 缓冲块声明（模拟 GLSL 的 uniform block，供 getUniformBlockIndex/uniformBlockBinding 使用） */
+export interface UniformBlockDecl {
+    name: string
+    fields: readonly UniformBlockField[]
+}
+
 /** 顶点属性声明（决定顶点缓冲的紧凑布局顺序） */
 export interface AttribDecl {
     name: string
@@ -138,6 +153,10 @@ export interface VertexStageSource {
     attribs: readonly AttribDecl[]
     /** uniform 声明（模拟 GLSL 中声明的 uniform，供 getUniformLocation 校验） */
     uniforms?: readonly string[]
+    /** uniform 缓冲块声明（std140 布局，供 getUniformBlockIndex/uniformBlockBinding 校验） */
+    uniformBlocks?: readonly UniformBlockDecl[]
+    /** 采样器 uniform 名（uniform1i 设置纹理单元号时，draw 时解析为绑定的纹理） */
+    samplers?: readonly string[]
     /** varying 输出声明（顺序与 main 返回的 varyings 数组连续对应；字符串 = 单分量，对象可指定分量数） */
     varyings?: readonly (string | { name: string; size: number })[]
     main(attribs: AttribView, uniforms: Uniforms): VertexOutput
@@ -147,6 +166,10 @@ export interface VertexStageSource {
 export interface FragmentStageSource {
     /** uniform 声明（模拟 GLSL 中声明的 uniform，供 getUniformLocation 校验） */
     uniforms?: readonly string[]
+    /** uniform 缓冲块声明（std140 布局，供 getUniformBlockIndex/uniformBlockBinding 校验） */
+    uniformBlocks?: readonly UniformBlockDecl[]
+    /** 采样器 uniform 名（uniform1i 设置纹理单元号时，draw 时解析为绑定的纹理） */
+    samplers?: readonly string[]
     main(input: FragmentInput, uniforms: Uniforms): Vec4
 }
 

@@ -10,6 +10,8 @@ export declare class LineCurve extends Curve<Vector2> {
     constructor(v1?: Vector2, v2?: Vector2);
     getPoint(t: number, optionalTarget?: Vector2): Vector2;
     getPointAt(u: number, optionalTarget?: Vector2): Vector2;
+    /** 直线只需首尾两个点 */
+    getResolution(): number;
     getTangent(t: number, optionalTarget?: Vector2): Vector2;
     getTangentAt(u: number, optionalTarget?: Vector2): Vector2;
     copy(source: LineCurve): this;

@@ -1,6 +1,7 @@
 import { Matrix2D, Matrix2DLike } from './Matrix2D';
 import { Vector2Like } from './Vector2';
 import { Point } from './Point';
+import { EventEmitter } from '../events/EventEmitter';
 export type TransformProps = {
     position?: Vector2Like;
     rotation?: number;
@@ -9,7 +10,10 @@ export type TransformProps = {
     origin?: Vector2Like;
     pivot?: Vector2Like;
 };
-export declare class Transform {
+export type TransformEvents = {
+    'transform:change': [transform: Transform<TransformEvents>];
+};
+export declare class Transform<Events extends TransformEvents = any> extends EventEmitter<TransformEvents> {
     position: Point;
     scale: Point;
     private _rotation;
@@ -17,7 +21,7 @@ export declare class Transform {
     origin: Point;
     pivot: Point;
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
-    private _parent;
+    parent: Transform<Events> | null;
     private _matrix;
     private _worldMatrix;
     private _worldMatrixInvert;
@@ -27,21 +31,11 @@ export declare class Transform {
     private _worldMatrixDirty;
     private _worldVersion;
     private _parentWorldVersion;
-    /** 变化回调 */
-    private _onChange;
     constructor(options?: TransformProps);
     get rotation(): number;
     set rotation(v: number);
     get angle(): number;
     set angle(v: number);
-    /**
-     * 注册变化回调。当任一变换属性发生变化时触发。
-     * 与 Point.onChange 模式一致，返回 this 便于链式调用。
-     */
-    onChange(cb: () => void): this;
-    /** 父级变换 */
-    get parent(): Transform | null;
-    set parent(v: Transform | null);
     /** 局部变换矩阵（只读，懒计算） */
     get matrix(): Matrix2D;
     /** 获取世界矩阵的全局缩放系数 */
@@ -65,8 +59,9 @@ export declare class Transform {
      * 适用于批量设置多个属性后仅触发一次重算的场景。
      */
     updateTransform(): void;
+    onTransformChange(): void;
     /** 重置所有变换为默认值 */
-    reset(): void;
+    resetTransform(): void;
     /**
      * 将世界坐标转换为本地坐标。
      * result = M_world⁻¹ · point

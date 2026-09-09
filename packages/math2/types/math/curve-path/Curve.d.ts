@@ -1,4 +1,4 @@
-import { Vector2 } from '../Vector2';
+import { Vector2, Vector2Like } from '../Vector2';
 import { Vector3 } from '../Vector3';
 /** 曲线序列化 JSON 结构（宽松类型） */
 export interface CurveJSON {
@@ -54,6 +54,19 @@ export declare abstract class Curve<T extends CurvePoint = CurvePoint> {
      * @param divisions 细分数量，返回点数 = divisions + 1
      */
     getPoints(divisions?: number): T[];
+    getStrokePoints(options: {
+        divisions?: number;
+        width: number;
+        align?: 'inside' | 'outside' | 'center';
+        join: 'round' | 'bevel' | 'miter';
+        cap: 'round' | 'butt' | 'square';
+        miterLimit?: number;
+    }): Vector2Like[];
+    /**
+     * 返回 getPoints 采样时的细分数量。
+     * 默认直接返回 divisions，子类按自身类型覆盖（如直线返回 1、椭圆加倍）。
+     */
+    getResolution(divisions: number): number;
     /**
      * 通过 getPointAt 采样曲线，返回等弧长间隔的点数组。
      * @param divisions 细分数量，返回点数 = divisions + 1

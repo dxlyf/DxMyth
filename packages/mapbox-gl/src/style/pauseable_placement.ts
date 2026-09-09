@@ -1,0 +1,185 @@
+import browser from '../util/browser';
+import {Placement} from '../symbol/placement';
+import {algorithms} from '../symbol/placement_algorithms';
+import {makeFQID} from '../util/fqid';
+
+import type Transform from '../geo/transform';
+import type {TypedStyleLayer} from './style_layer/typed_style_layer';
+import type SymbolStyleLayer from './style_layer/symbol_style_layer';
+import type Tile from '../source/tile';
+import type {BucketPart} from '../symbol/placement';
+import type {PlacementAlgorithmName} from '../symbol/placement_algorithms';
+import type {FogState} from './fog_helpers';
+import type BuildingIndex from '../source/building_index';
+import type {CollisionDetector} from '../symbol/placement_algorithm';
+
+class LayerPlacement {
+    _sortAcrossTiles: boolean;
+    _currentTileIndex: number;
+    _currentPartIndex: number;
+    _seenCrossTileIDs: Set<number>;
+    _bucketParts: Array<BucketPart>;
+
+    constructor(styleLayer: SymbolStyleLayer) {
+        this._sortAcrossTiles = styleLayer.layout.get('symbol-z-order') !== 'viewport-y' &&
+            styleLayer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
+
+        this._currentTileIndex = 0;
+        this._currentPartIndex = 0;
+        this._seenCrossTileIDs = new Set();
+        this._bucketParts = [];
+    }
+
+    continuePlacement(
+        tiles: Array<Tile>,
+        placement: Placement,
+        showCollisionBoxes: boolean,
+        styleLayer: TypedStyleLayer,
+        shouldPausePlacement: () => boolean,
+        scaleFactor: number
+    ): boolean {
+        const bucketParts = this._bucketParts;
+
+        while (this._currentTileIndex < tiles.length) {
+            const tile = tiles[this._currentTileIndex];
+            placement.getBucketParts(bucketParts, styleLayer, tile, this._sortAcrossTiles, scaleFactor);
+
+            this._currentTileIndex++;
+            if (shouldPausePlacement()) {
+                return true;
+            }
+        }
+
+        if (this._sortAcrossTiles) {
+            this._sortAcrossTiles = false;
+            bucketParts.sort((a, b) => (a.sortKey) - (b.sortKey));
+        }
+
+        while (this._currentPartIndex < bucketParts.length) {
+            const bucketPart = bucketParts[this._currentPartIndex];
+            placement.placeLayerBucketPart(bucketPart, this._seenCrossTileIDs, showCollisionBoxes, scaleFactor);
+            this._currentPartIndex++;
+            if (shouldPausePlacement()) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+class PauseablePlacement {
+    placement!: Placement;
+    _done!: boolean;
+    _currentPlacementIndex!: number;
+    _forceFullPlacement!: boolean;
+    _showCollisionBoxes!: boolean;
+    _inProgressLayer: LayerPlacement | null | undefined;
+    _fadeDuration!: number;
+    _retiredCI: CollisionDetector | null = null;
+
+    startNewPlacement(
+        transform: Transform,
+        order: Array<string>,
+        showCollisionBoxes: boolean,
+        fadeDuration: number,
+        crossSourceCollisions: boolean,
+        prevPlacement?: Placement,
+        fogState?: FogState | null,
+        buildingIndex?: BuildingIndex | null,
+        placementAlgorithmName?: PlacementAlgorithmName,
+    ): PauseablePlacement {
+        const algorithm = algorithms[placementAlgorithmName || 'default'];
+        this.placement = new Placement(transform, fadeDuration, crossSourceCollisions, algorithm, prevPlacement, fogState, buildingIndex, this._retiredCI);
+        this._retiredCI = null;
+        this._currentPlacementIndex = order.length - 1;
+        this._forceFullPlacement = false;
+        this._showCollisionBoxes = showCollisionBoxes;
+        this._fadeDuration = fadeDuration;
+        this._done = false;
+        this._inProgressLayer = null;
+        return this;
+    }
+
+    requestFullPlacement(): void {
+        this._forceFullPlacement = true;
+    }
+
+    isFullPlacementRequested(): boolean {
+        return this._forceFullPlacement;
+    }
+
+    setStale(): void {
+        if (this.placement) {
+            this.placement.stale = true;
+        }
+    }
+
+    isStale(): boolean {
+        if (!this.placement) return false;
+        return this.placement.stale;
+    }
+
+    isDone(): boolean {
+        return this._done;
+    }
+
+    continuePlacement(order: Array<string>, layers: Record<string, TypedStyleLayer>, layerTiles: Record<string, Array<Tile>>, layerTilesInYOrder: Record<string, Array<Tile>>, scaleFactor: number) {
+        const startTime = browser.now();
+
+        const shouldPausePlacement = () => {
+            if (this.isFullPlacementRequested() || this._fadeDuration === 0) return false;
+            return this.placement.algorithm.shouldPause(browser.now() - startTime);
+        };
+
+        while (this._currentPlacementIndex >= 0) {
+            const layerId = order[this._currentPlacementIndex];
+            const layer = layers[layerId];
+            const placementZoom = this.placement.collisionIndex.transform.zoom;
+            if (layer.type === 'symbol' && layer.visibility !== 'none' &&
+                (!layer.minzoom || layer.minzoom <= placementZoom) &&
+                (!layer.maxzoom || layer.maxzoom > placementZoom)) {
+
+                const symbolLayer = layer;
+                const zOffset = symbolLayer.layout.get('symbol-z-elevate');
+
+                const hasSymbolSortKey = symbolLayer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
+                const symbolZOrder = symbolLayer.layout.get('symbol-z-order');
+                const sortSymbolByKey = symbolZOrder !== 'viewport-y' && hasSymbolSortKey;
+                const zOrderByViewportY = symbolZOrder === 'viewport-y' || (symbolZOrder === 'auto' && !sortSymbolByKey);
+                const canOverlap =
+                    symbolLayer.layout.get('text-allow-overlap') ||
+                    symbolLayer.layout.get('icon-allow-overlap') ||
+                    symbolLayer.layout.get('text-ignore-placement') ||
+                    symbolLayer.layout.get('icon-ignore-placement');
+                const sortSymbolByViewportY = zOrderByViewportY && canOverlap;
+
+                const inProgressLayer = this._inProgressLayer = this._inProgressLayer || new LayerPlacement(symbolLayer);
+
+                const sourceId = makeFQID(layer.source, layer.scope);
+                const sortTileByY = zOffset || sortSymbolByViewportY;
+                const pausePlacement = inProgressLayer.continuePlacement(sortTileByY ? layerTilesInYOrder[sourceId] : layerTiles[sourceId], this.placement, this._showCollisionBoxes, layer, shouldPausePlacement, scaleFactor);
+
+                if (pausePlacement) {
+                    // We didn't finish placing all layers within 2ms,
+                    // but we can keep rendering with a partial placement
+                    // We'll resume here on the next frame
+                    return;
+                }
+
+                delete this._inProgressLayer;
+            }
+
+            this._currentPlacementIndex--;
+        }
+        this._forceFullPlacement = false;
+        this._done = true;
+    }
+
+    commit(now: number): Placement {
+        this._retiredCI = this.placement.prevPlacement ? this.placement.prevPlacement.collisionIndex : null;
+        this.placement.commit(now);
+        return this.placement;
+    }
+}
+
+export default PauseablePlacement;
