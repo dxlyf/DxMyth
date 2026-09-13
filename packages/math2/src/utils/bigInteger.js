@@ -1,15 +1,15 @@
 /// <reference path="./bigInteger.d.ts" />
 // @ts-nocheck
-var bigInt = (function (undefined) {
+let bigInt = (function (undefined) {
     "use strict";
 
-    var BASE = 1e7,
+    let BASE = 1e7,
         LOG_BASE = 7,
         MAX_INT = 9007199254740992,
         MAX_INT_ARR = smallToArray(MAX_INT),
         DEFAULT_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-    var supportsNativeBigInt = typeof BigInt === "function";
+    let supportsNativeBigInt = typeof BigInt === "function";
 
     function Integer(v, radix, alphabet, caseSensitive) {
         if (typeof v === "undefined") return Integer[0];

@@ -19,7 +19,7 @@
    * The maximum number of decimal places (DP) of the results of operations involving division:
    * div and sqrt, and pow with negative exponents.
    */
-  var DP = 20,          // 0 to MAX_DP
+  let DP = 20,          // 0 to MAX_DP
 
   /*
    * The rounding mode (RM) used when rounding to the above decimal places.

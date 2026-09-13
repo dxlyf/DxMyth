@@ -1,5 +1,5 @@
 import { PointLike } from "./Point"
-import { nCr } from "./MathUtils"
+import { bernstein } from "./MathUtils"
 
 /** 判断浮点数是否接近零 */
 const isNearZero = (v: number, eps = 1e-10): boolean => Math.abs(v) <= eps
@@ -40,11 +40,7 @@ export const derivativeControlPoints = (points: PointLike[]): PointLike[] => {
     return dp
 }
 
-/** 贝塞尔曲线伯恩斯坦基函数: B(i, n, t) = C(n, i) * t^i * (1-t)^(n-i) */
-export const bernstein = (i: number, n: number, t: number): number => {
 
-    return nCr(n, i) * Math.pow(t, i) * Math.pow(1 - t, n - i)
-}
 
 /** 基于伯恩斯坦基函数计算 N 阶贝塞尔曲线上参数 t 处的点: sum(P[i] * B(i, n, t), i=0..n) */
 export const evaluate = (points: PointLike[], t: number): PointLike => {

@@ -290,6 +290,7 @@ export class PointerEventSystem extends EventEmitter<PointerEventsMaps> {
                 }
                 break
             }
+            case 'pointercancel':
             case 'pointerup': {
                 event.type = 'pointerup'
                 this.emit('pointerup', event)
@@ -348,7 +349,7 @@ export class PointerEventSystem extends EventEmitter<PointerEventsMaps> {
                 //try { this.options.target.releasePointerCapture(e.pointerId) } catch {}
                 break
             }
-            case 'pointercancel': {
+            case 'pointercancel_disable': {
                 // 系统/浏览器取消指针事件流（如触摸滚动接管、指针被 OS 捕获），
                 // 该指针不会再产生后续事件，因此不触发 click / dblclick / drop
                 const cancelTarget = hitTarget || this._downTarget

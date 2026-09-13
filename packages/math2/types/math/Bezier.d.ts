@@ -5,8 +5,6 @@ export declare const deCasteljau: (points: PointLike[], t: number) => PointLike;
 export declare const derivative: (points: PointLike[], t: number) => PointLike;
 /** 计算 N 阶贝塞尔曲线一阶导数的控制点（共 n-1 个点） */
 export declare const derivativeControlPoints: (points: PointLike[]) => PointLike[];
-/** 贝塞尔曲线伯恩斯坦基函数: B(i, n, t) = C(n, i) * t^i * (1-t)^(n-i) */
-export declare const bernstein: (i: number, n: number, t: number) => number;
 /** 基于伯恩斯坦基函数计算 N 阶贝塞尔曲线上参数 t 处的点: sum(P[i] * B(i, n, t), i=0..n) */
 export declare const evaluate: (points: PointLike[], t: number) => PointLike;
 /** 基于伯恩斯坦基函数对数值序列求值: Σ values[i] * B(i, n, t) */

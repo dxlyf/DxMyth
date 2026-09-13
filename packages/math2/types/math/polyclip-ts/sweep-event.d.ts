@@ -10,7 +10,7 @@ export default class SweepEvent {
     otherSE: SweepEvent;
     consumedBy: SweepEvent | undefined;
     static compare(a: SweepEvent, b: SweepEvent): number;
-    static comparePoints(aPt: Point, bPt: Point): 1 | 0 | -1;
+    static comparePoints(aPt: Point, bPt: Point): 0 | 1 | -1;
     constructor(point: Point, isLeft: boolean);
     link(other: SweepEvent): void;
     checkForConsuming(): void;
@@ -25,5 +25,5 @@ export default class SweepEvent {
      * The comparator function has a compute cache such that it avoids
      * re-computing already-computed values.
      */
-    getLeftmostComparator(baseEvent: SweepEvent): (a: SweepEvent, b: SweepEvent) => 1 | 0 | -1;
+    getLeftmostComparator(baseEvent: SweepEvent): (a: SweepEvent, b: SweepEvent) => 0 | 1 | -1;
 }

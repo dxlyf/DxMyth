@@ -48,7 +48,7 @@
  */
 
 
-var
+let
   isNumeric = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i,
   mathceil = Math.ceil,
   mathfloor = Math.floor,

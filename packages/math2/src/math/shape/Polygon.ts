@@ -274,18 +274,18 @@ export function buildStrokePoints(points: Vector2Like[], options: { align?: 'out
     let innerPoints: Vector2Like[] = []
     let outerPoints: Vector2Like[] = []
 
-    let first = Vector2.create()
-    let prev = Vector2.create()
-    let cur = Vector2.create()
-    let firstOffsetPoint = Vector2.create()
+    let first = Vector2.pool.get()
+    let prev = Vector2.pool.get()
+    let cur = Vector2.pool.get()
+    let firstOffsetPoint = Vector2.pool.get()
 
-    let firstNormal = Vector2.create()
-    let firstUnitNormal = Vector2.create()
-    let prevNormal = Vector2.create()
-    let prevUnitNormal = Vector2.create()
+    let firstNormal = Vector2.pool.get()
+    let firstUnitNormal = Vector2.pool.get()
+    let prevNormal = Vector2.pool.get()
+    let prevUnitNormal = Vector2.pool.get()
 
-    let normal = Vector2.create()
-    let unitNormal = Vector2.create()
+    let normal = Vector2.pool.get()
+    let unitNormal = Vector2.pool.get()
 
     // join
     const joinProc = joinFactor[join]
@@ -360,6 +360,7 @@ export function buildStrokePoints(points: Vector2Like[], options: { align?: 'out
         }
         prev.copy(cur)
     }
+    Vector2.pool.releaseAll()
     return outerPoints
 
 }

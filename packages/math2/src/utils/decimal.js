@@ -13,7 +13,7 @@
 
   // The maximum exponent magnitude.
   // The limit on the value of `toExpNeg`, `toExpPos`, `minE` and `maxE`.
-  var EXP_LIMIT = 9e15,                      // 0 to 9e15
+  let EXP_LIMIT = 9e15,                      // 0 to 9e15
 
   // The limit on the value of `precision`, and on the value of the first argument to
   // `toDecimalPlaces`, `toExponential`, `toFixed`, `toPrecision` and `toSignificantDigits`.

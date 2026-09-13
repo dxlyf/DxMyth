@@ -1289,25 +1289,6 @@ export class GLProgram {
 
         }
     }
-    createAttributesRWAccessor(attributes: Map<string, AttributeMate>) {
-        const gl = this.gl
-        const program = this.program
-        const accessor: Record<string, any> = {}
-        attributes.forEach((attributeMate, attributeName) => {
-            const attr = {
-                location: attributeMate.location,
-                type: attributeMate.type,
-                size: attributeMate.size,
-                offset: 0,
-                stride: 0,
-                itemSize: this.getTypeItemSize(attributeMate.type),
-                arrayStride: 0,
-                matrixStride: 0,
-            }
-            accessor[attributeName] = attr
-        })
-        return accessor
-    }
 
     drawArrayObject() {
         const gl = this.gl, program = this.program

@@ -1,8 +1,12 @@
-interface IDispose {
-    isDisposed: boolean;
-    dispose: () => void;
+export interface IDestroyable {
+    isDestroyed: boolean;
+    destroy(): void;
 }
-export interface IDisposable extends IDispose {
+export interface IDisposable {
+    isDisposed: boolean;
+    dispose(): void;
+}
+export interface IDisposableLater extends IDisposable {
     disposeLater(): void;
 }
 type DPRegisterOptions<T> = {
@@ -10,16 +14,16 @@ type DPRegisterOptions<T> = {
 };
 export declare const pushDisposableManager: (manager: DisposableManager) => DisposableManager;
 export declare const popDisposableManager: () => void;
-export declare const addDisposable: (target: IDispose) => void;
+export declare const addDisposable: (target: IDisposable) => void;
 export declare class DisposableManager {
-    static add: (target: IDispose) => void;
+    static add: (target: IDisposable) => void;
     static mixin<T>(target: {
         new (...args: any[]): T;
     }, options?: DPRegisterOptions<T>): void;
     private disposables;
     private persistentDisposables;
-    add(disposable: IDispose): void;
-    addPersistent(disposable: IDispose): void;
+    add(disposable: IDisposable): void;
+    addPersistent(disposable: IDisposable): void;
     destroy(): void;
     dispose(): void;
     run(fn: () => void): void;

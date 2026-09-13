@@ -97,9 +97,9 @@ export class Vector2 implements Vector2Like {
     }
 
     /** out = v / s */
-    static divide<T extends Vector2Like>(out: T, v: Vector2Like, s: number) {
-        out.x = v.x / s
-        out.y = v.y / s
+    static divide<T extends Vector2Like>(out: T, v: Vector2Like, s: Vector2Like) {
+        out.x = v.x / s.x
+        out.y = v.y / s.y
         return out
     }
 
@@ -428,8 +428,8 @@ export class Vector2 implements Vector2Like {
         return this
     }
 
-    divide(s: number) {
-        Vector2.divide(this, this, s)
+    divide(v: Vector2Like) {
+        Vector2.divide(this, this, v)
         return this
     }
     divideScalar(scalar: number) {
@@ -546,6 +546,9 @@ export class Vector2 implements Vector2Like {
     angleToSigned(v: Vector2Like): number {
         return Vector2.angleToSigned(this, v)
     }
+    distance(v: Vector2Like): number {
+        return Vector2.distance(this, v)
+    }
     distanceTo(v: Vector2Like): number {
         return Vector2.distance(this, v)
     }
@@ -561,6 +564,27 @@ export class Vector2 implements Vector2Like {
     rotate(angle: number, origin?: Vector2Like) {
         Vector2.rotate(this, this, angle, origin)
         return this
+    }
+    floor() {
+        return this.set(Math.floor(this.x), Math.floor(this.y))
+    }
+    ceil() {
+        return this.set(Math.ceil(this.x), Math.ceil(this.y))
+    }
+    round() {
+        return this.set(Math.round(this.x), Math.round(this.y))
+    }
+    truncate() {
+        return this.set(Math.trunc(this.x), Math.trunc(this.y))
+    }
+    abs() {
+        return this.set(Math.abs(this.x), Math.abs(this.y))
+    }
+    sign() {
+        return this.set(Math.sign(this.x), Math.sign(this.y))
+    }
+    fract() {
+        return this.set(this.x - Math.floor(this.x), this.y - Math.floor(this.y))
     }
     isFinite() {
         return Number.isFinite(this.x) && Number.isFinite(this.y)

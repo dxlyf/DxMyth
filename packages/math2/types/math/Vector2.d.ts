@@ -29,7 +29,7 @@ export declare class Vector2 implements Vector2Like {
     /** out = v * s */
     static multiplyScalar<T extends Vector2Like>(out: T, v: Vector2Like, s: number): T;
     /** out = v / s */
-    static divide<T extends Vector2Like>(out: T, v: Vector2Like, s: number): T;
+    static divide<T extends Vector2Like>(out: T, v: Vector2Like, s: Vector2Like): T;
     /** out = -v */
     static negate<T extends Vector2Like>(out: T, v: Vector2Like): T;
     /** out = normalized(v)；零向量时返回零向量 */
@@ -111,7 +111,7 @@ export declare class Vector2 implements Vector2Like {
     subtract(v: Vector2Like): this;
     multiply(v: Vector2Like): this;
     multiplyScalar(s: number): this;
-    divide(s: number): this;
+    divide(v: Vector2Like): this;
     divideScalar(scalar: number): this;
     negate(): this;
     normalize(): this;
@@ -143,11 +143,19 @@ export declare class Vector2 implements Vector2Like {
     angle(): number;
     angleTo(v: Vector2Like): number;
     angleToSigned(v: Vector2Like): number;
+    distance(v: Vector2Like): number;
     distanceTo(v: Vector2Like): number;
     distanceSquaredTo(v: Vector2Like): number;
     translate(tx: number, ty: number): this;
     scale(sx: number, sy: number): this;
     rotate(angle: number, origin?: Vector2Like): this;
+    floor(): this;
+    ceil(): this;
+    round(): this;
+    truncate(): this;
+    abs(): this;
+    sign(): this;
+    fract(): this;
     isFinite(): boolean;
     isZero(): boolean;
     isOne(): boolean;

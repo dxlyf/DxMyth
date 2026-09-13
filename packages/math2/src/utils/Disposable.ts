@@ -1,10 +1,15 @@
 
-interface IDispose {
-    isDisposed: boolean // 是否已释放
-    dispose: () => void // 立即释放资源
+export interface IDestroyable{
+    isDestroyed:boolean
+    destroy():void
 }
 
-export interface IDisposable extends IDispose {
+export interface IDisposable {
+    isDisposed: boolean // 是否已释放
+    dispose():void // 立即释放资源
+}
+
+export interface IDisposableLater extends IDisposable {
     // dispose():void // 立即释放资源
     disposeLater(): void // 添加到可释放管理器，延迟释放资源
 }
@@ -19,7 +24,7 @@ export const pushDisposableManager = (manager: DisposableManager) => {
 export const popDisposableManager = () => {
     activeDisposableManager = prevActiveDisposableManager
 }
-export const addDisposable = (target: IDispose) => {
+export const addDisposable = (target: IDisposable) => {
     if (activeDisposableManager) {
         activeDisposableManager.add(target)
     }
@@ -45,12 +50,12 @@ export class DisposableManager {
             }
         }
     }
-    private disposables: IDispose[] = []
-    private persistentDisposables: IDispose[] = []
-    add(disposable: IDispose) {
+    private disposables: IDisposable[] = []
+    private persistentDisposables: IDisposable[] = []
+    add(disposable: IDisposable) {
         this.disposables.push(disposable)
     }
-    addPersistent(disposable: IDispose) {
+    addPersistent(disposable: IDisposable) {
         this.persistentDisposables.push(disposable)
     }
     destroy() {

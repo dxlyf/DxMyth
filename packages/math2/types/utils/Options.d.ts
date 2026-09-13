@@ -7,11 +7,13 @@ export type OptionProps<Context, Value, Parameters = Value> = {
 export declare class Option<Context, Value, Parameters = Value> {
     ctx: Context;
     private current;
+    private default;
     options: OptionProps<Context, Value, Parameters>;
     dirty: boolean;
     version: number;
     constructor(context: Context, options: OptionProps<Context, Value, Parameters>);
-    default(): void;
+    setDefault(): void;
+    getDefault(): Value;
     markDrity(): void;
     refresh(): void;
     get(): Value;

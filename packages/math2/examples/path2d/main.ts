@@ -105,7 +105,7 @@ class MatrixExample extends BaseExample {
         this.testCanvas.draw((ctx) => {
             let m2 = Matrix2D.identity()
             const state = this.state
-            m2.fromTranslationRotationSkewScaleOriginPivot(
+            m2.fromTranslateRotationSkewScaleOriginPivot(
                 {
                     x: state.x,
                     y: state.y
@@ -358,7 +358,7 @@ class PathStrokeExample extends BaseExample {
                 out.set(x - rect.left, y - rect.top)
                 return out
             },
-            hitTest: (x: number, y: number) => {
+            hitTest: () => {
                 return false
             }
         })
@@ -458,7 +458,7 @@ class Path2DExample extends BaseExample {
                 out.set(x - rect.left, y - rect.top)
                 return out
             },
-            hitTest: (x: number, y: number) => {
+            hitTest: (e) => {
                 return false
             }
         })

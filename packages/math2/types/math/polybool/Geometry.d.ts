@@ -20,5 +20,5 @@ export declare class GeometryEpsilon extends Geometry {
     private solveCubicNormalized;
     solveCubic(a: number, b: number, c: number, d: number): number[];
     isEqualVec2(a: Vec2, b: Vec2): boolean;
-    compareVec2(a: Vec2, b: Vec2): 1 | 0 | -1;
+    compareVec2(a: Vec2, b: Vec2): 0 | 1 | -1;
 }
