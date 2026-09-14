@@ -1,0 +1,42 @@
+{
+  "extends": "assemblyscript/std/portable.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "preserveConstEnums": true,
+    "strict": true,
+    "module": "esnext",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true, 
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "node_modules/assemblyscript/std/types",
+      "assembly",
+      "node_modules/@webgpu/types"
+    ],
+    "types": [
+      "portable",
+      "jest",
+      "node",
+      "webgl-ext",
+      "@webgpu/types"
+    ],
+    "lib": [
+      "es2022",
+      "dom",
+      "webworker"
+    ],
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": [
+    "./src/**/*.ts"
+  ]
+}
