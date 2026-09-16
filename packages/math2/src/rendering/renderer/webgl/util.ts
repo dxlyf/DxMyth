@@ -118,10 +118,11 @@ export function getWebGLActiveUniforms(gl: GLContext, program: WebGLProgram) {
         if (location) {
             const unifromName = uniformInfo.name
             const isArray = unifromName.endsWith(']')
-            if(isArray){
-                const newUnifromName=unifromName.substring(0,unifromName.lastIndexOf('['))
+            if(isArray&&uniformInfo.size>1){
+                const prefix=unifromName.substring(0,unifromName.lastIndexOf('['))
+                const subfix=unifromName.substring(unifromName.lastIndexOf(']')+1)
                 for(let i=0;i<uniformInfo.size;i++){
-                    const key=`${newUnifromName}[${i}]`
+                    const key=`${prefix}[${i}]${subfix}`
                     const newLocation=gl.getUniformLocation(program, key)
                     uniforms.set(key,{
                         name:key,

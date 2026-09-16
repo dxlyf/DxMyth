@@ -1,7 +1,7 @@
 import { Vector2Like } from '../Vector2';
 import { Shape } from './Shape';
 export declare class ShapeUtils {
-    addShapes(shapes: Shape[], curveSegments?: number): {
+    static addShapes(shapes: Shape[], curveSegments?: number): {
         vertices: number[];
         normals: number[];
         uvs: number[];

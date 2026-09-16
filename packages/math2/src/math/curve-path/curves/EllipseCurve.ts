@@ -47,7 +47,7 @@ export class EllipseCurve extends Curve<Vector2> {
     getPoint(t: number, optionalTarget: Vector2 = new Vector2()): Vector2 {
         const point = optionalTarget
 
-        const {startAngle, endAngle}=normalizeAngles(this.aStartAngle, this.aEndAngle, !this.aClockwise)
+        const {startAngle, endAngle}=normalizeAngles(this.aStartAngle, this.aEndAngle, this.aClockwise)
         let deltaAngle = endAngle- startAngle
         
         const angle = this.aStartAngle + t * deltaAngle

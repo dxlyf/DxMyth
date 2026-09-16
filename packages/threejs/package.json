@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./build/three.cjs",
   "module": "./build/three.module.js",
+  "types": "./types/index.d.ts",
   "exports": {
     ".": {
       "import": "./build/three.module.js",

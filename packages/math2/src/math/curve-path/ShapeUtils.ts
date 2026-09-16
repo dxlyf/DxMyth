@@ -10,7 +10,7 @@ import { Shape } from './Shape'
 
 
 export class ShapeUtils {
-    addShapes(shapes:Shape[],curveSegments:number=12){
+    static addShapes(shapes:Shape[],curveSegments:number=12){
         const vertices:number[] = []
         const normals:number[] = []
         const uvs:number[] = []
