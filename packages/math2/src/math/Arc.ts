@@ -641,7 +641,8 @@ export const buildArc = (points: Vector2Like[], cx: number, cy: number, r: numbe
   if (Math.abs(delta) <= 1e-6) {
     return
   }
-  let segmentCount = Math.max(1, Math.ceil(Math.min(Math.PI, Math.abs(delta)) / (Math.acos(clamp(1 - tolerance / r,0,1)))))
+ // let segmentCount = Math.max(1, Math.ceil(Math.min(Math.PI, Math.abs(delta)) / (Math.acos(clamp(1 - tolerance / r,0,1)))))
+  let segmentCount= Math.max(6, Math.floor(6 * Math.pow(r, 1 / 3) * (Math.abs(delta) / (Math.PI))));
   let segmentAngle = delta / segmentCount
   let angle = startAngle
   for (let i = 0; i <= segmentCount; i++) {

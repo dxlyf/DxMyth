@@ -5,7 +5,7 @@ export type Vector2Like = {
     y: number;
 };
 export declare class Vector2 implements Vector2Like {
-    static pool: CachePool<Vector2, []>;
+    static pool: CachePool<Vector2, any[]>;
     static default(): Vector2;
     static create(x?: number, y?: number): Vector2;
     static zero(): Vector2;
@@ -75,6 +75,7 @@ export declare class Vector2 implements Vector2Like {
      */
     static applyMatrix2D<T extends Vector2Like>(out: T, v: Vector2Like, m: Matrix2DLike): T;
     static translate<T extends Vector2Like>(out: T, v: Vector2Like, tx: number, ty: number): T;
+    static rotateAround<T extends Vector2Like>(out: T, v: Vector2Like, angle: number, origin: Vector2Like): T;
     static rotate<T extends Vector2Like>(out: T, v: Vector2Like, angle: number, origin?: Vector2Like): T;
     static scale<T extends Vector2Like>(out: T, v: Vector2Like, sx: number, sy: number): T;
     /**
@@ -142,6 +143,14 @@ export declare class Vector2 implements Vector2Like {
     cross(v: Vector2Like): number;
     angle(): number;
     angleTo(v: Vector2Like): number;
+    /**
+    * 求两个向量的夹角，通过解交叉积公式 a x b = |a||b|sin(θ) 来求出 θ
+    * the cross product a x b = |a||b|sin(θ) for θ.
+    * @param {number} x the x-coordinate
+    * @param {number} y the y-coordinate
+    * @return {number} the angle in radians
+    */
+    angleWithSep(x: number, y: number): number;
     angleToSigned(v: Vector2Like): number;
     distance(v: Vector2Like): number;
     distanceTo(v: Vector2Like): number;
@@ -149,6 +158,7 @@ export declare class Vector2 implements Vector2Like {
     translate(tx: number, ty: number): this;
     scale(sx: number, sy: number): this;
     rotate(angle: number, origin?: Vector2Like): this;
+    rotateAround(angle: number, origin: Vector2Like): this;
     floor(): this;
     ceil(): this;
     round(): this;

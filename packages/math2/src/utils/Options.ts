@@ -3,7 +3,7 @@
 
 export type OptionProps<Context, Value, Parameters = Value> = {
     default?(ctx: Context): Value // 默认状态值
-    update?(ctx: Context, current: Value, prev: Value): boolean // 更新状态
+    update?(ctx: Context, current: Value, prev: Value): void // 更新状态
     map?(ctx: Context, value: Parameters): Value // 映射参数到状态值
     equals?(ctx: Context, current: Value, prev: Value): boolean // 状态值是否相等
 }

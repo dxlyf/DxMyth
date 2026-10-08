@@ -2,7 +2,7 @@ import { NodeEvent } from './EventTarget';
 import { EventEmitter } from './EventEmitter';
 import { CachePool } from '../math/CachePool';
 export declare class KeyboardEvent<T = string, D = any> extends NodeEvent<T, D> {
-    static pool: CachePool<KeyboardEvent<string, {}>, []>;
+    static pool: CachePool<KeyboardEvent<string, {}>, any[]>;
     key: string;
     code: string;
     ctrlKey: boolean;

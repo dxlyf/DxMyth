@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    "strict": true,
+    "removeComments": false,
+    "noEmit": false,
+    "sourceMap": true,
+
+    "moduleResolution": "node",
+
+    "declaration": true,
+    "declarationMap": false,
+
+    "importHelpers": true,
+
+    "pretty": true,
+
+    "outDir": "lib"
+  },
+  "include": ["src/**/*.ts"]
+}

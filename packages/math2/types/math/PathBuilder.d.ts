@@ -49,7 +49,7 @@ export declare enum PathDirection {
 export declare class PathBuilder {
     static fromSvgPath(svgPath: string): PathBuilder;
     static default(): PathBuilder;
-    static pool: CachePool<PathBuilder, []>;
+    static pool: CachePool<PathBuilder, any[]>;
     verbs: PathVerb[];
     points: PointLike[];
     lastMoveIndex: number;

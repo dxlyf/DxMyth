@@ -10,7 +10,7 @@ export type QuaternionLike = {
     w: number;
 };
 export declare class Quaternion implements QuaternionLike {
-    static pool: CachePool<Quaternion, []>;
+    static pool: CachePool<Quaternion, any[]>;
     static identity(): Quaternion;
     static zero(): Quaternion;
     static fromValues(x: number, y: number, z: number, w: number): Quaternion;

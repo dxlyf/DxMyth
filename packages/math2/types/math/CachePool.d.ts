@@ -1,9 +1,8 @@
 type CachePoolPoolOptions<T, P extends any[]> = {
     maxSize?: number;
     initSize?: number;
-    add?: () => T;
-    create?: (...args: P) => T;
-    init?: (item: T, ...args: P) => void;
+    create?: () => T;
+    init?: (item: T) => void;
     release?: (item: T) => void;
 };
 export declare class CachePool<T, P extends any[] = any[]> {
@@ -14,7 +13,7 @@ export declare class CachePool<T, P extends any[] = any[]> {
     options: Partial<CachePoolPoolOptions<T, P>>;
     constructor(options: CachePoolPoolOptions<T, P>);
     private initPoolSize;
-    get(...args: P): T;
+    get(): T;
     release(item: T): void;
     /** 一次性释放待释放区中的所有对象 */
     releaseAll(): void;

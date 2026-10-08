@@ -1,0 +1,64 @@
+import {
+  FragmentShader,
+  createUniform as uniform,
+  createSemanticUniform as semanticUniform,
+  glsl,
+  createArrayUniform as arrayUniform
+} from '../../../Shader';
+import { shadowMapMixin } from '../shadowmap.glsl';
+import { gBufferReadMixin, lightEquationFunction } from './chunk.glsl';
+
+export const deferredDirectionalLightFragment = new FragmentShader({
+  name: 'deferredDirectionalFrag',
+  uniforms: {
+    lightDirection: uniform('vec3'),
+    lightColor: uniform('vec3'),
+    eyePosition: uniform('vec3'),
+    lightShadowMap: uniform('sampler2D'),
+    lightShadowMapSize: uniform('float'),
+    lightMatrices: arrayUniform('mat4', 'SHADOW_CASCADE'),
+    shadowCascadeClipsNear: arrayUniform('float', 'SHADOW_CASCADE'),
+    shadowCascadeClipsFar: arrayUniform('float', 'SHADOW_CASCADE')
+  },
+  includes: [shadowMapMixin, gBufferReadMixin],
+  main: glsl`
+
+${lightEquationFunction()}
+
+void main()
+{
+  ${gBufferReadMixin.main}
+
+  vec3 L = -normalize(lightDirection);
+  vec3 V = normalize(eyePosition - position);
+
+  vec3 H = normalize(L + V);
+  float ndl = clamp(dot(N, L), 0.0, 1.0);
+  float ndh = clamp(dot(N, H), 0.0, 1.0);
+  float ndv = clamp(dot(N, V), 0.0, 1.0);
+
+  out_color.rgb = lightEquation(
+    lightColor, diffuseColor, specularColor, ndl, ndh, ndv, glossiness
+  );
+
+#ifdef SHADOWMAP_ENABLED
+  float shadowContrib = 1.0;
+  for (int _idx_ = 0; _idx_ < SHADOW_CASCADE; _idx_++) {{
+    if (
+      z >= shadowCascadeClipsNear[_idx_] &&
+      z <= shadowCascadeClipsFar[_idx_]
+    ) {
+      shadowContrib = computeShadowContrib(
+        lightShadowMap, lightMatrices[_idx_], position, lightShadowMapSize,
+        vec2(1.0 / float(SHADOW_CASCADE), 1.0),
+        vec2(float(_idx_) / float(SHADOW_CASCADE), 0.0)
+      );
+    }
+  }}
+
+  out_color.rgb *= shadowContrib;
+#endif
+
+  out_color.a = 1.0;
+}`
+});

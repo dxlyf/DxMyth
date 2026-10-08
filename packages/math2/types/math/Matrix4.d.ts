@@ -25,7 +25,7 @@ export declare const enum Matrix4Index {
     M33 = 15
 }
 export declare class Matrix4 extends Float32Array {
-    static pool: CachePool<Matrix4, []>;
+    static pool: CachePool<Matrix4, any[]>;
     static identity(): Matrix4;
     static zero(): Matrix4;
     /** 按列主序 16 个元素构造 */

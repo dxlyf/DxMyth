@@ -43,6 +43,7 @@ export * from './math/LRU'
 export * from './math/curve'
 export * from './math/Conic'
 export * from './math/Intersection'
+export * from './math/StructArray'
 export * from './math/misc/projectStroke'
 
 export * as contain from './math/contain'
@@ -85,7 +86,6 @@ export type {PluginContext as PluginServiceContext,IPlugin as PluginServicePlugi
 // animation
 export * from './animation'
 export * from './tapable'
-export * from './rendering'
 
 
 

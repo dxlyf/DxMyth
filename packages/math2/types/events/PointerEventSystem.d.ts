@@ -3,7 +3,7 @@ import { EventEmitter } from './EventEmitter';
 import { Point } from '../math/Point';
 import { CachePool } from '../math/CachePool';
 export declare class PointerEvent<T = string, D = any> extends NodeEvent<T, D> {
-    static pool: CachePool<PointerEvent<string, {}>, []>;
+    static pool: CachePool<PointerEvent<string, {}>, any[]>;
     downPoint: Point;
     point: Point;
     offsetPoint: Point;

@@ -33,7 +33,7 @@ export interface ITransform {
  * 直接继承 Float32Array，与 WebGL / Skia / CanvasKit 的底层数据格式兼容。
  */
 export declare class Matrix2D extends Float32Array {
-    static pool: CachePool<Matrix2D, []>;
+    static pool: CachePool<Matrix2D, any[]>;
     static identity(): Matrix2D;
     static from(arr: Matrix2DLike): Matrix2D;
     static fromValues(a: number, b: number, c: number, d: number, e: number, f: number): Matrix2D;

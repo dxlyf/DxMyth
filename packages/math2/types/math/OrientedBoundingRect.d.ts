@@ -3,7 +3,7 @@ import { Matrix2DLike } from './Matrix2D';
 import { BoundingRect } from './BoundingRect';
 import { CachePool } from './CachePool';
 export declare class OrientedBoundingRect {
-    static pool: CachePool<OrientedBoundingRect, []>;
+    static pool: CachePool<OrientedBoundingRect, any[]>;
     /** 4 个角点（逆时针顺序：topLeft→topRight→bottomRight→bottomLeft） */
     topLeft: Vector2;
     topRight: Vector2;

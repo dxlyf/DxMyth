@@ -2,12 +2,12 @@
 type CachePoolPoolOptions<T, P extends any[]> = {
     maxSize?: number
     initSize?: number
-    add?: () => T
-    create?: (...args: P) => T
-    init?: (item: T,...args:P) => void
+    create?: () => T
+    init?: (item: T) => void
     release?: (item: T) => void
 
 }
+
 export class CachePool<T, P extends any[] = any[]> {
     static create<T, P extends any[] = any[]>(options: CachePoolPoolOptions<T, P>) {
         return new CachePool<T, P>(options)
@@ -26,21 +26,16 @@ export class CachePool<T, P extends any[] = any[]> {
     }
     private initPoolSize(size: number) {
         for (let i = 0; i < size; i++) {
-            if (this.options.add) {
-                this.pools.push(this.options.add())
-
-            } else {
-                this.pools.push((this.options.create as any)())
-            }
+            this.pools.push(this.options.create())
         }
     }
-    get(...args: P) {
+    get() {
         let item: T
         if (this.pools.length > 0) {
             item = this.pools.pop() as T
-            this.options.init?.(item, ...args)
+            this.options.init?.(item)
         } else {
-            item = this.options.create!(...args)
+            item = this.options.create()
         }
         // 获取到的对象放入待释放区
         this.actives.push(item)

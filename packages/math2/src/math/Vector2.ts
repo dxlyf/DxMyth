@@ -277,6 +277,17 @@ export class Vector2 implements Vector2Like {
         out.y = v.y + ty
         return out
     }
+    static rotateAround<T extends Vector2Like>(out: T, v: Vector2Like, angle: number, origin: Vector2Like) {
+        const c = Math.cos(angle)
+        const s = Math.sin(angle)
+        const ox = origin.x
+        const oy = origin.y
+        const x = v.x - ox
+        const y = v.y - oy
+        out.x = x * c - y * s + ox
+        out.y = y * s + x * c + oy
+        return out
+    }
     static rotate<T extends Vector2Like>(out: T, v: Vector2Like, angle: number, origin?: Vector2Like) {
         const c = Math.cos(angle)
         const s = Math.sin(angle)
@@ -543,6 +554,18 @@ export class Vector2 implements Vector2Like {
     angleTo(v: Vector2Like): number {
         return Vector2.angleTo(this, v)
     }
+     /**
+     * 求两个向量的夹角，通过解交叉积公式 a x b = |a||b|sin(θ) 来求出 θ
+     * the cross product a x b = |a||b|sin(θ) for θ.
+     * @param {number} x the x-coordinate
+     * @param {number} y the y-coordinate
+     * @return {number} the angle in radians
+     */
+    angleWithSep(x:number, y:number) {
+        return Math.atan2(
+            this.x * y - this.y * x,
+            this.x * x + this.y * y);
+    }
     angleToSigned(v: Vector2Like): number {
         return Vector2.angleToSigned(this, v)
     }
@@ -563,6 +586,10 @@ export class Vector2 implements Vector2Like {
     }
     rotate(angle: number, origin?: Vector2Like) {
         Vector2.rotate(this, this, angle, origin)
+        return this
+    }
+    rotateAround(angle: number, origin: Vector2Like) {
+        Vector2.rotateAround(this, this, angle, origin)
         return this
     }
     floor() {

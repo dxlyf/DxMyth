@@ -15,7 +15,7 @@ export declare const enum Matrix3Index {
     M22 = 8
 }
 export declare class Matrix3 extends Float32Array {
-    static pool: CachePool<Matrix3, []>;
+    static pool: CachePool<Matrix3, any[]>;
     static identity(): Matrix3;
     static zero(): Matrix3;
     /** 按列主序 9 个元素构造：m00,m10,m20, m01,m11,m21, m02,m12,m22 */

@@ -7,7 +7,7 @@ export type Vector4Like = {
     w: number;
 };
 export declare class Vector4 implements Vector4Like {
-    static pool: CachePool<Vector4, []>;
+    static pool: CachePool<Vector4, any[]>;
     static default(): Vector4;
     static create(x?: number, y?: number, z?: number, w?: number): Vector4;
     static zero(): Vector4;

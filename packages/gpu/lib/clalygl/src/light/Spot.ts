@@ -1,0 +1,88 @@
+import { assign } from '../core/util';
+import Light, { LightOpts } from '../Light';
+
+export interface SpotLightOpts extends LightOpts {
+  range: number;
+  umbraAngle: number;
+  penumbraAngle: number;
+  falloffFactor: number;
+  shadowBias: number;
+  shadowSlopeScale: number;
+}
+
+class SpotLight extends Light {
+  range = 20;
+  umbraAngle = 30;
+  penumbraAngle = 45;
+  falloffFactor = 2.0;
+  shadowBias = 0.001;
+  shadowSlopeScale = 2.0;
+
+  readonly type = 'SPOT_LIGHT';
+
+  constructor(opts?: Partial<SpotLightOpts>) {
+    super(opts);
+    assign(this, opts);
+  }
+  clone() {
+    const light = super.clone() as SpotLight;
+    light.range = this.range;
+    light.umbraAngle = this.umbraAngle;
+    light.penumbraAngle = this.penumbraAngle;
+    light.falloffFactor = this.falloffFactor;
+    light.shadowBias = this.shadowBias;
+    light.shadowSlopeScale = this.shadowSlopeScale;
+    return light;
+  }
+}
+
+SpotLight.prototype.uniformTemplates = {
+  spotLightPosition: {
+    type: 'vec3',
+    value(instance) {
+      return instance.getWorldPosition().array;
+    }
+  },
+  spotLightRange: {
+    type: 'float',
+    value(instance) {
+      return (instance as SpotLight).range;
+    }
+  },
+  spotLightUmbraAngleCosine: {
+    type: 'float',
+    value(instance) {
+      return Math.cos(((instance as SpotLight).umbraAngle * Math.PI) / 180);
+    }
+  },
+  spotLightPenumbraAngleCosine: {
+    type: 'float',
+    value(instance) {
+      return Math.cos(((instance as SpotLight).penumbraAngle * Math.PI) / 180);
+    }
+  },
+  spotLightFalloffFactor: {
+    type: 'float',
+    value(instance) {
+      return (instance as SpotLight).falloffFactor;
+    }
+  },
+  spotLightDirection: {
+    type: 'vec3',
+    value(instance) {
+      // TODO
+      // Direction is target to eye
+      return instance.worldTransform.z.clone().negate().array;
+    }
+  },
+  spotLightColor: {
+    type: 'vec3',
+    value(instance) {
+      const color = instance.color;
+      const intensity = instance.intensity;
+      return [color[0] * intensity, color[1] * intensity, color[2] * intensity];
+    }
+  }
+};
+
+export default SpotLight;

@@ -1,0 +1,69 @@
+import { assign } from '../core/util';
+import Light, { LightOpts } from '../Light';
+import Vector3 from '../math/Vector3';
+
+export interface TubeLightOpts extends LightOpts {
+  range: number;
+  radius: number;
+  length: number;
+}
+
+class TubeLight extends Light {
+  range = 100;
+  length = 5;
+
+  readonly type = 'TUBE_LIGHT';
+
+  constructor(opts?: Partial<TubeLightOpts>) {
+    super(opts);
+    assign(this, opts);
+  }
+
+  clone() {
+    const light = super.clone() as TubeLight;
+    light.range = this.range;
+    light.length = this.length;
+    return light;
+  }
+}
+
+TubeLight.prototype.uniformTemplates = {
+  tubeLightPosition: {
+    type: 'vec3',
+    value: function (instance) {
+      return instance.getWorldPosition().array;
+    }
+  },
+
+  tubeLightExtend: {
+    type: 'vec3',
+    value: (function () {
+      const x = new Vector3();
+      return function (instance) {
+        // Extend in x axis
+        return x
+          .copy(instance.worldTransform.x)
+          .normalize()
+          .scale((instance as TubeLight).length / 2).array;
+      };
+    })()
+  },
+
+  tubeLightRange: {
+    type: 'float',
+    value: function (instance) {
+      return (instance as TubeLight).range;
+    }
+  },
+
+  tubeLightColor: {
+    type: 'vec3',
+    value: function (instance) {
+      const color = instance.color;
+      const intensity = instance.intensity;
+      return [color[0] * intensity, color[1] * intensity, color[2] * intensity];
+    }
+  }
+};
+
+export default TubeLight;

@@ -3,12 +3,32 @@ export interface IDestroyable{
     isDestroyed:boolean
     destroy():void
 }
-
+export function mixinDestroyable(target: {prototype:IDestroyable,new (...args: any[]): IDestroyable}) {
+    const oldDestroy = target.prototype.destroy
+    target.prototype.isDestroyed = false
+    target.prototype.destroy = function () {
+        if (this.isDestroyed) {
+            return
+        }
+        this.isDestroyed = true
+        oldDestroy?.call(target)
+    }
+}
 export interface IDisposable {
     isDisposed: boolean // 是否已释放
     dispose():void // 立即释放资源
 }
-
+export function mixinDisposable(target: {prototype:IDisposable,new (...args: any[]): IDisposable}) {
+    const oldDispose = target.prototype.dispose
+    target.prototype.isDisposed = false
+    target.prototype.dispose = function () {
+        if (this.isDisposed) {
+            return
+        }
+        this.isDisposed = true
+        oldDispose?.call(target)
+    }
+}
 export interface IDisposableLater extends IDisposable {
     // dispose():void // 立即释放资源
     disposeLater(): void // 添加到可释放管理器，延迟释放资源

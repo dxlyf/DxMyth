@@ -2,10 +2,18 @@ export interface IDestroyable {
     isDestroyed: boolean;
     destroy(): void;
 }
+export declare function mixinDestroyable(target: {
+    prototype: IDestroyable;
+    new (...args: any[]): IDestroyable;
+}): void;
 export interface IDisposable {
     isDisposed: boolean;
     dispose(): void;
 }
+export declare function mixinDisposable(target: {
+    prototype: IDisposable;
+    new (...args: any[]): IDisposable;
+}): void;
 export interface IDisposableLater extends IDisposable {
     disposeLater(): void;
 }

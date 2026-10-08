@@ -9,15 +9,34 @@
   "exports": {
     ".": {
       "import": "./build/three.module.js",
-      "require": "./build/three.cjs"
+      "require": "./build/three.cjs",
+      "types":"./types/build/three.module.d.ts"
     },
     "./examples/fonts/*": "./examples/fonts/*",
-    "./examples/jsm/*": "./examples/jsm/*",
-    "./addons": "./examples/jsm/Addons.js",
-    "./addons/*": "./examples/jsm/*",
-    "./src/*": "./src/*",
-    "./webgpu": "./build/three.webgpu.js",
-    "./tsl": "./build/three.tsl.js"
+    "./examples/jsm/*":{
+       "import": "./examples/jsm/*",
+       "types":"./types/examples/jsm/*"
+    },
+    "./addons":{
+       "import": "./examples/jsm/Addons.js",
+       "types":"./types/examples/jsm/Addons.d.ts"
+    },
+    "./addons/*":{
+       "import": "./examples/jsm/*",
+       "types":"./types/addons/*"
+    },
+    "./src/*":{
+       "import": "./src/*",
+       "types":"./types/src/*"
+    },
+    "./webgpu":{
+       "import": "./build/three.webgpu.js",
+       "types":"./types/build/three.webgpu.d.ts"
+    },
+    "./tsl":{
+       "import": "./build/three.tsl.js",
+       "types":"./types/build/three.tsl.d.ts"
+    }
   },
   "repository": {
     "type": "git",

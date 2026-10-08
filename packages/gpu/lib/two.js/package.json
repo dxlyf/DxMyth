@@ -1,0 +1,91 @@
+{
+  "name": "two.js",
+  "version": "v0.8.24",
+  "description": "A renderer agnostic two-dimensional drawing api for the web.",
+  "module": "build/two.module.js",
+  "types": "src/two.d.ts",
+  "files": [
+    "package.json",
+    "LICENSE",
+    "README.md",
+    "build",
+    "extras",
+    "src"
+  ],
+  "scripts": {
+    "build": "node ./utils/build",
+    "dev": "esbuild --servedir=. --serve=8080",
+    "docs:generate": "node ./utils/document",
+    "docs:dev": "vuepress dev wiki",
+    "docs:build": "vuepress build wiki",
+    "docs:publish": "./deploy.sh",
+    "lint": "eslint . --fix",
+    "types:check": "tsc --project tsconfig.types.json"
+  },
+  "directories": {
+    "docs": "wiki/docs",
+    "test": "tests",
+    "example": "wiki/examples"
+  },
+  "keywords": [
+    "svg",
+    "canvas2d",
+    "webgl",
+    "animation",
+    "rendering",
+    "scenegraph",
+    "motiongraphics",
+    "visualization",
+    "dom",
+    "w3c",
+    "bitmap",
+    "vector"
+  ],
+  "homepage": "https://two.js.org/",
+  "author": {
+    "name": "jonobr1",
+    "url": "http://jono.fyi/"
+  },
+  "main": "build/two.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonobr1/two.js"
+  },
+  "bugs": {
+    "url": "https://github.com/jonobr1/two.js/issues"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/minimatch": "^6.0.0",
+    "@vuepress/bundler-vite": "2.0.0-rc.31",
+    "@vuepress/plugin-google-analytics": "2.0.0-rc.134",
+    "@vuepress/plugin-redirect": "2.0.0-rc.134",
+    "@vuepress/plugin-search": "2.0.0-rc.134",
+    "@vuepress/theme-default": "2.0.0-rc.134",
+    "babel-eslint": "^10.1.0",
+    "chalk": "^2.4.2",
+    "commander": "^2.20.3",
+    "esbuild": "^0.28.2",
+    "eslint": "^7.8.1",
+    "esm": "^3.2.25",
+    "gzip-size": "^5.1.1",
+    "jsdoc": "^4.0.5",
+    "jsdoc-api": "^9.3.6",
+    "sass": "^1.104.1",
+    "typescript": "^4.5.4",
+    "vue": "^3.5.43",
+    "vuepress": "2.0.0-rc.31"
+  },
+  "autoupdate": {
+    "source": "git",
+    "target": "git://github.com/jonobr1/two.js.git",
+    "fileMap": [
+      {
+        "basePath": "build",
+        "files": [
+          "two*.js"
+        ]
+      }
+    ]
+  }
+}

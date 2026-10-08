@@ -1,6 +1,6 @@
 export type OptionProps<Context, Value, Parameters = Value> = {
     default?(ctx: Context): Value;
-    update?(ctx: Context, current: Value, prev: Value): boolean;
+    update?(ctx: Context, current: Value, prev: Value): void;
     map?(ctx: Context, value: Parameters): Value;
     equals?(ctx: Context, current: Value, prev: Value): boolean;
 };

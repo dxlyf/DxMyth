@@ -8,7 +8,7 @@ export type BoundingRectLike = {
     height: number;
 };
 export declare class BoundingRect {
-    static pool: CachePool<BoundingRect, []>;
+    static pool: CachePool<BoundingRect, any[]>;
     static default(): BoundingRect;
     static zero(): BoundingRect;
     /** 从点列表计算包围盒 */
