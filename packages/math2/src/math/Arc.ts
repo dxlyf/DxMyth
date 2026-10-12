@@ -4,6 +4,7 @@
 // ══════════════════════════════════════════════
 
 import { clamp } from "./MathUtils"
+import { Matrix2D } from "./Matrix2D"
 import { Vector2, type Vector2Like } from "./Vector2"
 
 /** SVG 弧线的端点参数化 */
@@ -248,6 +249,48 @@ export interface CubicBezierPoints {
   p2: { x: number; y: number }
 }
 
+
+/** 单位圆 → 椭圆的仿射矩阵：先 scale(rx, ry)，再 rotate(rotation)，最后平移到圆心。 */
+export function ellipseMatrix(cx: number, cy: number, rx: number, ry: number, rotation: number): Matrix2D {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return Matrix2D.fromValues(rx*cos,rx*sin,-ry*sin,ry*cos,cx,cy)
+}
+
+/**
+ * 把单位圆上 `[theta0, theta0 + sweep]` 的弧经仿射矩阵 m 映射成设备空间的 cubic 序列。
+ *
+ * 每段扫角 ≤ 90°，`k = (4/3)·tan(seg/4)`。控制点在**单位圆空间**求好再映射，于是得到的
+ * 是「圆弧近似的仿射像」，误差谱随变换正确缩放。
+ */
+export function appendUnitArcCubics(path: Pick<Path2D, 'bezierCurveTo'>, m: Matrix2D, theta0: number, sweep: number): void {
+  // 减去一个极小量再取 ceil：否则扫角因浮点误差比 π/2 大 1 ulp 时，恰好 90° 的弧
+  // 会被切成 2 段（第二段的 seg 变成负的极小量），产生退化曲线。
+  const n = Math.max(1, Math.ceil((Math.abs(sweep)) / (Math.PI / 2)));
+  const seg = sweep / n;
+  const k = (4 / 3) * Math.tan(seg / 4);
+  let t0 = theta0;
+  for (let i = 0; i < n; i++) {
+    const t1 = t0 + seg;
+    const c0 = Math.cos(t0);
+    const s0 = Math.sin(t0);
+    const c1 = Math.cos(t1);
+    const s1 = Math.sin(t1);
+    const u1 = c0 - k * s0;
+    const v1 = s0 + k * c0;
+    const u2 = c1 + k * s1;
+    const v2 = s1 - k * c1;
+    path.bezierCurveTo(
+      m.a * u1 + m.c * v1 + m.tx,
+      m.b * u1 + m.d * v1 + m.ty,
+      m.a * u2 + m.c * v2 + m.tx,
+      m.b * u2 + m.d * v2 + m.ty,
+      m.a * c1 + m.c * s1 + m.tx,
+      m.b * c1 + m.d * s1 + m.ty,
+    );
+    t0 = t1;
+  }
+}
 /**
  * 四分之一椭圆弧转贝塞尔曲线段
  * @param cx 

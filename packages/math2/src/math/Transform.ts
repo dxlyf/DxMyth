@@ -49,11 +49,11 @@ export class Transform<Events extends TransformEvents=any> extends EventEmitter<
     // ---- 版本追踪 ----
 
     /** 当前局部属性版本（Point onChange 或 rotation setter 自动递增） */
-    private _localMatrixDirty: boolean = true
-    private _worldMatrixDirty: boolean = true
+    public _localMatrixDirty: boolean = true
+    public _worldMatrixDirty: boolean = true
 
-    private _worldVersion: number = 0
-    private _parentWorldVersion: number = -1
+    public _worldVersion: number = 0
+    public _parentWorldVersion: number = -1
 
     constructor(options: TransformProps = {}) {
         super()

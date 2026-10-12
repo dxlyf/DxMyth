@@ -1,9 +1,10 @@
 
 import { loadImage } from 'src/utils/loadResource'
 import { Matrix2D } from './Matrix2D'
+import { Disposable } from 'src/utils/Disposable'
 
 
-export class Pattern {
+export class Pattern extends Disposable {
      static fromUrl(url:string){
         const pattern = new Pattern()
         loadImage(url).then((image)=>{
@@ -23,6 +24,7 @@ export class Pattern {
     matrix:Matrix2D
     ref:any
     constructor(image?:CanvasImageSource,repeat:'repeat' | 'repeat-x' | 'repeat-y'='repeat'){
+        super()
         this.source=image||null
         this.repeat=repeat||'repeat'
     }
@@ -35,6 +37,9 @@ export class Pattern {
         this.source=source.source
         this.repeat=source.repeat
         this.matrix=source.matrix?.clone()
+    }
+    onDispose(): void {
+        
     }
 
 }

@@ -15,6 +15,7 @@ export type EventMap = Record<string, any[]>
  * 特性：
  *   - 无 DOM 事件传播（冒泡/捕获），纯 pub/sub
  *   - 支持 once 自动移除
+ *   - 支持 waitOn 等待事件一次并返回 Promise
  *   - 支持 context 绑定
  *   - 单个事件类型多个监听器按注册顺序调用
  */
@@ -45,6 +46,33 @@ export class EventEmitter<Events extends EventMap = Record<string, any[]>> {
         context?: any,
     ): this {
         return this._addListener(event, fn, true, context)
+    }
+
+    /**
+     * 等待指定事件触发一次，返回 Promise。
+     *
+     * @param event 事件名
+     * @param timeout 超时毫秒数；超时则 reject（不传则不超时）
+     * @returns 事件触发时以监听器参数 resolve；超时则 reject
+     */
+    waitOn<K extends keyof Events & string>(
+        event: K,
+        timeout?: number,
+    ): Promise<Events[K]> {
+        return new Promise<Events[K]>((resolve, reject) => {
+            let timer: ReturnType<typeof setTimeout> | undefined
+            const handler = (...args: Events[K]) => {
+                if (timer !== undefined) clearTimeout(timer)
+                resolve(args)
+            }
+            this.once(event, handler)
+            if (timeout !== undefined && timeout >= 0) {
+                timer = setTimeout(() => {
+                    this.off(event, handler, undefined, true)
+                    reject(new Error(`waitOn("${event}") 超时 (${timeout}ms)`))
+                }, timeout)
+            }
+        })
     }
 
     /**

@@ -115,3 +115,5 @@ export * from './utils/merge'
 export * from './controls/Ruler'
 export * from './controls/ZoomTranslate'
 export * from './controls/Timeline'
+export * from './controls/Camera2D'
+

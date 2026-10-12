@@ -5,7 +5,7 @@ import { bernstein } from "./MathUtils"
 const isNearZero = (v: number, eps = 1e-10): boolean => Math.abs(v) <= eps
 
 /** 德卡斯特里奥算法计算 N 阶贝塞尔曲线上参数 t 处的点 */
-export const deCasteljau = (points: PointLike[], t: number): PointLike => {
+const deCasteljau = (points: PointLike[], t: number): PointLike => {
     const n = points.length
     if (n === 0) return { x: 0, y: 0 }
     if (n === 1) return { x: points[0].x, y: points[0].y }
@@ -22,12 +22,12 @@ export const deCasteljau = (points: PointLike[], t: number): PointLike => {
 }
 
 /** 计算 N 阶贝塞尔曲线在 t 处的一阶导数（切向量） */
-export const derivative = (points: PointLike[], t: number): PointLike => {
+const derivative = (points: PointLike[], t: number): PointLike => {
     return deCasteljau(derivativeControlPoints(points), t)
 }
 
 /** 计算 N 阶贝塞尔曲线一阶导数的控制点（共 n-1 个点） */
-export const derivativeControlPoints = (points: PointLike[]): PointLike[] => {
+const derivativeControlPoints = (points: PointLike[]): PointLike[] => {
     const n = points.length
     if (n < 2) return []
     const dp: PointLike[] = []
@@ -43,7 +43,7 @@ export const derivativeControlPoints = (points: PointLike[]): PointLike[] => {
 
 
 /** 基于伯恩斯坦基函数计算 N 阶贝塞尔曲线上参数 t 处的点: sum(P[i] * B(i, n, t), i=0..n) */
-export const evaluate = (points: PointLike[], t: number): PointLike => {
+const evaluate = (points: PointLike[], t: number): PointLike => {
     const n = points.length - 1
     let x = 0
     let y = 0
@@ -56,7 +56,7 @@ export const evaluate = (points: PointLike[], t: number): PointLike => {
 }
 
 /** 基于伯恩斯坦基函数对数值序列求值: Σ values[i] * B(i, n, t) */
-export const evaluateValues = (values: number[], t: number): number => {
+const evaluateValues = (values: number[], t: number): number => {
     const n = values.length - 1
     let result = 0
     for (let i = 0; i <= n; i++) {
@@ -66,7 +66,7 @@ export const evaluateValues = (values: number[], t: number): number => {
 }
 
 /** 基于伯恩斯坦基函数计算 N 阶贝塞尔曲线在 t 处的一阶导数: n * Σ_{i=0}^{n-1} (P_{i+1} - P_i) * B_{i, n-1}(t) */
-export const derivative1 = (points: PointLike[], t: number): PointLike => {
+const derivative1 = (points: PointLike[], t: number): PointLike => {
     const n = points.length - 1
     if (n < 1) return { x: 0, y: 0 }
     const m = n - 1
@@ -82,7 +82,7 @@ export const derivative1 = (points: PointLike[], t: number): PointLike => {
 /** 基于伯恩斯坦基函数计算 N 阶贝塞尔曲线在 t 处的 k 阶导数
  *  d^k/dt^k B(t) = n!/(n-k)! * Σ_{i=0}^{n-k} Δ^k P_i * B_{i, n-k}(t)
  */
-export const derivativeN = (points: PointLike[], k: number, t: number): PointLike => {
+const derivativeN = (points: PointLike[], k: number, t: number): PointLike => {
     const n = points.length - 1
     if (k <= 0) return evaluate(points, t)
     if (k > n) return { x: 0, y: 0 }
@@ -119,7 +119,7 @@ const factorial = (n: number): number => {
 }
 
 /** 二阶贝塞尔曲线 evaluate */
-export const quadraticEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, t: number): PointLike => {
+const quadraticEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, t: number): PointLike => {
     const mt = 1 - t
     return {
         x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
@@ -128,7 +128,7 @@ export const quadraticEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, t
 }
 
 /** 三阶贝塞尔曲线 evaluate */
-export const cubicEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, p3: PointLike, t: number): PointLike => {
+const cubicEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, p3: PointLike, t: number): PointLike => {
     const mt = 1 - t
     const mt2 = mt * mt
     const mt3 = mt2 * mt
@@ -141,7 +141,7 @@ export const cubicEvaluate = (p0: PointLike, p1: PointLike, p2: PointLike, p3: P
 }
 
 /** 二阶贝塞尔提升为三阶 */
-export const quadraticToCubic = (p0: PointLike, p1: PointLike, p2: PointLike): [PointLike, PointLike, PointLike, PointLike] => {
+const quadraticToCubic = (p0: PointLike, p1: PointLike, p2: PointLike): [PointLike, PointLike, PointLike, PointLike] => {
     return [
         { x: p0.x, y: p0.y },
         { x: p0.x / 3 + (2 / 3) * p1.x, y: p0.y / 3 + (2 / 3) * p1.y },
@@ -150,8 +150,35 @@ export const quadraticToCubic = (p0: PointLike, p1: PointLike, p2: PointLike): [
     ]
 }
 
+/**
+ * 将任意阶贝塞尔曲线升阶（degree elevation）
+ * 升阶后曲线几何形状与原曲线完全一致，仅阶数提高
+ * @param points - 原曲线控制点（阶数 = points.length - 1）
+ * @param times - 升阶次数（每次阶数 +1），默认 1
+ * @returns 升阶后的控制点（个数 = points.length + times）
+ */
+const elevateDegree = (points: PointLike[], times: number = 1): PointLike[] => {
+    let result = points.map(p => ({ x: p.x, y: p.y }))
+    for (let t = 0; t < times; t++) {
+        const n = result.length - 1
+        if (n < 1) return result
+        const m = n + 1 // 升阶后的阶数
+        const next: PointLike[] = [{ x: result[0].x, y: result[0].y }]
+        for (let i = 1; i <= n; i++) {
+            const a = i / m
+            next.push({
+                x: a * result[i - 1].x + (1 - a) * result[i].x,
+                y: a * result[i - 1].y + (1 - a) * result[i].y,
+            })
+        }
+        next.push({ x: result[n].x, y: result[n].y })
+        result = next
+    }
+    return result
+}
+
 /** 贝塞尔曲线的弧长（数值积分 - Simpson 法则） */
-export const arcLength = (points: PointLike[], segments: number = 16): number => {
+const arcLength = (points: PointLike[], segments: number = 16): number => {
     let length = 0
     const dt = 1 / segments
     let prev = deCasteljau(points, 0)
@@ -167,7 +194,7 @@ export const arcLength = (points: PointLike[], segments: number = 16): number =>
 }
 
 /** 贝塞尔曲线上 t 处的法向量（旋转 90° 的归一化切向量） */
-export const normal = (points: PointLike[], t: number): PointLike => {
+const normal = (points: PointLike[], t: number): PointLike => {
     const d = derivative(points, t)
     const len = Math.sqrt(d.x * d.x + d.y * d.y)
     if (len === 0) return { x: 0, y: 0 }
@@ -175,7 +202,7 @@ export const normal = (points: PointLike[], t: number): PointLike => {
 }
 
 /** 贝塞尔曲线在 t 处的曲率 */
-export const curvature = (points: PointLike[], t: number): number => {
+const curvature = (points: PointLike[], t: number): number => {
     const n = points.length
     if (n < 3) return 0
 
@@ -204,7 +231,7 @@ export const curvature = (points: PointLike[], t: number): number => {
  * 对 N<=3 使用解析求解，更高阶使用数值方法
  * @returns 在 (0,1) 区间内的极值 t 值数组（已排序去重）
  */
-export const extrema = (points: PointLike[]): number[] => {
+const extrema = (points: PointLike[]): number[] => {
     const n = points.length - 1
     if (n < 1) return []
     const roots: number[] = []
@@ -280,7 +307,7 @@ export const extrema = (points: PointLike[]): number[] => {
  * @param samples - 初始采样点数（默认 20）
  * @returns 最大曲率对应的 t 值
  */
-export const maxCurvature = (points: PointLike[], samples: number = 20): number => {
+const maxCurvature = (points: PointLike[], samples: number = 20): number => {
     // 采样找最佳初始值
     let bestT = 0
     let maxK = -Infinity
@@ -325,7 +352,7 @@ export const maxCurvature = (points: PointLike[], samples: number = 20): number 
  * @param iterations - Newton 迭代次数（默认 8）
  * @returns { t, distance } 最近点的 t 值和距离
  */
-export const project = (points: PointLike[], px: number, py: number, samples: number = 16, iterations: number = 8): { t: number; distance: number } => {
+const project = (points: PointLike[], px: number, py: number, samples: number = 16, iterations: number = 8): { t: number; distance: number } => {
     // 采样找最佳初始 t
     let bestT = 0
     let minDist2 = Infinity
@@ -390,7 +417,7 @@ export const project = (points: PointLike[], px: number, py: number, samples: nu
 }
 
 // 圆锥曲线(有理曲线)转换为二次 Bézier 曲线(有理贝塞尔曲线转换)
-export function conicToQuadratic(
+function conicToQuadratic(
     x0: number, y0: number,
     x1: number, y1: number,
     x2: number, y2: number,
@@ -426,4 +453,25 @@ export function conicToQuadratic(
         [P0, Q, M],
         [M, R, P2]
     ]
+}
+
+export {
+    deCasteljau,
+    derivative,
+    derivativeControlPoints,
+    evaluate,
+    evaluateValues,
+    derivative1,
+    derivativeN,
+    quadraticEvaluate,
+    cubicEvaluate,
+    quadraticToCubic,
+    elevateDegree,
+    arcLength,
+    normal,
+    curvature,
+    extrema,
+    maxCurvature,
+    project,
+    conicToQuadratic,
 }

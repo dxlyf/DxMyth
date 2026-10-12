@@ -64,6 +64,8 @@ export declare class PathBuilder {
     private _tightBoundsDirty;
     /**路径发生变变化 */
     drity: boolean;
+    version: number;
+    uid: number;
     constructor(path?: PathBuilder | string);
     get lastVerb(): PathVerb;
     get lastPoint(): PointLike;
@@ -163,6 +165,74 @@ export declare class PathBuilder {
      */
     roundRect(x: number, y: number, w: number, h: number, radii?: number | number[]): void;
     /**
+     * 添加正多边形路径
+     *
+     * 顶点均匀分布在以 (x, y) 为圆心、radius 为半径的圆周上，
+     * 首顶点位于 rotation 角度处（默认朝上），相邻顶点以直线连接并闭合。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 外接圆半径
+     * @param sides - 边数（默认 3，即三角形）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首顶点朝上）
+     */
+    polygon(x: number, y: number, radius: number, sides?: number, rotation?: number): void;
+    /**
+     * 添加星形路径
+     *
+     * 由 points 个尖角组成：外顶点位于半径 outerRadius 的圆周，
+     * 内顶点位于半径 innerRadius 的圆周，二者交替连接并闭合。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param outerRadius - 外顶点半径
+     * @param innerRadius - 内顶点半径（默认 outerRadius * 0.5）
+     * @param points - 尖角数量（默认 5）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首个尖角朝上）
+     */
+    star(x: number, y: number, outerRadius: number, innerRadius?: number, points?: number, rotation?: number): void;
+    /**
+     * 添加玫瑰花路径（数学玫瑰线 r = radius · |cos(kθ)|，k = petals / 2）
+     *
+     * 由 petals 片花瓣围绕中心均匀辐射构成：花瓣尖端位于半径 radius 的外接圆上，
+     * 相邻花瓣在中轴两侧的零点（半径 0，即中心）处交于一点，整体即标准玫瑰线。
+     * 每片花瓣从中心出发再回到中心，以极角均分为 4 段三次贝塞尔曲线，段端点位置与
+     * 切线均取自玫瑰线的解析值（Hermite 构造），故曲线与玫瑰线高度吻合、花瓣饱满。
+     * 全程使用贝塞尔命令，不做折线细分。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 花瓣长度（外接圆半径）
+     * @param petals - 花瓣数量（默认 5）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首批花瓣朝上）
+     */
+    rose(x: number, y: number, radius: number, petals?: number, rotation?: number): void;
+    /**
+     * 添加心形路径
+     *
+     * 由两段圆弧（上方左右两个圆瓣）与两段二次贝塞尔曲线（两侧收拢到底部尖端）构成，
+     * 全程使用弧与贝塞尔命令精确绘制，不做折线细分。
+     * 归一化后心形的水平宽度为 2·radius，并以 (x, y) 为中心。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 半宽（心形水平方向的半径）
+     * @param rotation - 旋转角度（弧度，默认 0）
+     */
+    heart(x: number, y: number, radius: number, rotation?: number): void;
+    /**
+     * 添加水滴路径
+     *
+     * 底部为半径 radius 的半圆，两侧以三次贝塞尔曲线收拢到顶部尖端，
+     * 顶部为一个尖角（cusp），整体形如水滴。
+     *
+     * @param x - 底部圆心 X
+     * @param y - 底部圆心 Y
+     * @param radius - 底部半圆半径（水滴半宽）
+     * @param height - 尖端高出圆心的距离（默认 radius * 1.6）
+     */
+    droplet(x: number, y: number, radius: number, height?: number): void;
+    /**
      * 添加 SVG 椭圆弧路径（SVG Arc A/a 命令转换）
      *
      * 将 SVG 弧线的端点参数化（起点+终点+半径+旋转+大弧/扫掠标志）
@@ -220,7 +290,7 @@ export declare class PathBuilder {
      *   - points：子路径的折线点序列
      *   - closed：是否有 Close 命令（闭合时末点与起点重合）
      */
-    getSubPaths(epsilon?: number): {
+    getSubPaths(autoClose?: boolean, epsilon?: number): {
         points: PointLike[];
         closed: boolean;
     }[];

@@ -11,6 +11,7 @@ export type EventMap = Record<string, any[]>;
  * 特性：
  *   - 无 DOM 事件传播（冒泡/捕获），纯 pub/sub
  *   - 支持 once 自动移除
+ *   - 支持 waitOn 等待事件一次并返回 Promise
  *   - 支持 context 绑定
  *   - 单个事件类型多个监听器按注册顺序调用
  */
@@ -28,6 +29,14 @@ export declare class EventEmitter<Events extends EventMap = Record<string, any[]
      * 注册一次性事件监听器（触发后自动移除）。
      */
     once<K extends keyof Events & string>(event: K, fn: Listener<Events[K]>, context?: any): this;
+    /**
+     * 等待指定事件触发一次，返回 Promise。
+     *
+     * @param event 事件名
+     * @param timeout 超时毫秒数；超时则 reject（不传则不超时）
+     * @returns 事件触发时以监听器参数 resolve；超时则 reject
+     */
+    waitOn<K extends keyof Events & string>(event: K, timeout?: number): Promise<Events[K]>;
     /**
      * 移除事件监听器。
      *

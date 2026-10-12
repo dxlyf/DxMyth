@@ -1,3 +1,4 @@
+import { Matrix2D } from './Matrix2D';
 import { Vector2Like } from './Vector2';
 /** SVG 弧线的端点参数化 */
 export interface EndpointArcParams {
@@ -119,6 +120,15 @@ export interface CubicBezierPoints {
         y: number;
     };
 }
+/** 单位圆 → 椭圆的仿射矩阵：先 scale(rx, ry)，再 rotate(rotation)，最后平移到圆心。 */
+export declare function ellipseMatrix(cx: number, cy: number, rx: number, ry: number, rotation: number): Matrix2D;
+/**
+ * 把单位圆上 `[theta0, theta0 + sweep]` 的弧经仿射矩阵 m 映射成设备空间的 cubic 序列。
+ *
+ * 每段扫角 ≤ 90°，`k = (4/3)·tan(seg/4)`。控制点在**单位圆空间**求好再映射，于是得到的
+ * 是「圆弧近似的仿射像」，误差谱随变换正确缩放。
+ */
+export declare function appendUnitArcCubics(path: Pick<Path2D, 'bezierCurveTo'>, m: Matrix2D, theta0: number, sweep: number): void;
 /**
  * 四分之一椭圆弧转贝塞尔曲线段
  * @param cx

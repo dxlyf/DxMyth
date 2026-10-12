@@ -2,7 +2,7 @@ import { Vector2 as Point, Vector2, type Vector2Like as PointLike } from './Vect
 import { getQuadraticBezierBounds, QuadraticBezier } from './QuadraticBezier'
 import { getCubicBezierBounds, CubicBezier } from './CubicBezier'
 import { BoundingRect } from './BoundingRect'
-import { ellipseSvgArcFromPath,ellipseCubicBezierFromPath, normalizeAngles, arcCubicBezierFromPath } from './Arc'
+import { ellipseSvgArcFromPath, ellipseCubicBezierFromPath, normalizeAngles, arcCubicBezierFromPath } from './Arc'
 
 import { windingCubicBezier, windingLine, windingQuadraticBezier } from './PathIntersection'
 import { Matrix2DLike } from './Matrix2D'
@@ -58,6 +58,7 @@ export enum PathDirection {
     CCW,
     Unknown = 0x7FFFFFFF,
 }
+let pathBuilderUid=0
 export class PathBuilder {
     static fromSvgPath(svgPath: string) {
         return fromSvgPath(svgPath)
@@ -65,10 +66,10 @@ export class PathBuilder {
     static default() {
         return new PathBuilder()
     }
-    static pool=CachePool.create({
-        create:()=>new PathBuilder(),
-        init:(path)=>path.reset(),
-        release:(path)=>path.reset(),
+    static pool = CachePool.create({
+        create: () => new PathBuilder(),
+        init: (path) => path.reset(),
+        release: (path) => path.reset(),
     })
     verbs: PathVerb[] // 路径命令
     points: PointLike[]// 路径点
@@ -84,7 +85,10 @@ export class PathBuilder {
     private _tightBoundsDirty: boolean = true
     /**路径发生变变化 */
     drity: boolean = false
+    version: number = 0
+    uid:number=0
     constructor(path?: PathBuilder | string) {
+        this.uid=pathBuilderUid++
         this.verbs = []
         this.points = []
         if (path instanceof PathBuilder) {
@@ -116,12 +120,11 @@ export class PathBuilder {
         this.lastMoveIndex = path.lastMoveIndex
         this.needMoveTo = path.needMoveTo
         this.segmentType = path.segmentType
-        this.drity = true
-        this._boundsDirty =true
-        this._tightBoundsDirty=true
+        this.markDirty()
 
     }
     reset() {
+        this.version=-1
         this.verbs = []
         this.points = []
         this.lastMoveIndex = -1
@@ -134,6 +137,7 @@ export class PathBuilder {
 
     markDirty() {
         this.drity = true
+        this.version++
         this._boundsDirty = true
         this._tightBoundsDirty = true
     }
@@ -251,20 +255,23 @@ export class PathBuilder {
         this.markDirty()
     }
     conicTo(cpX: number, cpY: number, x: number, y: number, weight: number) {
-        if (weight <= 0) {
-            // const lastPoint = this.lastPoint
-            // const cp1X =(lastPoint.x+x)*0.5
-            // const cp1Y = (lastPoint.y+y)*0.5
-            // return this.quadraticCurveTo(cp1X, cp1Y, x, y)
-            return this.quadraticCurveTo(cpX, cpY, x, y)
+        if (!(weight > 0)) {
+            this.lineTo(x, y);
+        } else if (!Number.isFinite(weight)) {
+            this.lineTo(cpX, cpY);
+            this.lineTo(x, y);
+        } else if (weight == 1) {
+            this.quadraticCurveTo(cpX, cpY, x, y)
+        } else {
+            this.ensureMove
+            const k = (4 * weight) / (3 * (weight + 1))
+            const lastPoint = this.lastPoint
+            const cp1X = lastPoint.x + (cpX - lastPoint.x) * k
+            const cp1Y = lastPoint.y + (cpY - lastPoint.y) * k
+            const cp2X = x + (cpX - x) * k
+            const cp2Y = y + (cpY - y) * k
+            this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, x, y);
         }
-        const k = (4 * weight) / (3 * (weight + 1))
-        const lastPoint = this.lastPoint
-        const cp1X = lastPoint.x + (cpX - lastPoint.x) * k
-        const cp1Y = lastPoint.y + (cpY - lastPoint.y) * k
-        const cp2X = x + (cpX - x) * k
-        const cp2Y = y + (cpY - y) * k
-        this.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, x, y);
     }
     conicToQuad(cpX: number, cpY: number, x: number, y: number, weight: number) {
         const conic = new Conic([{ x: this.lastPoint.x, y: this.lastPoint.y }, { x: cpX, y: cpY }, { x: x, y: y }], weight)
@@ -279,7 +286,7 @@ export class PathBuilder {
         this.lineTo(x + width, y)
         this.lineTo(x + width, y + height)
         this.lineTo(x, y + height)
-        this.lineTo(x, y)
+        this.closePath()
         this.segmentType |= PathSegmentType.Rect
     }
 
@@ -297,7 +304,7 @@ export class PathBuilder {
      * @param counterclockwise - 是否逆时针（默认顺时针）
      */
     arc(x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise = false): void {
-        arcCubicBezierFromPath(this,x,y,radius,startAngle,endAngle,counterclockwise)
+        arcCubicBezierFromPath(this, x, y, radius, startAngle, endAngle, counterclockwise)
         this.segmentType |= PathSegmentType.Arc
     }
 
@@ -323,7 +330,7 @@ export class PathBuilder {
         startAngle: number, endAngle: number,
         counterclockwise = false,
     ): void {
-        ellipseCubicBezierFromPath(this,x,y,radiusX,radiusY,rotation,startAngle,endAngle,counterclockwise)
+        ellipseCubicBezierFromPath(this, x, y, radiusX, radiusY, rotation, startAngle, endAngle, counterclockwise)
         this.segmentType |= PathSegmentType.Ellipse
     }
 
@@ -564,8 +571,203 @@ export class PathBuilder {
         this.lineTo(x, y + r)
         if (r > 0) this.arcTo(x, y, x + r, y, r)
 
-        this.lineTo(this.lastMovePoint.x, this.lastMovePoint.y)
+        this.closePath()
         this.segmentType |= PathSegmentType.RoundRect
+    }
+
+    /**
+     * 添加正多边形路径
+     *
+     * 顶点均匀分布在以 (x, y) 为圆心、radius 为半径的圆周上，
+     * 首顶点位于 rotation 角度处（默认朝上），相邻顶点以直线连接并闭合。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 外接圆半径
+     * @param sides - 边数（默认 3，即三角形）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首顶点朝上）
+     */
+    polygon(x: number, y: number, radius: number, sides: number = 3, rotation: number = -Math.PI / 2): void {
+        sides = Math.max(3, Math.floor(sides))
+        const step = (Math.PI * 2) / sides
+        for (let i = 0; i < sides; i++) {
+            const angle = rotation + step * i
+            const px = x + Math.cos(angle) * radius
+            const py = y + Math.sin(angle) * radius
+            if (i === 0) {
+                this.moveTo(px, py)
+            } else {
+                this.lineTo(px, py)
+            }
+        }
+        this.closePath()
+    }
+
+    /**
+     * 添加星形路径
+     *
+     * 由 points 个尖角组成：外顶点位于半径 outerRadius 的圆周，
+     * 内顶点位于半径 innerRadius 的圆周，二者交替连接并闭合。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param outerRadius - 外顶点半径
+     * @param innerRadius - 内顶点半径（默认 outerRadius * 0.5）
+     * @param points - 尖角数量（默认 5）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首个尖角朝上）
+     */
+    star(x: number, y: number, outerRadius: number, innerRadius: number = outerRadius * 0.5, points: number = 5, rotation: number = -Math.PI / 2): void {
+        points = Math.max(2, Math.floor(points))
+        const step = Math.PI / points
+        const count = points * 2
+        for (let i = 0; i < count; i++) {
+            const r = i % 2 === 0 ? outerRadius : innerRadius
+            const angle = rotation + step * i
+            const px = x + Math.cos(angle) * r
+            const py = y + Math.sin(angle) * r
+            if (i === 0) {
+                this.moveTo(px, py)
+            } else {
+                this.lineTo(px, py)
+            }
+        }
+        this.closePath()
+    }
+
+    /**
+     * 添加玫瑰花路径（数学玫瑰线 r = radius · |cos(kθ)|，k = petals / 2）
+     *
+     * 由 petals 片花瓣围绕中心均匀辐射构成：花瓣尖端位于半径 radius 的外接圆上，
+     * 相邻花瓣在中轴两侧的零点（半径 0，即中心）处交于一点，整体即标准玫瑰线。
+     * 每片花瓣从中心出发再回到中心，以极角均分为 4 段三次贝塞尔曲线，段端点位置与
+     * 切线均取自玫瑰线的解析值（Hermite 构造），故曲线与玫瑰线高度吻合、花瓣饱满。
+     * 全程使用贝塞尔命令，不做折线细分。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 花瓣长度（外接圆半径）
+     * @param petals - 花瓣数量（默认 5）
+     * @param rotation - 起始角度（弧度，默认 -π/2，首批花瓣朝上）
+     */
+    rose(x: number, y: number, radius: number, petals: number = 5, rotation: number = -Math.PI / 2): void {
+        petals = Math.max(1, Math.floor(petals))
+        const k = petals / 2
+        const halfSpan = Math.PI / (2 * k) // 花瓣单侧张角（尖端 → 零点）
+        const step = Math.PI / k // 相邻花瓣尖端角间隔
+
+        // 玫瑰线上某极角的点（mid 为该花瓣尖端方向）
+        const pointAt = (theta: number, mid: number) => {
+            const r = radius * Math.cos(k * (theta - mid))
+            return { x: x + Math.cos(theta) * r, y: y + Math.sin(theta) * r }
+        }
+        // 玫瑰线上某极角的切向量 dP/dθ
+        const derivAt = (theta: number, mid: number) => {
+            const r = radius * Math.cos(k * (theta - mid))
+            const dr = -radius * k * Math.sin(k * (theta - mid))
+            const c = Math.cos(theta)
+            const s = Math.sin(theta)
+            return { x: dr * c - r * s, y: dr * s + r * c }
+        }
+        // 用区间 [t0, t1] 两端点与切线构造一段三次贝塞尔（Hermite → Bézier）
+        const segment = (t0: number, t1: number, mid: number) => {
+            const p0 = pointAt(t0, mid)
+            const p1 = pointAt(t1, mid)
+            const d0 = derivAt(t0, mid)
+            const d1 = derivAt(t1, mid)
+            const dt = (t1 - t0) / 3
+            this.bezierCurveTo(
+                p0.x + d0.x * dt,
+                p0.y + d0.y * dt,
+                p1.x - d1.x * dt,
+                p1.y - d1.y * dt,
+                p1.x,
+                p1.y,
+            )
+        }
+
+        for (let j = 0; j < petals; j++) {
+            const mid = rotation + step * j // 花瓣尖端方向（kθ = jπ 时 |cos| 取极大）
+            if (j === 0) {
+                this.moveTo(x, y)
+            }
+            // 中心 → 尖端 → 中心，每侧 2 段
+            segment(mid - halfSpan, mid - halfSpan / 2, mid)
+            segment(mid - halfSpan / 2, mid, mid)
+            segment(mid, mid + halfSpan / 2, mid)
+            segment(mid + halfSpan / 2, mid + halfSpan, mid)
+        }
+        this.closePath()
+    }
+
+    /**
+     * 添加心形路径
+     *
+     * 由两段圆弧（上方左右两个圆瓣）与两段二次贝塞尔曲线（两侧收拢到底部尖端）构成，
+     * 全程使用弧与贝塞尔命令精确绘制，不做折线细分。
+     * 归一化后心形的水平宽度为 2·radius，并以 (x, y) 为中心。
+     *
+     * @param x - 中心 X
+     * @param y - 中心 Y
+     * @param radius - 半宽（心形水平方向的半径）
+     * @param rotation - 旋转角度（弧度，默认 0）
+     */
+    heart(x: number, y: number, radius: number, rotation: number = 0): void {
+        // 设计稿：包围盒 [10, 90]²，中心 (50, 50)，宽 80；圆瓣半径 20
+        const s = radius / 40
+        const cosR = Math.cos(rotation)
+        const sinR = Math.sin(rotation)
+        // 设计稿局部坐标 → 世界坐标：以 (50, 50) 为中心缩放 s，再绕 (x, y) 旋转
+        const tx = (px: number, py: number) => {
+            const lx = (px - 50) * s
+            const ly = (py - 50) * s
+            return { x: x + lx * cosR - ly * sinR, y: y + lx * sinR + ly * cosR }
+        }
+        const lobeRadius = 20 * s
+
+        // 起点：左圆瓣的左极点
+        const p0 = tx(10, 30)
+        this.moveTo(p0.x, p0.y)
+        // 左圆瓣：圆心 (30, 30)，从 π 扫到 2π（经过顶部）
+        const cl = tx(30, 30)
+        this.arc(cl.x, cl.y, lobeRadius, Math.PI + rotation, Math.PI * 2 + rotation)
+        // 右圆瓣：圆心 (70, 30)，同样经过顶部
+        const cr = tx(70, 30)
+        this.arc(cr.x, cr.y, lobeRadius, Math.PI + rotation, Math.PI * 2 + rotation)
+        // 右侧：二次贝塞尔收拢到底部尖端
+        const q1c = tx(90, 60)
+        const q1e = tx(50, 90)
+        this.quadraticCurveTo(q1c.x, q1c.y, q1e.x, q1e.y)
+        // 左侧：二次贝塞尔回到起点
+        const q2c = tx(10, 60)
+        const q2e = tx(10, 30)
+        this.quadraticCurveTo(q2c.x, q2c.y, q2e.x, q2e.y)
+        this.closePath()
+    }
+
+    /**
+     * 添加水滴路径
+     *
+     * 底部为半径 radius 的半圆，两侧以三次贝塞尔曲线收拢到顶部尖端，
+     * 顶部为一个尖角（cusp），整体形如水滴。
+     *
+     * @param x - 底部圆心 X
+     * @param y - 底部圆心 Y
+     * @param radius - 底部半圆半径（水滴半宽）
+     * @param height - 尖端高出圆心的距离（默认 radius * 1.6）
+     */
+    droplet(x: number, y: number, radius: number, height: number = radius * 1.6): void {
+        const tipY = y - height
+        const cpX = radius * 0.35
+        const cpY = y - height * 0.75
+        const poleY = y - height * 0.4
+        // 顶端尖角 → 右极点（与底部半圆在极点处切线连续）
+        this.moveTo(x, tipY)
+        this.bezierCurveTo(x + cpX, cpY, x + radius, poleY, x + radius, y)
+        // 底部半圆：右极点 → 左极点（经过下方）
+        this.arc(x, y, radius, 0, Math.PI)
+        // 左极点 → 顶端尖角
+        this.bezierCurveTo(x - radius, poleY, x - cpX, cpY, x, tipY)
+        this.closePath()
     }
 
     /**
@@ -590,7 +792,7 @@ export class PathBuilder {
     arcToSvg(
         x1: number, y1: number,
         rx: number, ry: number, rotation: number,
-        largeArcFlag: boolean, sweepFlag: boolean,x:number,y:number
+        largeArcFlag: boolean, sweepFlag: boolean, x: number, y: number
     ): void {
         ellipseSvgArcFromPath(this, x1, y1, rx, ry, rotation, largeArcFlag, sweepFlag, x, y)
         this.segmentType |= PathSegmentType.EllipseSvgArc
@@ -845,17 +1047,17 @@ export class PathBuilder {
      *   - points：子路径的折线点序列
      *   - closed：是否有 Close 命令（闭合时末点与起点重合）
      */
-    getSubPaths(epsilon: number = 0.25): { points: PointLike[], closed: boolean }[] {
+    getSubPaths(autoClose: boolean = true, epsilon: number = 0.25): { points: PointLike[], closed: boolean }[] {
         const subPaths: { points: PointLike[], closed: boolean }[] = []
         let subPath: { points: PointLike[], closed: boolean } | null = null
         const finish = (closed: boolean) => {
             if (subPath) {
                 // 闭合路径：末点与起点不重合时补上起点，保证多边形真正闭合
-                if (closed && subPath.points.length > 0
+                if (autoClose||closed && subPath.points.length > 0
                     && !Point.equalsEpsilon(subPath.points[subPath.points.length - 1], subPath.points[0])) {
                     subPath.points.push({ x: subPath.points[0].x, y: subPath.points[0].y })
                 }
-                subPath.closed = closed
+                subPath.closed = autoClose || closed
                 subPaths.push(subPath)
                 subPath = null
             }

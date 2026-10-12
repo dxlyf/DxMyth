@@ -27,10 +27,10 @@ export declare class Transform<Events extends TransformEvents = any> extends Eve
     private _worldMatrixInvert;
     private _worldScale;
     /** 当前局部属性版本（Point onChange 或 rotation setter 自动递增） */
-    private _localMatrixDirty;
-    private _worldMatrixDirty;
-    private _worldVersion;
-    private _parentWorldVersion;
+    _localMatrixDirty: boolean;
+    _worldMatrixDirty: boolean;
+    _worldVersion: number;
+    _parentWorldVersion: number;
     constructor(options?: TransformProps);
     get rotation(): number;
     set rotation(v: number);

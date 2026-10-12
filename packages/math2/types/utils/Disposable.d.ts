@@ -10,6 +10,11 @@ export interface IDisposable {
     isDisposed: boolean;
     dispose(): void;
 }
+export declare class Disposable implements IDisposable {
+    isDisposed: boolean;
+    onDispose(): void;
+    dispose(): void;
+}
 export declare function mixinDisposable(target: {
     prototype: IDisposable;
     new (...args: any[]): IDisposable;

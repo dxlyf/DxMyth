@@ -1,6 +1,6 @@
 
 import { ExampleManager, CanvasExample } from '../lib/Example2'
-import { Stats, Ruler, isPointInPolygon, ZoomTranslate, polygonOffset, buildStrokePoints, CanvasRenderer, random, Path2D as SPath2D, pathBooleanOp, Line, PathBuilder, Point, Conic, PointerEventSystem, PathStroke, Matrix2D, Transform, clipper2, BoolOp, ShapePath, Vector2 } from 'src'
+import { Stats, Ruler, isPointInPolygon, ZoomTranslate, polygonOffset, buildStrokePoints, random, Path2D as SPath2D, pathBooleanOp, Line, PathBuilder, Point, Conic, PointerEventSystem, PathStroke, Matrix2D, Transform, clipper2, BoolOp, ShapePath, Vector2 } from 'src'
 
 
 export class StrokeExample extends CanvasExample {

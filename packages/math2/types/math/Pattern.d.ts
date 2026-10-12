@@ -1,5 +1,6 @@
 import { Matrix2D } from './Matrix2D';
-export declare class Pattern {
+import { Disposable } from '../utils/Disposable';
+export declare class Pattern extends Disposable {
     static fromUrl(url: string): Pattern;
     static fromImage(image: CanvasImageSource): Pattern;
     type: 'pattern';
@@ -11,4 +12,5 @@ export declare class Pattern {
     constructor(image?: CanvasImageSource, repeat?: 'repeat' | 'repeat-x' | 'repeat-y');
     clone(): Pattern;
     copy(source: Pattern): void;
+    onDispose(): void;
 }

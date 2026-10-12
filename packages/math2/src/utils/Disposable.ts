@@ -18,6 +18,17 @@ export interface IDisposable {
     isDisposed: boolean // 是否已释放
     dispose():void // 立即释放资源
 }
+export class Disposable implements IDisposable{
+    isDisposed: boolean = false
+    onDispose():void{}
+    dispose():void{
+        if(this.isDisposed){
+            return
+        }
+        this.isDisposed=true
+        this.onDispose()
+    }
+}
 export function mixinDisposable(target: {prototype:IDisposable,new (...args: any[]): IDisposable}) {
     const oldDispose = target.prototype.dispose
     target.prototype.isDisposed = false
