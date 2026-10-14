@@ -2,6 +2,18 @@ import { Vector2Like as PointLike } from './Vector2';
 import { BoundingRect } from './BoundingRect';
 import { Matrix2DLike } from './Matrix2D';
 import { CachePool } from './CachePool';
+export type FlattenedContour = {
+    points: PointLike[];
+    closed: boolean;
+};
+export interface FlattenOptions {
+    /** 最大弦高误差，默认 0.25（四分之一像素）。 */
+    readonly tolerance?: number;
+    /** 是否自动闭合开放子路径，默认 true（fill 语义）。dash / stroke 用 false。 */
+    readonly autoClose?: boolean;
+    /** 是否跳过退化子路径，默认 false。 */
+    readonly skipDegenerate?: boolean;
+}
 export declare enum PathVerb {
     MoveTo = 1,
     LineTo = 2,
@@ -290,10 +302,7 @@ export declare class PathBuilder {
      *   - points：子路径的折线点序列
      *   - closed：是否有 Close 命令（闭合时末点与起点重合）
      */
-    getSubPaths(autoClose?: boolean, epsilon?: number): {
-        points: PointLike[];
-        closed: boolean;
-    }[];
+    getSubPaths(options?: FlattenOptions): FlattenedContour[];
     fromPolygons(polygons: PointLike[][]): this;
     /**
      * 将路径数据导出为 SVG path d 属性字符串命令数组。

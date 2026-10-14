@@ -26,6 +26,8 @@ export * from './math/PathBool';
 export * from './math/PathBuilder';
 export * from './math/PathIntersection';
 export * from './math/PathStroke';
+export * from './math/GenerateOutline';
+export * from './math/PathDash';
 export * from './math/Point';
 export * from './math/QuadraticBezier';
 export * from './math/RTree';

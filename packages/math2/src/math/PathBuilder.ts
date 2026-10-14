@@ -11,6 +11,19 @@ import { fromSvgPath } from './ParseSvgPath'
 import { Conic } from './Conic'
 import { CachePool } from './CachePool'
 
+export type FlattenedContour={
+  points:PointLike[],
+  closed:boolean
+}
+export interface FlattenOptions {
+  /** 最大弦高误差，默认 0.25（四分之一像素）。 */
+  readonly tolerance?: number;
+  /** 是否自动闭合开放子路径，默认 true（fill 语义）。dash / stroke 用 false。 */
+  readonly autoClose?: boolean;
+  /** 是否跳过退化子路径，默认 false。 */
+  readonly skipDegenerate?: boolean;
+}
+
 export enum PathVerb {
     MoveTo = 1 << 0,
     LineTo = 1 << 1,
@@ -1047,20 +1060,32 @@ export class PathBuilder {
      *   - points：子路径的折线点序列
      *   - closed：是否有 Close 命令（闭合时末点与起点重合）
      */
-    getSubPaths(autoClose: boolean = true, epsilon: number = 0.25): { points: PointLike[], closed: boolean }[] {
+    getSubPaths(options:FlattenOptions={}): FlattenedContour[] {
+        const {tolerance=0.25,autoClose=true,skipDegenerate=false}=options
         const subPaths: { points: PointLike[], closed: boolean }[] = []
         let subPath: { points: PointLike[], closed: boolean } | null = null
         const finish = (closed: boolean) => {
-            if (subPath) {
-                // 闭合路径：末点与起点不重合时补上起点，保证多边形真正闭合
-                if (autoClose||closed && subPath.points.length > 0
-                    && !Point.equalsEpsilon(subPath.points[subPath.points.length - 1], subPath.points[0])) {
-                    subPath.points.push({ x: subPath.points[0].x, y: subPath.points[0].y })
-                }
-                subPath.closed = autoClose || closed
-                subPaths.push(subPath)
-                subPath = null
+            const contour = subPath
+            subPath = null
+            if (!contour || contour.points.length === 0) return
+            const points = contour.points
+            // 闭合路径：末点与起点不重合时补上起点，保证多边形真正闭合
+            if ((autoClose || closed) && !Point.equalsEpsilon(points[points.length - 1], points[0])) {
+                points.push({ x: points[0].x, y: points[0].y })
             }
+            contour.closed = autoClose || closed
+            // 退化子路径：点数不足 2 或所有点重合时不构成有效线段，按需跳过
+            if (skipDegenerate) {
+                let degenerate = points.length < 2
+                if (!degenerate) {
+                    degenerate = true
+                    for (let i = 1; i < points.length; i++) {
+                        if (!Point.equalsEpsilon(points[i], points[0])) { degenerate = false; break }
+                    }
+                }
+                if (degenerate) return
+            }
+            subPaths.push(contour)
         }
         this.visit({
             moveTo: (p) => {
@@ -1072,13 +1097,13 @@ export class PathBuilder {
             },
             quadraticCurveTo: (p0, p1, p2) => {
                 const quad = new QuadraticBezier([p0, p1, p2])
-                quad.flatten(epsilon).forEach(p => {
+                quad.flatten(tolerance).forEach(p => {
                     subPath?.points.push({ x: p.x, y: p.y })
                 })
             },
             cubicCurveTo: (p0, p1, p2, p3) => {
                 const curve = new CubicBezier([p0, p1, p2, p3])
-                curve.flatten(epsilon).forEach(p => {
+                curve.flatten(tolerance).forEach(p => {
                     subPath?.points.push({ x: p.x, y: p.y })
                 })
             },
