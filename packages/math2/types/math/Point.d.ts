@@ -31,6 +31,8 @@ export declare class Point implements PointLike {
     subtract(v: Vector2Like): this;
     multiply(v: Vector2Like): this;
     multiplyScalar(s: number): this;
+    divide(v: Vector2Like): this;
+    divideScalar(s: number): this;
     magnitude(): number;
     magnitudeSquared(): number;
     dot(v: Vector2Like): number;

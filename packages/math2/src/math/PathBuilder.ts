@@ -17,11 +17,11 @@ export type FlattenedContour={
 }
 export interface FlattenOptions {
   /** 最大弦高误差，默认 0.25（四分之一像素）。 */
-  readonly tolerance?: number;
+  tolerance?: number;
   /** 是否自动闭合开放子路径，默认 true（fill 语义）。dash / stroke 用 false。 */
-  readonly autoClose?: boolean;
+  autoClose?: boolean;
   /** 是否跳过退化子路径，默认 false。 */
-  readonly skipDegenerate?: boolean;
+  skipDegenerate?: boolean;
 }
 
 export enum PathVerb {
@@ -1061,7 +1061,7 @@ export class PathBuilder {
      *   - closed：是否有 Close 命令（闭合时末点与起点重合）
      */
     getSubPaths(options:FlattenOptions={}): FlattenedContour[] {
-        const {tolerance=0.25,autoClose=true,skipDegenerate=false}=options
+        const {tolerance=0.25,autoClose=false,skipDegenerate=false}=options
         const subPaths: { points: PointLike[], closed: boolean }[] = []
         let subPath: { points: PointLike[], closed: boolean } | null = null
         const finish = (closed: boolean) => {
@@ -1070,7 +1070,7 @@ export class PathBuilder {
             if (!contour || contour.points.length === 0) return
             const points = contour.points
             // 闭合路径：末点与起点不重合时补上起点，保证多边形真正闭合
-            if ((autoClose || closed) && !Point.equalsEpsilon(points[points.length - 1], points[0])) {
+            if (autoClose&& !Point.equalsEpsilon(points[points.length - 1], points[0])) {
                 points.push({ x: points[0].x, y: points[0].y })
             }
             contour.closed = autoClose || closed

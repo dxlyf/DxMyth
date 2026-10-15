@@ -1,3 +1,5 @@
+import { FlattenedContour } from "./PathBuilder"
+
 /**
  * A vertex in a circular doubly linked list representing a polygon ring.
  */
@@ -26,7 +28,7 @@ let filteredOut = false
  * @returns triangles as triplets of vertex indices into `data`
  * @example earcut([10,0, 0,50, 60,60, 70,10]); // [1,0,3, 3,2,1]
  */
-export default function earcut(data: ArrayLike<number>, holeIndices?: ArrayLike<number> | null, dim: number = 2): number[] {
+export function earcut(data: ArrayLike<number>, holeIndices?: ArrayLike<number> | null, dim: number = 2): number[] {
     const hasHoles = holeIndices && holeIndices.length
     const outerLen = hasHoles ? (holeIndices as ArrayLike<number>)[0] * dim : data.length
     if (steiners.size) steiners.clear()
@@ -371,7 +373,7 @@ function findHoleBridge(hole: Node, outerNode: Node): Node | null {
         p = liveBlockHead(b)
         do {
             if (p.prev.next === p && hx >= p.x && p.x >= mx && hx !== p.x &&
-                    pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
                 const tan = Math.abs(hy - p.y) / (hx - p.x)
                 if ((locallyInside(p, hole) || (p.y === hy && p.next.y === hy && p.next.x > hx)) &&
                     (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
@@ -414,7 +416,7 @@ function indexCurve(start: Node, minX: number, minY: number, invSize: number): v
         if (prev) prev.nextZ = node
         prev = node
     }
-    ;(prev as Node).nextZ = null
+    ; (prev as Node).nextZ = null
 }
 
 function sortNodes(n: number): void {
@@ -484,8 +486,8 @@ function getLeftmost(start: Node): Node {
 
 function pointInTriangle(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, px: number, py: number): boolean {
     return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
-           (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
-           (bx - px) * (cy - py) >= (cx - px) * (by - py)
+        (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+        (bx - px) * (cy - py) >= (cx - px) * (by - py)
 }
 
 function isValidDiagonal(a: Node, b: Node): boolean {
@@ -540,7 +542,7 @@ function intersectsPolygon(a: Node, b: Node): boolean {
             continue
         }
         if (p.i !== a.i && n.i !== a.i && p.i !== b.i && n.i !== b.i &&
-                intersects(p, n, a, b)) return true
+            intersects(p, n, a, b)) return true
         p = n
     } while (p !== a)
 
@@ -760,8 +762,8 @@ export function refine(triangles: number[], coords: ArrayLike<number>, dim: numb
             heArr[b] = har; if (har !== -1) heArr[har] = b
             heArr[ar] = bl; heArr[bl] = ar
 
-            if (hbl    !== -1 && edgeStamp[a]  === 0) { edgeStamp[a]  = 1; edgeStack[i++] = a }
-            if (har    !== -1 && edgeStamp[b]  === 0) { edgeStamp[b]  = 1; edgeStack[i++] = b }
+            if (hbl !== -1 && edgeStamp[a] === 0) { edgeStamp[a] = 1; edgeStack[i++] = a }
+            if (har !== -1 && edgeStamp[b] === 0) { edgeStamp[b] = 1; edgeStack[i++] = b }
             if (heArr[al] !== -1 && edgeStamp[al] === 0) { edgeStamp[al] = 1; edgeStack[i++] = al }
             if (heArr[br] !== -1 && edgeStamp[br] === 0) { edgeStamp[br] = 1; edgeStack[i++] = br }
         }
@@ -792,3 +794,24 @@ function ensureScratch(n: number): void {
     if (!hTable || hTable.length < size) { hTable = new Int32Array(size); hStamp = new Uint32Array(size) }
     hMask = size - 1
 }
+type Tri = { pts: number[]; color: [number, number, number] }
+export function buildTriangles(polygons: FlattenedContour[]) {
+    const vertices: number[] = []
+    const indices: number[] = []
+    let startIndex = 0
+    for (const poly of polygons) {
+        const p = poly.points
+        if (p.length < 3) continue
+        for (const q of p) {
+            vertices.push(q.x, q.y)
+        }
+        const tris = earcut(vertices.slice(startIndex))
+        const offset = startIndex/2
+        for (let i = 0; i < tris.length; i ++) {
+            indices.push(tris[i]+offset)
+        }
+        startIndex = vertices.length
+    }
+    return { vertices, indices }
+}
+export default earcut

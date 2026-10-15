@@ -1,3 +1,4 @@
+import { FlattenedContour } from './PathBuilder';
 /**
  * Triangulate a polygon given as a flat array of vertex coordinates.
  *
@@ -7,7 +8,7 @@
  * @returns triangles as triplets of vertex indices into `data`
  * @example earcut([10,0, 0,50, 60,60, 70,10]); // [1,0,3, 3,2,1]
  */
-export default function earcut(data: ArrayLike<number>, holeIndices?: ArrayLike<number> | null, dim?: number): number[];
+export declare function earcut(data: ArrayLike<number>, holeIndices?: ArrayLike<number> | null, dim?: number): number[];
 /**
  * Return the relative difference between the polygon area and the area of its triangulation.
  *
@@ -38,3 +39,8 @@ export declare function flatten(data: ReadonlyArray<ReadonlyArray<ArrayLike<numb
  * @param dim number of coordinates per vertex in `coords`
  */
 export declare function refine(triangles: number[], coords: ArrayLike<number>, dim?: number): void;
+export declare function buildTriangles(polygons: FlattenedContour[]): {
+    vertices: number[];
+    indices: number[];
+};
+export default earcut;

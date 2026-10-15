@@ -5,6 +5,9 @@
 import { BoundingRect } from '../BoundingRect'
 import { Geometry, PointOut, distPointToSegment } from './Geometry'
 
+/** 叉积/参数比较容差 */
+const EPS = 1e-9
+
 export class Line extends Geometry {
     x1: number
     y1: number
@@ -91,6 +94,67 @@ export class Line extends Geometry {
         const r = out || new BoundingRect()
         r.min.set(Math.min(this.x1, this.x2), Math.min(this.y1, this.y2))
         r.max.set(Math.max(this.x1, this.x2), Math.max(this.y1, this.y2))
+        return r
+    }
+
+    /**
+     * 求两条线段的交点（各自限制在线段范围内）
+     * 解 P1 + t·d1 = P2 + u·d2，仅当 t、u ∈ [0,1] 时两线段真正相交。
+     * @returns 交点写入 out；平行/共线或交点在延长线上时返回 null
+     */
+    static intersectSegment(
+        ax1: number, ay1: number, ax2: number, ay2: number,
+        bx1: number, by1: number, bx2: number, by2: number,
+        out?: PointOut
+    ): PointOut | null {
+        const dx1 = ax2 - ax1
+        const dy1 = ay2 - ay1
+        const dx2 = bx2 - bx1
+        const dy2 = by2 - by1
+        const denom = dx1 * dy2 - dy1 * dx2
+        if (Math.abs(denom) <= EPS) return null
+        const ex = bx1 - ax1
+        const ey = by1 - ay1
+        const t = (ex * dy2 - ey * dx2) / denom
+        const u = (ex * dy1 - ey * dx1) / denom
+        if (t < -EPS || t > 1 + EPS || u < -EPS || u > 1 + EPS) return null
+        const r = out || { x: 0, y: 0 }
+        r.x = ax1 + t * dx1
+        r.y = ay1 + t * dy1
+        return r
+    }
+
+    /**
+     * 求两条直线的交点（无限延长），每条直线各由两个点给出。
+     * @returns 交点写入 out；两直线平行/重合时返回 null
+     */
+    static intersectLine(
+        ax1: number, ay1: number, ax2: number, ay2: number,
+        bx1: number, by1: number, bx2: number, by2: number,
+        out?: PointOut
+    ): PointOut | null {
+        return Line.intersectLineByDirection(
+            ax1, ay1, ax2 - ax1, ay2 - ay1,
+            bx1, by1, bx2 - bx1, by2 - by1,
+            out
+        )
+    }
+
+    /**
+     * 求两条直线的交点，每条直线由「一点 + 方向」给出（方向无需单位化，但不能为零向量）。
+     * @returns 交点写入 out；两直线平行/重合时返回 null
+     */
+    static intersectLineByDirection(
+        px: number, py: number, dx: number, dy: number,
+        qx: number, qy: number, ex: number, ey: number,
+        out?: PointOut
+    ): PointOut | null {
+        const denom = dx * ey - dy * ex
+        if (Math.abs(denom) <= EPS) return null
+        const t = ((qx - px) * ey - (qy - py) * ex) / denom
+        const r = out || { x: 0, y: 0 }
+        r.x = px + t * dx
+        r.y = py + t * dy
         return r
     }
 }

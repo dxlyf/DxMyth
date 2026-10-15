@@ -8,11 +8,11 @@ export type FlattenedContour = {
 };
 export interface FlattenOptions {
     /** 最大弦高误差，默认 0.25（四分之一像素）。 */
-    readonly tolerance?: number;
+    tolerance?: number;
     /** 是否自动闭合开放子路径，默认 true（fill 语义）。dash / stroke 用 false。 */
-    readonly autoClose?: boolean;
+    autoClose?: boolean;
     /** 是否跳过退化子路径，默认 false。 */
-    readonly skipDegenerate?: boolean;
+    skipDegenerate?: boolean;
 }
 export declare enum PathVerb {
     MoveTo = 1,

@@ -25,3 +25,16 @@ export type PolygonStrokerOptions = StrokeOptions & {
  * @returns 一组闭合多边形，每项形如 { points, closed:true }
  */
 export declare function generateOutline(contours: FlattenedContour[], options?: PolygonStrokerOptions): FlattenedContour[];
+/**
+     * 把中心线整体沿法向平移，使「原生居中描边」等价于 generateOutline 的 alignment 描边。
+     *
+     * alignment=0.5 时不平移；band 中线相对中心线的偏移为 lineWidth*(alignment-0.5)。
+     * 内部顶点沿角平分线平移，使到相邻两段法向的垂直距离都等于该偏移量：
+     *   offsetVec = (n0 + n1) * shift / (1 + n0·n1)
+     * 开放路径的首末顶点用所在段的单侧法向平移。
+     */
+export declare function offsetOutlineForAlignment(contour: FlattenedContour, shift: number): {
+    x: number;
+    y: number;
+}[];
+export declare function offsetContoursForAlignment(contours: FlattenedContour[], shift: number): FlattenedContour[];

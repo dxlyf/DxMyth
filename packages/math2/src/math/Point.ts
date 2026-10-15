@@ -113,6 +113,12 @@ export class Point implements PointLike {
     multiplyScalar(s: number): this {
         return this.set(this._x * s, this._y * s)
     }
+    divide(v: Vector2Like) {
+        return this.set(this.x / v.x, this.y / v.y)
+    }
+    divideScalar(s: number) {
+        return this.set(this._x / s, this._y / s)
+    }
 
     // ---- 查询 ----
 

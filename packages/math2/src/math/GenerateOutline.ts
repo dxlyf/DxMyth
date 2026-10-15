@@ -1,6 +1,6 @@
 import type { FlattenedContour } from './PathBuilder'
 import { LineCap, LineJoin, type StrokeOptions } from './PathStroke'
-import type { Vector2Like } from './Vector2'
+import { Vector2, type Vector2Like } from './Vector2'
 
 /**
  * 多边形描边选项：在通用描边选项（StrokeOptions）基础上增加 offset 对齐参数。
@@ -56,12 +56,14 @@ export function generateOutline(
     } = options
 
     // 法向两侧的偏移距离：alignment=0.5 时两侧均为 lineWidth/2
-    const ratio = Math.min(1, Math.max(0, alignment))
-    const dLeft = lineWidth * ratio
-    const dRight = lineWidth * (1 - ratio)
+
+    const dLeft = lineWidth * 0.5
+    const dRight = lineWidth * 0.5
     const halfWidth = lineWidth * 0.5
     const eps = 1e-6 * (scale || 1)
-
+    if(alignment !== 0.5) {
+        contours=offsetContoursForAlignment(contours,(alignment-0.5)*lineWidth)
+    }
     const polygons: FlattenedContour[] = []
     const pt = (x: number, y: number): Vector2Like => ({ x, y })
 
@@ -84,6 +86,28 @@ export function generateOutline(
      * 与 PathStroke 中 unitNormal.perpendicular().negate() 的约定保持一致。
      */
     const normalOf = (t: Vector2Like): Vector2Like => pt(t.y, -t.x)
+    /**
+     * 把一段圆弧离散成闭合多边形（round cap / round join 共用）。
+     * @param cx,cy        圆心
+     * @param radius       半径
+     * @param ang0         起始角（弧度）
+     * @param sweep        扫过角度（弧度，符号决定方向）
+     * @param includeCenter 是否把圆心并入顶点：true 得到扇形块（join 需要）；
+     *                      false 直接由弧两端点连弦封口（cap 的半圆弦恰为直径）
+     */
+    const emitArc = (
+        cx: number, cy: number, radius: number,
+        ang0: number, sweep: number, includeCenter: boolean,
+    ) => {
+        // const segs = arcSegments(sweep)
+        const segs = ((15 * Math.abs(sweep) * Math.sqrt(radius) / Math.PI) >> 0) + 1;
+        const poly: Vector2Like[] = includeCenter ? [pt(cx, cy)] : []
+        for (let k = 0; k <= segs; k++) {
+            const ang = ang0 + (sweep * k) / segs
+            poly.push(pt(cx + Math.cos(ang) * radius, cy + Math.sin(ang) * radius))
+        }
+        emit(poly)
+    }
     /** 生成端点封口多边形。out 为该端点朝外的单位切线方向。 */
     const emitCap = (p: Vector2Like, nn: Vector2Like, out: Vector2Like) => {
         const left = pt(p.x + nn.x * dLeft, p.y + nn.y * dLeft)
@@ -101,13 +125,7 @@ export function generateOutline(
             const cy = p.y + nn.y * ((dLeft - dRight) * 0.5)
             const ang0 = Math.atan2(nn.y, nn.x)
             const sweep = (nn.x * out.y - nn.y * out.x > 0 ? 1 : -1) * Math.PI
-            const segs = arcSegments(sweep)
-            const poly: Vector2Like[] = []
-            for (let k = 0; k <= segs; k++) {
-                const ang = ang0 + (sweep * k) / segs
-                poly.push(pt(cx + Math.cos(ang) * halfWidth, cy + Math.sin(ang) * halfWidth))
-            }
-            emit(poly)
+            emitArc(cx, cy, halfWidth, ang0, sweep, false)
         }
         // butt：线段矩形自身的端边即为封口，无需额外多边形
     }
@@ -184,13 +202,7 @@ export function generateOutline(
             if (lineJoin === LineJoin.Round) {
                 const ang0 = Math.atan2(a0.y, a0.x)
                 const sweep = wrapAngle(Math.atan2(a1.y, a1.x) - ang0)
-                const segs = arcSegments(sweep)
-                const poly: Vector2Like[] = [pt(p.x, p.y)]
-                for (let k = 0; k <= segs; k++) {
-                    const ang = ang0 + (sweep * k) / segs
-                    poly.push(pt(p.x + Math.cos(ang) * radius, p.y + Math.sin(ang) * radius))
-                }
-                emit(poly)
+                emitArc(p.x, p.y, radius, ang0, sweep, true)
             } else if (lineJoin === LineJoin.Bevel) {
                 emit([pt(p.x, p.y), e0, e1])
             } else {
@@ -225,4 +237,60 @@ export function generateOutline(
     }
 
     return polygons
+}
+
+/**
+     * 把中心线整体沿法向平移，使「原生居中描边」等价于 generateOutline 的 alignment 描边。
+     *
+     * alignment=0.5 时不平移；band 中线相对中心线的偏移为 lineWidth*(alignment-0.5)。
+     * 内部顶点沿角平分线平移，使到相邻两段法向的垂直距离都等于该偏移量：
+     *   offsetVec = (n0 + n1) * shift / (1 + n0·n1)
+     * 开放路径的首末顶点用所在段的单侧法向平移。
+     */
+export function offsetOutlineForAlignment(contour: FlattenedContour, shift: number): { x: number; y: number }[] {
+    const pts = contour.points.slice()
+    if(contour.closed&&Vector2.equalsEpsilon(pts[pts.length-1],pts[0])){
+        pts.pop()
+    }
+    const n = pts.length
+    if (n < 2 || Math.abs(shift) < 1e-9) return pts.map(p => ({ x: p.x, y: p.y }))
+    const closed = contour.closed
+    const segCount = closed ? n : n - 1
+    // 每段单位法向：切线 (dx,dy) 逆时针 90° -> (dy,-dx)，与 GenerateOutline 保持一致
+    const normals: { x: number; y: number }[] = []
+    for (let i = 0; i < segCount; i++) {
+        const a = pts[i]
+        const b = pts[(i + 1) % n]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const len = Math.hypot(dx, dy) || 1
+        normals.push({ x: dy / len, y: -dx / len })
+    }
+    return pts.map((p, i) => {
+        let vx: number, vy: number
+        if (!closed && i === 0) {
+            vx = normals[0].x * shift
+            vy = normals[0].y * shift
+        } else if (!closed && i === n - 1) {
+            const nm = normals[segCount - 1]
+            vx = nm.x * shift
+            vy = nm.y * shift
+        } else {
+            const pn = normals[(i - 1 + segCount) % segCount]
+            const nn = normals[i % segCount]
+            const denom = 1 + (pn.x * nn.x + pn.y * nn.y)
+            if (Math.abs(denom) < 1e-9) {
+                vx = pn.x * shift
+                vy = pn.y * shift
+            } else {
+                vx = ((pn.x + nn.x) * shift) / denom
+                vy = ((pn.y + nn.y) * shift) / denom
+            }
+        }
+        return { x: p.x + vx, y: p.y + vy }
+    })
+}
+
+export function offsetContoursForAlignment(contours: FlattenedContour[], shift: number): FlattenedContour[] {
+    return contours.map(contour => ({points:offsetOutlineForAlignment(contour, shift), closed: contour.closed}))
 }

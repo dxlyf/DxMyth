@@ -678,7 +678,7 @@ function angleBetween(ux: number, uy: number, vx: number, vy: number): number {
   return Math.atan2(cross, dot)
 }
 
-export const buildArc = (points: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw: boolean = false,tolerance=0.5) => {
+export const buildArc = (out: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw: boolean = false,tolerance=0.5) => {
   const { startAngle, endAngle } = normalizeAngles(start, end, ccw)
   const delta = endAngle - startAngle
   if (Math.abs(delta) <= 1e-6) {
@@ -691,7 +691,76 @@ export const buildArc = (points: Vector2Like[], cx: number, cy: number, r: numbe
   for (let i = 0; i <= segmentCount; i++) {
     let x = cx + r * Math.cos(angle)
     let y = cy + r * Math.sin(angle)
-    points.push({ x: x, y: y })
+    out.push({ x: x, y: y })
     angle += segmentAngle
   }
+}
+
+export function buildRound(out:Vector2Like[],
+    cx: number,
+    cy: number,
+    sx: number,
+    sy: number,
+    ex: number,
+    ey: number,
+    clockwise: boolean, /* if not cap, then clockwise is turn of joint, otherwise rotation from angle0 to angle1 */
+): number
+{
+    const cx2p0x = sx - cx;
+    const cy2p0y = sy - cy;
+
+    let angle0 = Math.atan2(cx2p0x, cy2p0y);
+    let angle1 = Math.atan2(ex - cx, ey - cy);
+
+    if (clockwise && angle0 < angle1)
+    {
+        angle0 += Math.PI * 2;
+    }
+    else if (!clockwise && angle0 > angle1)
+    {
+        angle1 += Math.PI * 2;
+    }
+
+    let startAngle = angle0;
+    const angleDiff = angle1 - angle0;
+    const absAngleDiff = Math.abs(angleDiff);
+
+    const radius = Math.sqrt((cx2p0x * cx2p0x) + (cy2p0y * cy2p0y));
+    const segCount = ((15 * absAngleDiff * Math.sqrt(radius) / Math.PI) >> 0) + 1;
+    const angleInc = angleDiff / segCount;
+
+    startAngle += angleInc;
+
+    if (clockwise)
+    {
+        out.push({x:cx, y:cy});
+        out.push({x:sx, y:sy});
+
+        for (let i = 1, angle = startAngle; i < segCount; i++, angle += angleInc)
+        {
+            out.push({x:cx, y:cy});
+            out.push({x:cx + ((Math.sin(angle) * radius)),
+                y:cy + ((Math.cos(angle) * radius))});
+        }
+
+        out.push({x:cx, y:cy});
+        out.push({x:ex, y:ey});
+    }
+    else
+    {
+        out.push({x:sx, y:sy});
+        out.push({x:cx, y:cy});
+
+        for (let i = 1, angle = startAngle; i < segCount; i++, angle += angleInc)
+        {
+            out.push({x:cx + ((Math.sin(angle) * radius)),
+                y:cy + ((Math.cos(angle) * radius))});
+            out.push({x:cx, y:cy});
+        }
+
+        out.push({x:ex, y:ey});
+        out.push({x:cx, y:cy});
+    }
+
+    return segCount * 2;
 }

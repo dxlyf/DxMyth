@@ -23,4 +23,20 @@ export declare class Line extends Geometry {
     signedDistance(x: number, y: number): number;
     getPoints(out?: PointOut[]): PointOut[];
     bounds(out?: BoundingRect): BoundingRect;
+    /**
+     * 求两条线段的交点（各自限制在线段范围内）
+     * 解 P1 + t·d1 = P2 + u·d2，仅当 t、u ∈ [0,1] 时两线段真正相交。
+     * @returns 交点写入 out；平行/共线或交点在延长线上时返回 null
+     */
+    static intersectSegment(ax1: number, ay1: number, ax2: number, ay2: number, bx1: number, by1: number, bx2: number, by2: number, out?: PointOut): PointOut | null;
+    /**
+     * 求两条直线的交点（无限延长），每条直线各由两个点给出。
+     * @returns 交点写入 out；两直线平行/重合时返回 null
+     */
+    static intersectLine(ax1: number, ay1: number, ax2: number, ay2: number, bx1: number, by1: number, bx2: number, by2: number, out?: PointOut): PointOut | null;
+    /**
+     * 求两条直线的交点，每条直线由「一点 + 方向」给出（方向无需单位化，但不能为零向量）。
+     * @returns 交点写入 out；两直线平行/重合时返回 null
+     */
+    static intersectLineByDirection(px: number, py: number, dx: number, dy: number, qx: number, qy: number, ex: number, ey: number, out?: PointOut): PointOut | null;
 }

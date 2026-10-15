@@ -165,7 +165,7 @@ export function polygonOffset(points: Vector2Like[], width: number) {
     const _isPolygonClockwise = isPolygonClockwise(points)
     const invMiterLimit = 1 / Number.MAX_SAFE_INTEGER
     const closed = Vector2.equalsEpsilon(points[0], points[points.length - 1], 1e-6)
-    console.log('_isPolygonClockwise', _isPolygonClockwise)
+ 
     for (let i = 0, len = points.length; i < len; i++) {
         cur.copy(points[i])
         if (i > 0) {

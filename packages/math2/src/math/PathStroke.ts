@@ -165,6 +165,7 @@ const miterJoin: JoinProc = (beforeUnitNormal, pivot, afterUnitNormal, radius, i
 
     // miter 尖角点 = pivot + (n0+n1)归一化 * miterLen
     const miterLen = radius / halfSin
+   // const miterPt = Point.fromPoint(n0).add(n1).divideScalar(1+cosh)
     const miterPt = Point.fromPoint(n0).add(n1).normalize().multiplyScalar(miterLen).add(pivot)
 
     // prevIsLine 时替换前段终点为 miter 尖角点，避免半径大时拐角处产生多余台阶

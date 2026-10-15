@@ -1,5 +1,5 @@
 import { ExampleManager, Example } from '../lib/Example2'
-import { PathBuilder, generateOutline, LineJoin, LineCap, earcut, type FlattenedContour } from 'src'
+import { PathBuilder, generateOutline, LineJoin, LineCap, earcut, type FlattenedContour,offsetContoursForAlignment } from 'src'
 
 /** h,s,l 均为 0~1 之外的标准写法：h 为 0~360，s/l 为 0~1。 */
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
@@ -188,8 +188,10 @@ export class GenerateOutlineExample extends Example {
 
     /** generateOutline 拆出的多边形 */
     computePolygons(): FlattenedContour[] {
-        const contours = this.buildPath().getSubPaths({ autoClose: false, skipDegenerate: true })
-        return generateOutline(contours, {
+          const shift = this.state.width * (this.state.alignment - 0.5)
+       //   console.log('ponts',this.points.slice(),'aaa',this.buildPath().getSubPaths({autoClose:false}))
+     // const contours = offsetContoursForAlignment(this.buildPath().getSubPaths({ autoClose: false, skipDegenerate: true }), shift)
+      return generateOutline(this.buildPath().getSubPaths({ autoClose: false, skipDegenerate: true }), {
             lineWidth: this.state.width,
             lineJoin: this.state.join as LineJoin,
             lineCap: this.state.cap as LineCap,
@@ -210,7 +212,7 @@ export class GenerateOutlineExample extends Example {
             if (p.length < 3) continue
             const vertices: number[] = []
             for (const q of p) vertices.push(q.x, q.y)
-            const tris = earcut.default(vertices)
+            const tris = earcut.earcut(vertices)
             for (let i = 0; i < tris.length; i += 3) {
                 const color = hslToRgb((t * 47) % 360, 0.7, 0.6)
                 t++
@@ -250,11 +252,62 @@ export class GenerateOutlineExample extends Example {
         })
     }
 
-    /** 左侧：原生描边参考。 */
+    /**
+     * 把中心线整体沿法向平移，使「原生居中描边」等价于 generateOutline 的 alignment 描边。
+     *
+     * alignment=0.5 时不平移；band 中线相对中心线的偏移为 lineWidth*(alignment-0.5)。
+     * 内部顶点沿角平分线平移，使到相邻两段法向的垂直距离都等于该偏移量：
+     *   offsetVec = (n0 + n1) * shift / (1 + n0·n1)
+     * 开放路径的首末顶点用所在段的单侧法向平移。
+     */
+    offsetPointsForAlignment(contour: FlattenedContour, shift: number): { x: number; y: number }[] {
+        const pts = contour.points
+        const n = pts.length
+        if (n < 2 || Math.abs(shift) < 1e-9) return pts.map(p => ({ x: p.x, y: p.y }))
+        const closed = contour.closed
+        const segCount = closed ? n : n - 1
+        // 每段单位法向：切线 (dx,dy) 逆时针 90° -> (dy,-dx)，与 GenerateOutline 保持一致
+        const normals: { x: number; y: number }[] = []
+        for (let i = 0; i < segCount; i++) {
+            const a = pts[i]
+            const b = pts[(i + 1) % n]
+            const dx = b.x - a.x
+            const dy = b.y - a.y
+            const len = Math.hypot(dx, dy) || 1
+            normals.push({ x: dy / len, y: -dx / len })
+        }
+        return pts.map((p, i) => {
+            let vx: number, vy: number
+            if (!closed && i === 0) {
+                vx = normals[0].x * shift
+                vy = normals[0].y * shift
+            } else if (!closed && i === n - 1) {
+                const nm = normals[segCount - 1]
+                vx = nm.x * shift
+                vy = nm.y * shift
+            } else {
+                const pn = normals[(i - 1 + segCount) % segCount]
+                const nn = normals[i % segCount]
+                const denom = 1 + (pn.x * nn.x + pn.y * nn.y)
+                if (Math.abs(denom) < 1e-9) {
+                    vx = pn.x * shift
+                    vy = pn.y * shift
+                } else {
+                    vx = ((pn.x + nn.x) * shift) / denom
+                    vy = ((pn.y + nn.y) * shift) / denom
+                }
+            }
+            return { x: p.x + vx, y: p.y + vy }
+        })
+    }
+
+    /** 左侧：原生描边参考（与 alignment 对齐，可与中间/右侧直接比较）。 */
     drawNative(ctx: CanvasRenderingContext2D): void {
+        const shift = this.state.width * (this.state.alignment - 0.5)
+        const refPoints = this.offsetPointsForAlignment({points:this.points,closed:this.state.closed},shift)
         ctx.save()
         ctx.beginPath()
-        this.points.forEach((p, i) => {
+        refPoints.forEach((p, i) => {
             if (i === 0) ctx.moveTo(p.x, p.y)
             else ctx.lineTo(p.x, p.y)
         })

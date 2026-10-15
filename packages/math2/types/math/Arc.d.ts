@@ -182,4 +182,5 @@ export declare function arcCubicBezierFromPath(path: Pick<Path2D, 'moveTo' | 'li
     isEmpty: boolean;
 }, x: number, y: number, radius: number, startAngle: number, endAngle: number, counterclockwise?: boolean): void;
 export declare function ellipseSvgArcFromPath(path: Pick<Path2D, 'lineTo' | 'ellipse'>, x1: number, y1: number, rx: number, ry: number, rotation: number, largeArcFlag: boolean, sweepFlag: boolean, x2: number, y2: number): void;
-export declare const buildArc: (points: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw?: boolean, tolerance?: number) => void;
+export declare const buildArc: (out: Vector2Like[], cx: number, cy: number, r: number, start: number, end: number, ccw?: boolean, tolerance?: number) => void;
+export declare function buildRound(out: Vector2Like[], cx: number, cy: number, sx: number, sy: number, ex: number, ey: number, clockwise: boolean): number;
