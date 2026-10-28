@@ -15,7 +15,7 @@ export type BoundingRectLike = {
 export class BoundingRect {
     static pool = CachePool.create({
         initSize: 10,
-        create: () => new BoundingRect(),
+        create: () => BoundingRect.default(),
         init: (item) => {
             item.setEmpty()
         }
@@ -276,6 +276,8 @@ export class BoundingRect {
      * 注意：旋转/倾斜等非轴对齐变换会使包围盒膨胀。
      */
     applyMatrix2D(m: Matrix2DLike): this {
+        // 空盒的 ±Infinity 参与乘法会得到 NaN，必须提前返回
+        if (this.isEmpty()) return this
         const minX = this.min.x, minY = this.min.y
         const maxX = this.max.x, maxY = this.max.y
 

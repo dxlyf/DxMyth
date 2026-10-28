@@ -1,7 +1,7 @@
 import { CachePool } from './CachePool';
 import { EulerLike, EulerOrder } from './Euler';
-import { QuaternionLike } from './Quaternion';
-import { Vector3Like } from './Vector3';
+import { Quaternion, QuaternionLike } from './Quaternion';
+import { Vector3, Vector3Like } from './Vector3';
 import { Vector4Like } from './Vector4';
 /** 类矩阵输入：number[] 或 Float32Array（含 Matrix4 实例） */
 export type Matrix4Like = number[] | Float32Array;
@@ -115,6 +115,11 @@ export declare class Matrix4 extends Float32Array {
     invert(): Matrix4 | null;
     adjoint(): this;
     determinant(): number;
+    getScaling(out?: Vector3): Vector3;
+    /** Decompose into translation, rotation and scale. */
+    decompose(position: Vector3, quaternion: Quaternion, scale: Vector3): this;
+    getTranslation(out?: Vector3): Vector3;
+    getMaxScaleOnAxis(): number;
     equals(m: Matrix4Like): boolean;
     isIdentity(): boolean;
     isSingular(): boolean;

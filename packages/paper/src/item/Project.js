@@ -35,6 +35,11 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     _list: 'projects',
     _reference: 'project',
     _compactSerialize: true, // Never include the class name for Project
+    // Also for all projects, see Project.onActivate:
+    _events: {
+        onActivate: { classLevel: true },
+        onDeactivate: { classLevel: true }
+    },
 
     // TODO: Add arguments to define pages
     /**
@@ -67,9 +72,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
         this._selectionCount = 0;
         // See Item#draw() for an explanation of _updateVersion
         this._updateVersion = 0;
-        // Change tracking, not in use for now. Activate once required:
-        // this._changes = [];
-        // this._changesById = {};
+        // Counts the changes that make all buffers stale, as no item reports
+        // them, see Group#buffered:
+        this._bufferVersion = 0;
     },
 
     _serialize: function(options, dictionary) {
@@ -97,20 +102,85 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
                     view.requestUpdate();
             }
         }
-        // Have project keep track of changed items so they can be iterated.
-        // This can be used for example to update the SVG tree. Needs to be
-        // activated in Project
+        // Log changes of inserted items, see #trackChanges:
+        if (item && item.isInserted())
+            this._logChange('item', item, flags);
+    },
+
+    // Logs the changes of items and definitions, each once with its flags
+    // combined, as `{ item, flags }` or `{ definition, flags }`:
+    _logChange: function(name, object, flags) {
         var changes = this._changes;
-        if (changes && item) {
+        if (changes) {
             var changesById = this._changesById,
-                id = item._id,
+                id = object._id,
                 entry = changesById[id];
             if (entry) {
                 entry.flags |= flags;
             } else {
-                changes.push(changesById[id] = { item: item, flags: flags });
+                entry = changesById[id] = { flags: flags };
+                entry[name] = object;
+                changes.push(entry);
             }
         }
+    },
+
+    /**
+     * Specifies whether the project logs the changes of its items, to be
+     * retrieved through {@link #takeChanges()}. This allows hosts that keep
+     * their own document to update only what has changed.
+     *
+     * @bean
+     * @type Boolean
+     * @default false
+     */
+    getTrackChanges: function() {
+        return !!this._changes;
+    },
+
+    setTrackChanges: function(trackChanges) {
+        if (!this._changes ^ !trackChanges) {
+            this._changes = trackChanges ? [] : null;
+            this._changesById = trackChanges ? {} : null;
+        }
+    },
+
+    /**
+     * Returns the changes logged since tracking was activated or since the
+     * last call, and clears the log. Each item is listed once, with the
+     * {@link ChangeFlag} values of all its changes combined. Removed items are
+     * listed with the `ChangeFlag.INSERTION` flag, and items that moved to
+     * another project are left out, as that one lists them. Symbol and pattern
+     * definitions whose item, tile, spacing or name changed are listed too,
+     * as `{ definition, flags }`.
+     *
+     * @return {Object[]} the changes as `{ item, flags }` and
+     *     `{ definition, flags }` objects, or `null` if {@link #trackChanges}
+     *     is off
+     */
+    takeChanges: function() {
+        var changes = this._changes,
+            that = this;
+        if (changes) {
+            this._changes = [];
+            this._changesById = {};
+            // Items that moved to another project since are logged there:
+            changes = changes.filter(function(change) {
+                var item = change.item;
+                return !item || item._project === that;
+            });
+        }
+        return changes || null;
+    },
+
+    /**
+     * Checks whether changes were logged since tracking was activated or since
+     * the last call of {@link #takeChanges()}, without taking them.
+     *
+     * @return {Boolean} {@true if changes were logged}
+     */
+    hasChanges: function() {
+        return !!(this._changes && this._changes.length);
     },
 
     /**
@@ -119,6 +189,49 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      *
      * @name Project#activate
      * @function
+     */
+
+    /**
+     * The function to be called when the project is activated through
+     * {@link #activate()}. The function receives the previously active
+     * project, which is the project itself when it was already active.
+     *
+     * @name Project#onActivate
+     * @property
+     * @type ?Function
+     */
+
+    /**
+     * The function to be called when another project is activated through
+     * {@link #activate()} while this one is active, or when this one is
+     * removed while active.
+     *
+     * @name Project#onDeactivate
+     * @property
+     * @type ?Function
+     */
+
+    /**
+     * The function to be called when any project is activated, as
+     * {@link #onActivate} is for a single project, including the projects
+     * that activate themselves when they are created, with `this` set to the
+     * project. `Project.on('activate', handler)` and
+     * `Project.off('activate', handler)` attach and detach them too. Classes
+     * are shared by all {@link PaperScope} objects, and so are their handlers.
+     *
+     * @name Project.onActivate
+     * @property
+     * @type ?Function
+     */
+
+    /**
+     * The function to be called when any project is deactivated, as
+     * {@link #onDeactivate} is for a single project, see
+     * {@link Project.onActivate}.
+     *
+     * @name Project.onDeactivate
+     * @property
+     * @type ?Function
      */
 
     /**
@@ -150,6 +263,15 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
             this._view.remove();
         return true;
     },
+
+    /**
+     * The scope that this project belongs to.
+     *
+     * @name Project#scope
+     * @property
+     * @type PaperScope
+     * @readonly
+     */
 
     /**
      * The reference to the project's view.
@@ -269,9 +391,39 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
 
     /**
      * @bean
+     * @type SymbolDefinition[]
      * @deprecated use {@link #symbolDefinitions} instead.
      */
     getSymbols: 'getSymbolDefinitions',
+
+    /**
+     * The pattern definitions that the fill and stroke colors of the items in
+     * the project use.
+     *
+     * @bean
+     * @type PatternDefinition[]
+     */
+    getPatternDefinitions: function() {
+        var definitions = [],
+            ids = {};
+        this.getItems({
+            match: function(item) {
+                var style = item._style;
+                [style.getFillColor(true), style.getStrokeColor(true)].forEach(
+                    function(color) {
+                        var definition = color && color._type === 'pattern'
+                                && color._components[0];
+                        if (definition && !ids[definition._id]) {
+                            ids[definition._id] = true;
+                            definitions.push(definition);
+                        }
+                    }
+                );
+                return false; // No need to collect them.
+            }
+        });
+        return definitions;
+    },
 
     /**
      * The selected items contained within the project.
@@ -298,10 +450,11 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     },
     // TODO: Implement setSelectedItems?
 
-    _updateSelection: function(item) {
+    _updateSelection: function(item, remove) {
         var id = item._id,
             selectionItems = this._selectionItems;
-        if (item._selection) {
+        // Only keep track of inserted items, so removed ones can be collected:
+        if (item._selection && !remove && item.isInserted()) {
             if (selectionItems[id] !== item) {
                 this._selectionCount++;
                 selectionItems[id] = item;
@@ -398,14 +551,16 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * Performs a hit-test on the items contained within the project at the
      * location of the specified point.
      *
-     * The options object allows you to control the specifics of the hit-test
-     * and may contain a combination of the following values:
+     * The options object allows you to control the specifics of the hit-test.
+     * Without options, `fill`, `stroke` and `segments` are hit-tested. As soon
+     * as an options object is passed, only the hit-tests that it sets to `true`
+     * are performed. It may contain a combination of the following values:
      *
      * @name Project#hitTest
      * @function
      *
      * @option [options.tolerance={@link PaperScope#settings}.hitTolerance]
-     *     {Number} the tolerance of the hit-test
+     *     {Number} the tolerance of the hit-test, in project coordinates
      * @option options.class {Function} only hit-test against a specific item
      *     class, or any of its sub-classes, by providing the constructor
      *     function against which an `instanceof` check is performed:
@@ -414,11 +569,11 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @option options.match {Function} a match function to be called for each
      *     found hit result: Return `true` to return the result, `false` to keep
      *     searching
-     * @option [options.fill=true] {Boolean} hit-test the fill of items
-     * @option [options.stroke=true] {Boolean} hit-test the stroke of path
-     *     items, taking into account the setting of stroke color and width
-     * @option [options.segments=true] {Boolean} hit-test for {@link
-     *     Segment#point} of {@link Path} items
+     * @option options.fill {Boolean} hit-test the fill of items
+     * @option options.stroke {Boolean} hit-test the stroke of path items,
+     *     taking into account the setting of stroke color and width
+     * @option options.segments {Boolean} hit-test for {@link Segment#point} of
+     *     {@link Path} items
      * @option options.curves {Boolean} hit-test the curves of path items,
      *     without taking the stroke color or width into account
      * @option options.handles {Boolean} hit-test for the handles ({@link
@@ -431,7 +586,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      *     the bounding rectangle of items ({@link Item#bounds})
      * @option options.bounds {Boolean} hit-test the corners and side-centers of
      *     the bounding rectangle of items ({@link Item#bounds})
-     * @option options.guides {Boolean} hit-test items that have {@link
+     * @option options.guides {Boolean} only hit-test items that have {@link
      *     Item#guide} set to `true`
      * @option options.selected {Boolean} only hit selected items
      *
@@ -494,7 +649,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @see Item#matches(options)
      * @see Item#getItems(options)
      * @param {Object|Function} options the criteria to match against
-     * @return {Item[]} the list of matching items contained in the project
+     * @return {Item[]} the list of matching items contained in the project, in
+     *     their stacking order from bottom to top, with each item listed
+     *     before its own descendants
      *
      * @example {@paperscript} // Fetch all selected path items:
      * var path1 = new Path.Circle({
@@ -780,13 +937,41 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @option [options.embedImages=true] {Boolean} whether raster images should
      *     be embedded as base64 data inlined in the xlink:href attribute, or
      *     kept as a link to their external URL.
+     * @option [options.reuseImages=false] {Boolean} whether raster images with
+     *     the same content should only be exported once into the `<defs>`
+     *     element, and placed through `<use>` elements referencing it
+     * @option [options.idPrefix=''] {String} a prefix for the ids generated
+     *     for definitions such as gradients, clip paths and symbols, to keep
+     *     them unique when several exported SVGs are placed in one document
      * @option [options.reduceAttributes=true] {Boolean} wether to only include
      *     style attributes in the SVG output that differ from their parents,
      *     or to always include them (much faster but leading to redundancies).
+     * @option [options.processNode] {Function} the function to process the
+     *     SVG node made for each exported item, receiving an object with the
+     *     `item` and its `node`: It can change the node, e.g. to add attributes
+     *     that Paper.js doesn't export, or return a node to replace it with. It
+     *     is called before the item's name, style, visibility and data are set
+     *     on the node, which replace attributes of the same names.
      *
      * @param {Object} [options] the export options
      * @return {SVGElement|String} the project converted to an SVG node or a
      * `String` depending on `option.asString` value
+     *
+     * @example
+     * // Export layers as Inkscape layers. Setting the attributes with their
+     * // namespace has the exported SVG declare it:
+     * var ns = 'http://www.inkscape.org/namespaces/inkscape';
+     * var svg = project.exportSVG({
+     *     asString: true,
+     *     processNode: function(arg) {
+     *         var item = arg.item;
+     *         if (item instanceof Layer) {
+     *             arg.node.setAttributeNS(ns, 'inkscape:groupmode', 'layer');
+     *             if (item.name)
+     *                 arg.node.setAttributeNS(ns, 'inkscape:label', item.name);
+     *         }
+     *     }
+     * });
      */
 
     /**
@@ -795,11 +980,27 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * Note that the project is not cleared first. You can call
      * {@link Project#clear()} to do so.
      *
+     * `<symbol>` elements are imported as {@link SymbolDefinition} items, and
+     * the `<use>` elements that place them as {@link SymbolItem} items. The
+     * styles that `<use>` elements inherit don't reach the symbols' content.
+     *
+     * The layers in SVG content that Paper.js exported come back as
+     * {@link Layer} items inside the imported group. To make the layers of a
+     * project's SVG the layers of a project again, add them to it with
+     * `item.children.slice().forEach(project.addLayer, project)`.
+     *
+     * URLs are fetched as they are, so validate URLs that come from untrusted
+     * sources first, especially on servers, where they could reach internal
+     * addresses.
+     *
      * @name Project#importSVG
      * @function
      *
      * @option [options.expandShapes=false] {Boolean} whether imported shape
      *     items should be expanded to path items
+     * @option [options.crossOrigin] {String} the {@link Raster#crossOrigin}
+     *     value of the rasters created for `<image>` elements, to load their
+     *     images with CORS
      * @option options.onLoad {Function} the callback function to call once the
      *     SVG content is loaded from the given URL receiving two arguments: the
      *     converted `item` and the original `svg` data as a string. Only
@@ -812,6 +1013,13 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @option [options.applyMatrix={@link PaperScope#settings}.applyMatrix]
      *     {Boolean} whether the imported items should have their transformation
      *     matrices applied to their contents or not
+     * @option [options.processItem] {Function} the function to process the
+     *     item made for each imported SVG element, receiving an object with
+     *     the `item` and its `node`: It can read attributes that Paper.js
+     *     doesn't import, or return an item to replace it with. It is called
+     *     after the element's attributes and data are applied to the item, so
+     *     it can extend `item.data`. A replacement item doesn't receive them:
+     *     copy them over from `item` as needed.
      *
      * @param {SVGElement|String} svg the SVG content to import, either as a SVG
      *     DOM node, a string containing SVG content, or a string describing the
@@ -819,6 +1027,24 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @param {Object} [options] the import options
      * @return {Item} the newly created Paper.js item containing the converted
      *     SVG content
+     *
+     * @example
+     * // Keep the SVG `class` attribute of items in their data, and export it
+     * // again:
+     * var item = project.importSVG(svg, {
+     *     processItem: function(arg) {
+     *         var className = arg.node.getAttribute('class');
+     *         if (className)
+     *             arg.item.data.className = className;
+     *     }
+     * });
+     * var exported = project.exportSVG({
+     *     processNode: function(arg) {
+     *         var className = arg.item.data.className;
+     *         if (className)
+     *             arg.node.setAttribute('class', className);
+     *     }
+     * });
      */
     /**
      * Imports the provided external SVG file, converts it into Paper.js items
@@ -862,7 +1088,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
         }
     },
 
-    draw: function(ctx, matrix, pixelRatio) {
+    // Views pass themselves as _view, to draw buffered groups through their
+    // buffers, see Group#buffered:
+    draw: function(ctx, matrix, pixelRatio, _view) {
         // Increase the _updateVersion before the draw-loop. After that, items
         // that are visible will have their _updateVersion set to the new value.
         this._updateVersion++;
@@ -873,6 +1101,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
             param = new Base({
                 offset: new Point(0, 0),
                 pixelRatio: pixelRatio,
+                view: _view,
                 viewMatrix: matrix.isIdentity() ? null : matrix,
                 matrices: [new Matrix()], // Start with the identity matrix.
                 // Tell the drawing routine that we want to keep _globalMatrix
@@ -888,7 +1117,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
         // Draw the selection of the selected items in the project:
         if (this._selectionCount > 0) {
             ctx.save();
-            ctx.strokeWidth = 1;
+            ctx.lineWidth = 1;
             var items = this._selectionItems,
                 size = this._scope.settings.handleSize,
                 version = this._updateVersion;

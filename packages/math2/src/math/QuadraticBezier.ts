@@ -1,6 +1,8 @@
 import { solveCubicByCardano, solveQuadratic } from "./MathUtils"
 import { type PointLike, Point } from "./Point"
 import { BoundingRect } from './BoundingRect'
+import { curveCurveIntersections, maxCurvaturePoint } from './Bezier'
+import type { CubicBezier } from './CubicBezier'
 
 
 export function getQuadraticBezierEvaluate(t: number, p0: PointLike, p1: PointLike, p2: PointLike): PointLike {
@@ -106,6 +108,116 @@ export class QuadraticBezier {
     getBounds(): BoundingRect {
         return getQuadraticBezierBounds(this.p0, this.p1, this.p2)
     }
+
+    /**
+     * 计算 t 处的一阶导数（切向量）
+     * B'(t) = 2[(1-t)(P1-P0) + t(P2-P1)]
+     * @param t - 参数 [0, 1]
+     */
+    getDerivative(t: number): PointLike {
+        const { p0, p1, p2 } = this
+        const mt = 1 - t
+        return {
+            x: 2 * (mt * (p1.x - p0.x) + t * (p2.x - p1.x)),
+            y: 2 * (mt * (p1.y - p0.y) + t * (p2.y - p1.y)),
+        }
+    }
+
+    /**
+     * 计算 t 处的二阶导数（加速度向量）
+     * B''(t) = 2(P0 - 2P1 + P2)，二次贝塞尔曲线的二阶导数为常量
+     */
+    getSecondDerivative(_t: number = 0): PointLike {
+        const { p0, p1, p2 } = this
+        return {
+            x: 2 * (p0.x - 2 * p1.x + p2.x),
+            y: 2 * (p0.y - 2 * p1.y + p2.y),
+        }
+    }
+
+    /**
+     * 计算 t 处的曲率
+     * k = |x'·y'' - y'·x''| / (x'² + y'²)^(3/2)
+     * @param t - 参数 [0, 1]
+     */
+    getCurvature(t: number): number {
+        const d1 = this.getDerivative(t)
+        const d2 = this.getSecondDerivative(t)
+        const cross = d1.x * d2.y - d1.y * d2.x
+        const lenSq = d1.x * d1.x + d1.y * d1.y
+        if (lenSq <= 1e-20) return 0
+        return Math.abs(cross) / Math.pow(lenSq, 1.5)
+    }
+
+    /**
+     * 获取曲率最大的位置及曲率值（采样 + 黄金分割搜索）
+     * @param samples - 初始采样段数（默认 32）
+     */
+    getMaxCurvature(samples = 32): { t: number; curvature: number } {
+        return maxCurvaturePoint(this.points, samples)
+    }
+
+    /**
+     * 计算线段与二次贝塞尔曲线的交点
+     *
+     * 将线段写成隐式直线 A·x + B·y + C = 0，代入曲线参数多项式后
+     * 得到关于 t 的一元二次方程，解出 t ∈ [0, 1] 且落在线段内的点。
+     *
+     * @param x1 - 线段起点 X
+     * @param y1 - 线段起点 Y
+     * @param x2 - 线段终点 X
+     * @param y2 - 线段终点 Y
+     * @returns 交点数组（已去重）
+     */
+    intersectSegment(x1: number, y1: number, x2: number, y2: number): PointLike[] {
+        const dx = x2 - x1
+        const dy = y2 - y1
+        const len2 = dx * dx + dy * dy
+        if (len2 <= 1e-20) return []
+
+        // 直线的一般式方程：A·x + B·y + C = 0
+        const A = dy
+        const B = -dx
+        const C = dx * y1 - dy * x1
+
+        const { ax, ay, bx, by, cx, cy } = getQuadraticCoefficients(this.p0, this.p1, this.p2)
+
+        // 代入参数方程，得到 (A·a)·t² + (A·b)·t + (A·c + C) = 0
+        const qa = A * ax + B * ay
+        const qb = A * bx + B * by
+        const qc = A * cx + B * cy + C
+
+        const results: PointLike[] = []
+        for (const t of solveQuadratic(qa, qb, qc)) {
+            if (t < -1e-9 || t > 1 + 1e-9) continue
+            const p = this.evaluate(Math.max(0, Math.min(1, t)))
+            // 校验交点落在线段范围内
+            const u = ((p.x - x1) * dx + (p.y - y1) * dy) / len2
+            if (u < -1e-9 || u > 1 + 1e-9) continue
+            if (results.some(q => Math.abs(q.x - p.x) <= 1e-9 && Math.abs(q.y - p.y) <= 1e-9)) continue
+            results.push(p)
+        }
+        return results
+    }
+
+    /**
+     * 计算与另一条二次贝塞尔曲线的交点
+     * @param other - 另一条二次贝塞尔曲线
+     * @param epsilon - 交点精度（默认 1e-4）
+     */
+    intersectQuadratic(other: QuadraticBezier, epsilon = 1e-4): PointLike[] {
+        return curveCurveIntersections(this.points, other.points, epsilon)
+    }
+
+    /**
+     * 计算与三次贝塞尔曲线的交点
+     * @param other - 三次贝塞尔曲线
+     * @param epsilon - 交点精度（默认 1e-4）
+     */
+    intersectCubic(other: CubicBezier, epsilon = 1e-4): PointLike[] {
+        return curveCurveIntersections(this.points, other.points, epsilon)
+    }
+
     /**
      * 在参数 t 处分割二次贝塞尔曲线
      * @param t - 分割参数 [0, 1]

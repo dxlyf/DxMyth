@@ -29,6 +29,20 @@ declare const quadraticToCubic: (p0: PointLike, p1: PointLike, p2: PointLike) =>
  * @returns 升阶后的控制点（个数 = points.length + times）
  */
 declare const elevateDegree: (points: PointLike[], times?: number) => PointLike[];
+/**
+ * 将任意阶贝塞尔曲线一次提升 N 阶（闭式公式）
+ *
+ * 升阶次数为 k、原阶数为 n、目标阶数为 m = n + k 时：
+ *   Q_i = Σ_{j} [ C(n, j)·C(k, i-j) / C(m, i) ] · P_j
+ * 其中 j ∈ [max(0, i-k), min(n, i)]
+ *
+ * 与逐次调用 elevateDegree 相比，一次计算不累积浮点误差，复杂度也更低。
+ *
+ * @param points - 原曲线控制点（阶数 = points.length - 1）
+ * @param times - 提升的阶数 N（默认 1）
+ * @returns 升阶后的控制点（个数 = points.length + times）
+ */
+declare const elevateDegreeN: (points: PointLike[], times?: number) => PointLike[];
 /** 贝塞尔曲线的弧长（数值积分 - Simpson 法则） */
 declare const arcLength: (points: PointLike[], segments?: number) => number;
 /** 贝塞尔曲线上 t 处的法向量（旋转 90° 的归一化切向量） */
@@ -59,4 +73,38 @@ declare const project: (points: PointLike[], px: number, py: number, samples?: n
     distance: number;
 };
 declare function conicToQuadratic(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, w: number): number[][][];
-export { deCasteljau, derivative, derivativeControlPoints, evaluate, evaluateValues, derivative1, derivativeN, quadraticEvaluate, cubicEvaluate, quadraticToCubic, elevateDegree, arcLength, normal, curvature, extrema, maxCurvature, project, conicToQuadratic, };
+/** 计算控制点包围盒（控制点凸包包含整条曲线） */
+declare const controlPointsBounds: (points: PointLike[]) => {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+};
+/**
+ * 在参数 t 处用 de Casteljau 算法分割控制点，返回左右两段控制点
+ */
+declare const splitControlPoints: (points: PointLike[], t?: number) => [PointLike[], PointLike[]];
+/**
+ * 计算两条任意阶贝塞尔曲线的交点
+ *
+ * 采用「递归包围盒细分 + 二维 Newton 精炼」：
+ *   1. 用控制点包围盒做粗筛，盒子不相交直接丢弃
+ *   2. 每次细分包围盒较大的那条曲线，直到两条曲线的盒子都小于 epsilon
+ *   3. 用区间中点作为初值，Newton 迭代精炼提高精度
+ *
+ * @param pointsA - 曲线 A 的控制点
+ * @param pointsB - 曲线 B 的控制点
+ * @param epsilon - 交点精度（包围盒尺寸阈值），默认 1e-4
+ * @returns 交点数组（已去重）
+ */
+declare const curveCurveIntersections: (pointsA: PointLike[], pointsB: PointLike[], epsilon?: number) => PointLike[];
+/**
+ * 查找贝塞尔曲线上曲率最大的位置（采样 + 黄金分割搜索）
+ * @param samples - 初始采样段数（默认 32）
+ * @returns 最大曲率处的 t 值及曲率
+ */
+declare const maxCurvaturePoint: (points: PointLike[], samples?: number) => {
+    t: number;
+    curvature: number;
+};
+export { deCasteljau, derivative, derivativeControlPoints, evaluate, evaluateValues, derivative1, derivativeN, quadraticEvaluate, cubicEvaluate, quadraticToCubic, elevateDegree, elevateDegreeN, arcLength, normal, curvature, extrema, maxCurvature, project, conicToQuadratic, controlPointsBounds, splitControlPoints, curveCurveIntersections, maxCurvaturePoint, };

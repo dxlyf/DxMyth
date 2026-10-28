@@ -17,6 +17,9 @@
  * of the Paper.js project. It is also used to represent two dimensional
  * vector objects.
  *
+ * Wherever a point is the only argument of a function, it can also be passed
+ * as two numbers, e.g. `point.add(10, 20)` or `item.translate(10, 20)`.
+ *
  * @classexample
  * // Create a point at x: 10, y: 5
  * var point = new Point(10, 5);
@@ -82,6 +85,15 @@ var Point = Base.extend(/** @lends Point# */{
      *     angle: 90
      * });
      * console.log(point.length); // 10
+     * console.log(point.angle); // 90
+     *
+     * @example
+     * // The angle can also be specified in radians:
+     *
+     * var point = new Point({
+     *     length: 10,
+     *     angleInRadians: Math.PI / 2
+     * });
      * console.log(point.angle); // 90
      *
      * @example
@@ -154,6 +166,9 @@ var Point = Base.extend(/** @lends Point# */{
             } else if ('angle' in obj) {
                 this._set(obj.length || 0, 0);
                 this.setAngle(obj.angle || 0);
+            } else if ('angleInRadians' in obj) {
+                this._set(obj.length || 0, 0);
+                this.setAngleInRadians(obj.angleInRadians || 0);
             } else {
                 this._set(0, 0);
                 read = 0;
@@ -209,7 +224,7 @@ var Point = Base.extend(/** @lends Point# */{
      * Checks whether the coordinates of the point are equal to that of the
      * supplied point.
      *
-     * @param {Point} point
+     * @param {Point|Number[]} point
      * @return {Boolean} {@true if the points are equal}
      *
      * @example
@@ -256,6 +271,17 @@ var Point = Base.extend(/** @lends Point# */{
         // For speed reasons, we directly call formatter.number() here, instead
         // of converting array through Base.serialize() which makes a copy.
         return [f.number(this.x), f.number(this.y)];
+    },
+
+    /**
+     * The point's coordinates as an array, `[x, y]`, as
+     * {@link Matrix#values} gives those of a matrix.
+     *
+     * @bean
+     * @type Number[]
+     */
+    getValues: function() {
+        return [this.x, this.y];
     },
 
     /**
@@ -513,7 +539,8 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(5, 10);
-     * var result = point + 20;
+     * var result = point + 20; // PaperScript
+     * var result = point.add(20); // JavaScript
      * console.log(result); // {x: 25, y: 30}
      */
     /**
@@ -530,7 +557,8 @@ var Point = Base.extend(/** @lends Point# */{
      * @example
      * var point1 = new Point(5, 10);
      * var point2 = new Point(10, 20);
-     * var result = point1 + point2;
+     * var result = point1 + point2; // PaperScript
+     * var result = point1.add(point2); // JavaScript
      * console.log(result); // {x: 15, y: 30}
      */
     add: function(/* point */) {
@@ -551,7 +579,8 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(10, 20);
-     * var result = point - 5;
+     * var result = point - 5; // PaperScript
+     * var result = point.subtract(5); // JavaScript
      * console.log(result); // {x: 5, y: 15}
      */
     /**
@@ -568,7 +597,8 @@ var Point = Base.extend(/** @lends Point# */{
      * @example
      * var firstPoint = new Point(10, 20);
      * var secondPoint = new Point(5, 5);
-     * var result = firstPoint - secondPoint;
+     * var result = firstPoint - secondPoint; // PaperScript
+     * var result = firstPoint.subtract(secondPoint); // JavaScript
      * console.log(result); // {x: 5, y: 15}
      */
     subtract: function(/* point */) {
@@ -590,7 +620,8 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(10, 20);
-     * var result = point * 2;
+     * var result = point * 2; // PaperScript
+     * var result = point.multiply(2); // JavaScript
      * console.log(result); // {x: 20, y: 40}
      */
     /**
@@ -607,7 +638,8 @@ var Point = Base.extend(/** @lends Point# */{
      * @example
      * var firstPoint = new Point(5, 10);
      * var secondPoint = new Point(4, 2);
-     * var result = firstPoint * secondPoint;
+     * var result = firstPoint * secondPoint; // PaperScript
+     * var result = firstPoint.multiply(secondPoint); // JavaScript
      * console.log(result); // {x: 20, y: 20}
      */
     multiply: function(/* point */) {
@@ -628,7 +660,8 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(10, 20);
-     * var result = point / 2;
+     * var result = point / 2; // PaperScript
+     * var result = point.divide(2); // JavaScript
      * console.log(result); // {x: 5, y: 10}
      */
     /**
@@ -645,7 +678,8 @@ var Point = Base.extend(/** @lends Point# */{
      * @example
      * var firstPoint = new Point(8, 10);
      * var secondPoint = new Point(2, 5);
-     * var result = firstPoint / secondPoint;
+     * var result = firstPoint / secondPoint; // PaperScript
+     * var result = firstPoint.divide(secondPoint); // JavaScript
      * console.log(result); // {x: 4, y: 2}
      */
     divide: function(/* point */) {
@@ -666,7 +700,9 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(12, 6);
-     * console.log(point % 5); // {x: 2, y: 1}
+     * var result = point % 5; // PaperScript
+     * var result = point.modulo(5); // JavaScript
+     * console.log(result); // {x: 2, y: 1}
      */
     /**
      * The modulo operator returns the integer remainders of dividing the point
@@ -681,13 +717,30 @@ var Point = Base.extend(/** @lends Point# */{
      *
      * @example
      * var point = new Point(12, 6);
-     * console.log(point % new Point(5, 2)); // {x: 2, y: 0}
+     * var result = point % new Point(5, 2); // PaperScript
+     * var result = point.modulo(new Point(5, 2)); // JavaScript
+     * console.log(result); // {x: 2, y: 0}
      */
     modulo: function(/* point */) {
         var point = Point.read(arguments);
         return new Point(this.x % point.x, this.y % point.y);
     },
 
+    /**
+     * Returns a new point with both coordinates negated.
+     * PaperScript uses it for the unary minus operator.
+     * The object itself is not modified!
+     *
+     * @name Point#negate
+     * @function
+     * @return {Point} the negation of the point as a new point
+     *
+     * @example
+     * var point = new Point(12, -6);
+     * var result = -point; // PaperScript
+     * var result = point.negate(); // JavaScript
+     * console.log(result); // {x: -12, y: 6}
+     */
     negate: function() {
         return new Point(-this.x, -this.y);
     },
@@ -720,7 +773,8 @@ var Point = Base.extend(/** @lends Point# */{
 
     /**
      * Checks if the vector represented by this point is collinear (parallel) to
-     * another vector.
+     * another vector, within a tolerance of 1e-8 for the sine of the angle
+     * between them.
      *
      * @param {Point} point the vector to check against
      * @return {Boolean} {@true it is collinear}
@@ -735,7 +789,8 @@ var Point = Base.extend(/** @lends Point# */{
 
     /**
      * Checks if the vector represented by this point is orthogonal
-     * (perpendicular) to another vector.
+     * (perpendicular) to another vector, within a tolerance of 1e-8 for the
+     * cosine of the angle between them.
      *
      * @param {Point} point the vector to check against
      * @return {Boolean} {@true it is orthogonal}
@@ -746,9 +801,11 @@ var Point = Base.extend(/** @lends Point# */{
     },
 
     /**
-     * Checks if this point has both the x and y coordinate set to 0.
+     * Checks if this point has both the x and y coordinate set to 0, within
+     * a tolerance of 1e-12, unlike {@link #equals(point)}, which compares
+     * exactly.
      *
-     * @return {Boolean} {@true if both x and y are 0}
+     * @return {Boolean} {@true if both x and y are 0, within the tolerance}
      */
     isZero: function() {
         var isZero = Numerical.isZero;
@@ -915,6 +972,38 @@ var Point = Base.extend(/** @lends Point# */{
      * var absPoint = point.abs();
      * console.log(absPoint); // {x: 5, y: 10}
      */
+
+    /**
+     * Returns a new point with the {@link #x} and {@link #y} values clamped to
+     * the range between the given minimum and maximum points. The object
+     * itself is not modified!
+     *
+     * @param {Point} min the point with the smallest values
+     * @param {Point} max the point with the largest values
+     * @return {Point} the clamped point as a new point
+     *
+     * @example
+     * var point = new Point(-5, 150);
+     * var clampPoint = point.clamp(new Point(0, 0), new Point(100, 100));
+     * console.log(clampPoint); // {x: 0, y: 100}
+     *
+     * @example
+     * // Keep a point inside a rectangle:
+     * var rect = new Rectangle(10, 20, 100, 50);
+     * var point = new Point(200, 40);
+     * var clampPoint = point.clamp(rect.topLeft, rect.bottomRight);
+     * console.log(clampPoint); // {x: 110, y: 40}
+     */
+    clamp: function(/* min, max */) {
+        var args = arguments,
+            min = Point.read(args),
+            max = Point.read(args);
+        return new Point(
+            Numerical.clamp(this.x, min.x, max.x),
+            Numerical.clamp(this.y, min.y, max.y)
+        );
+    },
+
     statics: /** @lends Point */{
         /**
          * Returns a new point object with the smallest {@link #x} and

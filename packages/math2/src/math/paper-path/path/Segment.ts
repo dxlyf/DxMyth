@@ -1,0 +1,362 @@
+/**
+ * 移植自 paper/src/path/Segment.js，只保留几何核心。
+ *
+ * segment 由一个锚点加上可选的入/出控制柄组成，用来描述与它相连的两条曲线
+ * 在锚点处的切线。
+ *
+ * 相比原文去掉了:参数解析式构造（只有 `new Segment(point, handleIn,
+ * handleOut)`）、name、data、选中状态、序列化，以及 Change 通知标志。
+ */
+
+import { Point } from '../basic/Point';
+import { SegmentPoint } from './SegmentPoint';
+import { CurveLocation } from './CurveLocation';
+import type { Curve } from './Curve';
+import type { Matrix } from '../basic/Matrix';
+import type { Path } from './Path';
+
+export class Segment {
+    _point: SegmentPoint;
+    _handleIn: SegmentPoint;
+    _handleOut: SegmentPoint;
+    _path?: Path | null;
+    _index?: number;
+    _curves?: Curve[];
+
+    constructor(point?: Point, handleIn?: Point, handleOut?: Point) {
+        this._point = new SegmentPoint(point, this);
+        this._handleIn = new SegmentPoint(handleIn, this);
+        this._handleOut = new SegmentPoint(handleOut, this);
+    }
+
+    _changed(point?: SegmentPoint): void {
+        const path = this._path;
+        if (!path)
+            return;
+        // 根据发生变化的是哪个点，把变更转发给受影响的曲线。出向曲线不需要
+        // 环绕处理，因为只有闭合路径的最后一段才有出向曲线。
+        const curves = path._curves,
+            index = this._index;
+        let curve;
+        if (curves) {
+            if ((!point || point === this._point || point === this._handleIn)
+                    && (curve = index > 0 ? curves[index - 1] : path._closed
+                        ? curves[curves.length - 1] : null))
+                curve._changed();
+            if ((!point || point === this._point || point === this._handleOut)
+                    && (curve = curves[index]))
+                curve._changed();
+        }
+        path._changed();
+    }
+
+    // ---------------------------------------------------------------------
+    // point、handleIn、handleOut
+
+    /** segment 的锚点。 */
+    get point(): SegmentPoint {
+        return this._point;
+    }
+
+    set point(point: Point) {
+        this._point._set(point.x, point.y);
+    }
+
+    /** 描述入切线的控制柄，相对于锚点。 */
+    get handleIn(): SegmentPoint {
+        return this._handleIn;
+    }
+
+    set handleIn(handleIn: Point) {
+        this._handleIn._set(handleIn.x, handleIn.y);
+    }
+
+    /** 描述出切线的控制柄，相对于锚点。 */
+    get handleOut(): SegmentPoint {
+        return this._handleOut;
+    }
+
+    set handleOut(handleOut: Point) {
+        this._handleOut._set(handleOut.x, handleOut.y);
+    }
+
+    /** segment 是否设置了任何控制柄。 */
+    hasHandles(): boolean {
+        return !this._handleIn.isZero() || !this._handleOut.isZero();
+    }
+
+    /**
+     * segment 处的两条曲线是否平滑连接，即两个控制柄共线且不构成尖角。
+     */
+    isSmooth(): boolean {
+        const handleIn = this._handleIn,
+            handleOut = this._handleOut;
+        return !handleIn.isZero() && !handleOut.isZero()
+                && handleIn.isCollinear(handleOut);
+    }
+
+    /** 把控制柄坐标清零，使 segment 变成尖角。 */
+    clearHandles(): void {
+        this._handleIn._set(0, 0);
+        this._handleOut._set(0, 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // 层级关系
+
+    /** segment 在路径 segments 数组中的索引。 */
+    get index(): number | null {
+        return this._index !== undefined ? this._index : null;
+    }
+
+    /** segment 所属的路径。 */
+    get path(): Path | null {
+        return this._path || null;
+    }
+
+    /**
+     * segment 所属的曲线。对于开放路径的最后一个 segment，返回它前面那条曲线。
+     */
+    get curve(): Curve | null {
+        const path = this._path;
+        let index = this._index;
+        if (path) {
+            // 开放路径的最后一个 segment 属于最后一条曲线。
+            if (index > 0 && !path._closed
+                    && index === path._segments.length - 1)
+                index--;
+            return path.curves[index] || null;
+        }
+        return null;
+    }
+
+    /** 描述该 segment 在路径上位置的 CurveLocation。 */
+    get location(): CurveLocation | null {
+        const curve = this.curve;
+        // 参数是 0 还是 1，取决于该 segment 是否为曲线的起点。
+        return curve
+                ? new CurveLocation(curve, this === curve._segment1 ? 0 : 1)
+                : null;
+    }
+
+    /** 路径 segments 数组中的下一个 segment。 */
+    get next(): Segment | null {
+        const path = this._path,
+            segments = path && path._segments;
+        return segments && (segments[this._index + 1]
+                || path._closed && segments[0]) || null;
+    }
+
+    /** 路径 segments 数组中的上一个 segment。 */
+    get previous(): Segment | null {
+        const path = this._path,
+            segments = path && path._segments;
+        return segments && (segments[this._index - 1]
+                || path._closed && segments[segments.length - 1]) || null;
+    }
+
+    // ---------------------------------------------------------------------
+
+    /**
+     * 通过调整控制柄的方向和长度，平滑穿过该 segment 的贝塞尔曲线，但不移动
+     * segment 本身。
+     *
+     * `type` 为 `'catmull-rom'`（默认）或 `'geometric'`；`factor` 是该方法的
+     * 参数:节点参数化（默认 `0.5`）或张力（默认 `0.4`）。
+     */
+    smooth(options?: { type?: string; factor?: number }, _first?: boolean,
+            _last?: boolean): void {
+        const opts = options || {},
+            type = opts.type,
+            factor = opts.factor,
+            prev = this.previous,
+            next = this.next,
+            // 以下预计算对 'catmull-rom' 和 'geometric' 都适用。
+            p0 = (prev || this)._point,
+            p1 = this._point,
+            p2 = (next || this)._point,
+            d1 = p0.getDistance(p1),
+            d2 = p1.getDistance(p2);
+        if (!type || type === 'catmull-rom') {
+            // 带参数因子的 Catmull-Rom 样条，实现参考 @nicholaswmin:
+            // https://github.com/nicholaswmin/VectorTests
+            // 0.0: 均匀；0.5: 向心；1.0: 弦长。
+            const a = factor === undefined ? 0.5 : factor,
+                d1_a = Math.pow(d1, a),
+                d1_2a = d1_a * d1_a,
+                d2_a = Math.pow(d2, a),
+                d2_2a = d2_a * d2_a;
+            if (!_first && prev) {
+                const A = 2 * d2_2a + 3 * d2_a * d1_a + d1_2a,
+                    N = 3 * d2_a * (d2_a + d1_a);
+                this.handleIn = N !== 0
+                    ? new Point(
+                        (d2_2a * p0._x + A * p1._x - d1_2a * p2._x) / N - p1._x,
+                        (d2_2a * p0._y + A * p1._y - d1_2a * p2._y) / N - p1._y)
+                    : new Point();
+            }
+            if (!_last && next) {
+                const A = 2 * d1_2a + 3 * d1_a * d2_a + d2_2a,
+                    N = 3 * d1_a * (d1_a + d2_a);
+                this.handleOut = N !== 0
+                    ? new Point(
+                        (d1_2a * p2._x + A * p1._x - d2_2a * p0._x) / N - p1._x,
+                        (d1_2a * p2._y + A * p1._y - d2_2a * p0._y) / N - p1._y)
+                    : new Point();
+            }
+        } else if (type === 'geometric') {
+            // 几何平滑，实现参考:
+            // http://www.antigrain.com/research/bezier_interpolation/
+            if (prev && next) {
+                const vector = p0.subtract(p2),
+                    t = factor === undefined ? 0.4 : factor,
+                    k = t * d1 / (d1 + d2);
+                if (!_first)
+                    this.handleIn = vector.multiply(k);
+                if (!_last)
+                    this.handleOut = vector.multiply(k - t);
+            }
+        } else {
+            throw new Error('Smoothing method \'' + type + '\' not supported.');
+        }
+    }
+
+    /** 该 segment 是否是路径 segments 数组中的第一个。 */
+    isFirst(): boolean {
+        return !this._index;
+    }
+
+    /** 该 segment 是否是路径 segments 数组中的最后一个。 */
+    isLast(): boolean {
+        const path = this._path;
+        return path && this._index === path._segments.length - 1 || false;
+    }
+
+    /** 原地交换该 segment 的 `handleIn` 与 `handleOut`。 */
+    reverse(): void {
+        const handleIn = this._handleIn,
+            handleOut = this._handleOut,
+            tmp = handleIn.clone();
+        handleIn._set(handleOut.x, handleOut.y);
+        handleOut._set(tmp.x, tmp.y);
+    }
+
+    /** 返回反转后的 segment 副本。 */
+    reversed(): Segment {
+        return new Segment(this._point, this._handleOut, this._handleIn);
+    }
+
+    /** 把它从所属路径中移除。 */
+    remove(): boolean {
+        return this._path ? !!this._path.removeSegment(this._index) : false;
+    }
+
+    clone(): Segment {
+        return new Segment(this._point, this._handleIn, this._handleOut);
+    }
+
+    equals(segment: Segment | null): boolean {
+        return segment === this || !!segment
+                && this._point.equals(segment._point)
+                && this._handleIn.equals(segment._handleIn)
+                && this._handleOut.equals(segment._handleOut)
+                || false;
+    }
+
+    toString(): string {
+        const parts = ['point: ' + this._point];
+        if (!this._handleIn.isZero())
+            parts.push('handleIn: ' + this._handleIn);
+        if (!this._handleOut.isZero())
+            parts.push('handleOut: ' + this._handleOut);
+        return '{ ' + parts.join(', ') + ' }';
+    }
+
+    /**
+     * 在两个指定 segment 之间插值，并据此设置该 segment 的锚点和控制柄。
+     */
+    interpolate(from: Segment, to: Segment, factor: number): void {
+        const u = 1 - factor,
+            v = factor,
+            point1 = from._point,
+            point2 = to._point,
+            handleIn1 = from._handleIn,
+            handleIn2 = to._handleIn,
+            handleOut2 = to._handleOut,
+            handleOut1 = from._handleOut;
+        this._point._set(
+                u * point1._x + v * point2._x,
+                u * point1._y + v * point2._y, true);
+        this._handleIn._set(
+                u * handleIn1._x + v * handleIn2._x,
+                u * handleIn1._y + v * handleIn2._y, true);
+        this._handleOut._set(
+                u * handleOut1._x + v * handleOut2._x,
+                u * handleOut1._y + v * handleOut2._y, true);
+        this._changed();
+    }
+
+    /** 用指定矩阵变换该 segment。 */
+    transform(matrix: Matrix): void {
+        this._transformCoordinates(matrix, new Array(6), true);
+        this._changed();
+    }
+
+    /**
+     * 变换 segment 的锚点和控制柄。`change` 为真时只变换已设置的控制柄，并把
+     * 结果写回，以节省计算；为假时总是填满 coords 数组。
+     */
+    _transformCoordinates(matrix: Matrix | null, coords: number[],
+            change?: boolean): number[] {
+        const point = this._point,
+            handleIn = !change || !this._handleIn.isZero()
+                    ? this._handleIn : null,
+            handleOut = !change || !this._handleOut.isZero()
+                    ? this._handleOut : null,
+            x = point._x,
+            y = point._y;
+        let i = 2;
+        coords[0] = x;
+        coords[1] = y;
+        // 控制柄是相对锚点存储的，变换前需要转成绝对坐标。
+        if (handleIn) {
+            coords[i++] = handleIn._x + x;
+            coords[i++] = handleIn._y + y;
+        }
+        if (handleOut) {
+            coords[i++] = handleOut._x + x;
+            coords[i++] = handleOut._y + y;
+        }
+        // 没有提供矩阵时，只是用来取坐标，到此为止。
+        if (matrix) {
+            matrix._transformCoordinates(coords, coords, i / 2);
+            const tx = coords[0],
+                ty = coords[1];
+            if (change) {
+                // 把新值写回，控制柄仍保持相对锚点。
+                point._x = tx;
+                point._y = ty;
+                i = 2;
+                if (handleIn) {
+                    handleIn._x = coords[i++] - tx;
+                    handleIn._y = coords[i++] - ty;
+                }
+                if (handleOut) {
+                    handleOut._x = coords[i++] - tx;
+                    handleOut._y = coords[i++] - ty;
+                }
+            } else {
+                // 即使控制柄为 0，也要保证 coords 里有对应的值。
+                if (!handleIn) {
+                    coords[i++] = tx;
+                    coords[i++] = ty;
+                }
+                if (!handleOut) {
+                    coords[i++] = tx;
+                    coords[i++] = ty;
+                }
+            }
+        }
+        return coords;
+    }
+}

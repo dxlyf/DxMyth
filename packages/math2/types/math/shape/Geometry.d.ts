@@ -56,9 +56,17 @@ export declare function distPointToSegmentSquared(px: number, py: number, ax: nu
  */
 export declare function signedDistPointToLine(px: number, py: number, ax: number, ay: number, bx: number, by: number): number;
 /**
- * 圆弧细分为折线所需段数
- * 弦高误差 ≤ tolerance（默认 0.25），段数 = ceil(sweep / (2·acos(1 - tol/r)))
- * sweep ≤ 0 或 radius ≤ 0 时返回 0（无细分段）
+ * 根据半径、圆心角（弧度）和容差，计算圆弧离散成线段所需的段数。
+ *
+ * 容差 tolerance 定义为「弦中点到弧的最大垂距（矢高 sagitta）」。
+ * 对半角 α，弦到圆心的距离为 r·cosα，矢高为 r(1 - cosα)；
+ * 令 r(1 - cosα) = tolerance，解得 α = acos(1 - tolerance/r)，
+ * 故单段最大圆心角 θ = 2α = 2·acos(1 - tolerance/r)。
+ *  θ = 2·acos(1 - e/r) = acos(2(1 - e/r)² - 1)
+ * @param radius    圆弧半径（像素）
+ * @param sweep     圆弧扫过的圆心角，单位弧度；整圆为 2π
+ * @param tolerance 允许的最大矢高误差（像素），默认 0.25
+ * @returns         需要的线段数；sweep <= 0 或 radius <= 0 时返回 0
  */
 export declare function arcSegmentCount(radius: number, sweep: number, tolerance?: number): number;
 /** 角度归一化到 [0, 2π) */

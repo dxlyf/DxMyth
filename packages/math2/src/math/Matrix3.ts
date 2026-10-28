@@ -7,6 +7,7 @@
 // ============================================================
 
 import { CachePool } from './CachePool'
+import { Matrix4 } from './Matrix4'
 import type { Vector3Like } from './Vector3'
 
 /** 类矩阵输入：number[] 或 Float32Array（含 Matrix3 实例） */
@@ -407,7 +408,41 @@ export class Matrix3 extends Float32Array {
     determinant(): number {
         return Matrix3.determinant(this)
     }
+    /**
+   * Normal matrix for a 4x4 model matrix: inverse-transpose of the
+   * upper-left 3x3 block, so normals stay perpendicular under non-uniform scale.
+   */
+    getNormalMatrix(m: Matrix4): this {
+        const me = m;
+        const a00 = me[0]!;
+        const a01 = me[4]!;
+        const a02 = me[8]!;
+        const a10 = me[1]!;
+        const a11 = me[5]!;
+        const a12 = me[9]!;
+        const a20 = me[2]!;
+        const a21 = me[6]!;
+        const a22 = me[10]!;
 
+        const b01 = a22 * a11 - a12 * a21;
+        const b11 = -a22 * a10 + a12 * a20;
+        const b21 = a21 * a10 - a11 * a20;
+        let det = a00 * b01 + a01 * b11 + a02 * b21;
+        if (!det) return this.identity();
+        det = 1 / det;
+
+        const e = this;
+        e[0] = b01 * det;
+        e[1] = (-a22 * a01 + a02 * a21) * det;
+        e[2] = (a12 * a01 - a02 * a11) * det;
+        e[3] = b11 * det;
+        e[4] = (a22 * a00 - a02 * a20) * det;
+        e[5] = (-a12 * a00 + a02 * a10) * det;
+        e[6] = b21 * det;
+        e[7] = (-a21 * a00 + a01 * a20) * det;
+        e[8] = (a11 * a00 - a01 * a10) * det;
+        return this;
+    }
     equals(m: Matrix3Like): boolean {
         return Matrix3.equals(this, m)
     }

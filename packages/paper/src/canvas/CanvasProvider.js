@@ -10,58 +10,81 @@
  * All rights reserved.
  */
 
-// TODO: Run through the canvas array to find a canvas with the requested
-// width / height, so we don't need to resize it?
 var CanvasProvider = Base.exports.CanvasProvider = {
     canvases: [],
 
     getCanvas: function(width, height, options) {
-        if (!window)
+        // Web-workers have no DOM, but may support OffscreenCanvas:
+        if (!window && !self.OffscreenCanvas)
             return null;
-        var canvas,
-            clear = true;
         if (typeof width === 'object') {
+            options = height;
             height = width.height;
             width = width.width;
         }
-        if (this.canvases.length) {
-            canvas = this.canvases.pop();
-        } else {
-            canvas = document.createElement('canvas');
-            clear = false; // It's already cleared through createElement().
+        // With options.minimum, a pooled canvas that is at least as large is
+        // reused without resizing it, since resizing reallocates its pixels:
+        var minimum = options && options.minimum,
+            canvases = this.canvases,
+            fits = function(canvas) {
+                return minimum
+                        ? canvas.width >= width && canvas.height >= height
+                        : canvas.width === width && canvas.height === height;
+            },
+            index = canvases.length - 1;
+        for (var i = index; i >= 0; i--) {
+            if (fits(canvases[i])) {
+                index = i;
+                break;
+            }
         }
-        var ctx = canvas.getContext('2d', options || {});
+        var canvas = index >= 0
+                ? canvases.splice(index, 1)[0]
+                : window
+                    ? document.createElement('canvas')
+                    : new self.OffscreenCanvas(width, height),
+            ctx = canvas.getContext('2d', options || {});
         if (!ctx) {
             throw new Error('Canvas ' + canvas +
                     ' is unable to provide a 2D context.');
         }
-        // If they are not the same size, we don't need to clear them
-        // using clearRect and visa versa.
-        if (canvas.width === width && canvas.height === height) {
-            // +1 is needed on some browsers to really clear the borders
-            if (clear)
-                ctx.clearRect(0, 0, width + 1, height + 1);
+        if (fits(canvas)) {
+            // Clear the reused pixels and reset the context's state:
+            if (ctx.reset) {
+                ctx.reset();
+            } else {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.globalAlpha = 1;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.filter = 'none';
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
+            }
         } else {
+            // Resizing clears the pixels and resets the context's state.
             canvas.width = width;
             canvas.height = height;
         }
-        // We save on retrieval and restore on release.
-        ctx.save();
         return canvas;
     },
 
     getContext: function(width, height, options) {
         var canvas = this.getCanvas(width, height, options);
-        return canvas ? canvas.getContext('2d', options || {}) : null;
+        return canvas ? canvas.getContext('2d') : null;
     },
 
      // release can receive either a canvas or a context.
     release: function(obj) {
         var canvas = obj && obj.canvas ? obj.canvas : obj;
         if (canvas && canvas.getContext) {
-            // We restore contexts on release(), see getCanvas()
-            canvas.getContext('2d').restore();
-            this.canvases.push(canvas);
+            // Keep small canvases at their size, so getCanvas() can reuse them
+            // without reallocating their pixels, but free the pixels of larger
+            // ones right away. Keep only a few, to bound the retained memory:
+            if (canvas.width * canvas.height > 256 * 256)
+                canvas.width = canvas.height = 0;
+            if (this.canvases.length < 8)
+                this.canvases.push(canvas);
         }
     }
 };

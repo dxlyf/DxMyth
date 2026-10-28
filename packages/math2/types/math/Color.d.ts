@@ -163,9 +163,9 @@ export declare const colorMap: {
  * 直接继承 Float32Array，可直接传入 WebGL uniform4fv / gl.clearColor 等方法。
  */
 export declare class Color extends Float32Array {
-    static Transparent: Color;
-    static Black: Color;
-    static White: Color;
+    static TRANSPARENT: Color;
+    static BLACK: Color;
+    static WHITE: Color;
     static toCSS_RGBA(color: ColorValue): string;
     static toHex(color: ColorValue): string;
     static fromRGBA(r: number, g: number, b: number, a?: number): Color;

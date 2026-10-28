@@ -166,6 +166,18 @@ var Numerical = new function() {
         KAPPA: 4 * (sqrt(2) - 1) / 3,
 
         /**
+         * Returns the tolerance for comparing coordinates up to the given
+         * magnitude: Numerical.EPSILON or the optional epsilon if larger, or
+         * two units in the last place where that is below the resolution of
+         * the coordinates, so that touching values still compare as touching
+         * (#1940).
+         */
+        getEpsilon: function(magnitude, epsilon) {
+            return Math.max(EPSILON, magnitude * 4 * MACHINE_EPSILON,
+                    epsilon || 0);
+        },
+
+        /**
          * Checks if the value is 0, within a tolerance defined by
          * Numerical.EPSILON.
          */
@@ -238,6 +250,56 @@ var Numerical = new function() {
             // enough to the root... (In paper.js this never seems to happen).
             // But make sure, that it actually is within the given range [a, b]
             return clamp(x, a, b);
+        },
+
+        /**
+         * Finds where the function changes its sign between `a` and `b`, given
+         * its values `fa` and `fb` of opposite signs there, with the ITP
+         * method, which converges as fast as the secant method where it can,
+         * and never more slowly than bisection. After kurbo's solve_itp():
+         * https://github.com/linebender/kurbo/blob/main/kurbo/src/common.rs
+         *
+         * @param {Function} f the function
+         * @param {Number} a the start of the interval
+         * @param {Number} b the end of the interval
+         * @param {Number} fa the value of the function at `a`
+         * @param {Number} fb the value of the function at `b`
+         * @param {Number} tolerance the width of the interval to narrow it to
+         * @return {Number} the position of the sign change
+         */
+        findSignChange: function(f, a, b, fa, fb, tolerance) {
+            // Search for the change from negative to positive values:
+            var sign = fa < 0 ? 1 : -1,
+                steps = Math.max(Math.ceil(log2((b - a) / tolerance)) - 1, 0),
+                // Bound the steps to those of bisection plus one:
+                scaled = tolerance * Math.pow(2, steps + 1),
+                k1 = 0.2 / (b - a);
+            fa *= sign;
+            fb *= sign;
+            while (b - a > 2 * tolerance) {
+                var half = (a + b) / 2,
+                    r = scaled - (b - a) / 2,
+                    // The secant, nudged towards the middle:
+                    xf = (fb * a - fa * b) / (fb - fa),
+                    sigma = half - xf,
+                    delta = k1 * (b - a) * (b - a),
+                    xt = delta <= abs(sigma)
+                        ? xf + (sigma < 0 ? -delta : delta) : half,
+                    x = abs(xt - half) <= r
+                        ? xt : half - (sigma < 0 ? -r : r),
+                    fx = sign * f(x);
+                if (fx > 0) {
+                    b = x;
+                    fb = fx;
+                } else if (fx < 0) {
+                    a = x;
+                    fa = fx;
+                } else {
+                    return x;
+                }
+                scaled /= 2;
+            }
+            return (a + b) / 2;
         },
 
         /**
@@ -408,6 +470,105 @@ var Numerical = new function() {
                     || count > 0 && x !== roots[0] && x !== roots[1])
                     && (boundless || x > min - EPSILON && x < max + EPSILON))
                 roots[count++] = boundless ? x : clamp(x, min, max);
+            return count;
+        },
+
+        /**
+         * Finds the roots in [0, 1] of a polynomial in Bernstein form, by
+         * subdividing it until each part has at most one sign change among its
+         * coefficients: A part without sign changes has no root, and a part
+         * with one has exactly one, as the Bernstein form diminishes
+         * variation. Coefficients within their rounding error count as zero:
+         * A part with only such coefficients counts as one root, as does a
+         * part narrower than the given width that may still have one.
+         *
+         * @param {Number[]} coefficients the Bernstein coefficients
+         * @param {Number[]} errors the bounds of the rounding errors of the
+         *     coefficients
+         * @param {Number[]} roots the array to store the roots in
+         * @param {Number} width the width of the parts in which a possible root
+         *     counts as one
+         * @return {Number} the number of roots found
+         */
+        solveBernstein: function(coefficients, errors, roots, width) {
+            var count = 0;
+
+            // Splits the coefficients at the middle through the algorithm of
+            // de Casteljau, and their errors with them, plus the rounding of
+            // each step:
+            function subdivide(values, bounds) {
+                var left = [],
+                    right = [],
+                    leftBounds = [],
+                    rightBounds = [],
+                    v = values.slice(),
+                    e = bounds.slice();
+                for (var n = v.length; n > 0; n--) {
+                    left.push(v[0]);
+                    right.unshift(v[n - 1]);
+                    leftBounds.push(e[0]);
+                    rightBounds.unshift(e[n - 1]);
+                    for (var i = 0; i < n - 1; i++) {
+                        v[i] = (v[i] + v[i + 1]) / 2;
+                        e[i] = (e[i] + e[i + 1]) / 2
+                                + MACHINE_EPSILON * abs(v[i]);
+                    }
+                }
+                return [left, right, leftBounds, rightBounds];
+            }
+
+            function evaluate(values, t) {
+                var v = values.slice();
+                for (var n = v.length - 1; n > 0; n--) {
+                    for (var i = 0; i < n; i++)
+                        v[i] = v[i] + (v[i + 1] - v[i]) * t;
+                }
+                return v[0];
+            }
+
+            function solve(values, bounds, from, to) {
+                var changes = 0,
+                    zeros = 0,
+                    sign = 0;
+                for (var i = 0, l = values.length; i < l; i++) {
+                    var value = values[i];
+                    if (abs(value) <= bounds[i]) {
+                        zeros++;
+                    } else {
+                        var s = value > 0 ? 1 : -1;
+                        if (sign && s !== sign)
+                            changes++;
+                        sign = s;
+                    }
+                }
+                if (zeros === values.length
+                        || (changes || zeros) && to - from <= width) {
+                    roots[count++] = (from + to) / 2;
+                } else if (changes === 1 && !zeros) {
+                    // Exactly one root, between the ends of opposite signs,
+                    // which bisection refines to the precision of the numbers:
+                    var a = 0,
+                        b = 1,
+                        isNegative = values[0] < 0;
+                    while (from + (to - from) * a < from + (to - from) * b
+                            && (a + b) / 2 > a && (a + b) / 2 < b) {
+                        var t = (a + b) / 2;
+                        if (evaluate(values, t) < 0 === isNegative) {
+                            a = t;
+                        } else {
+                            b = t;
+                        }
+                    }
+                    roots[count++] = from + (to - from) * (a + b) / 2;
+                } else if (changes || zeros) {
+                    var parts = subdivide(values, bounds),
+                        middle = (from + to) / 2;
+                    solve(parts[0], parts[2], from, middle);
+                    solve(parts[1], parts[3], middle, to);
+                }
+            }
+
+            solve(coefficients, errors, 0, 1);
             return count;
         }
     };

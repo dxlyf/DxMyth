@@ -53,6 +53,30 @@ type PathVisitCallbacks = {
     cubicCurveTo?: (p0: PointLike, p1: PointLike, p2: PointLike, p3: PointLike) => void;
     close?: (lastPoint: PointLike, movePoint: PointLike) => void;
 };
+/** 迭代路径时产出的单个路径段，与 visit 的回调一一对应 */
+export type PathIterSegment = {
+    type: 'moveTo';
+    point: PointLike;
+} | {
+    type: 'lineTo';
+    start: PointLike;
+    end: PointLike;
+} | {
+    type: 'quadraticCurveTo';
+    start: PointLike;
+    control: PointLike;
+    end: PointLike;
+} | {
+    type: 'cubicCurveTo';
+    start: PointLike;
+    control1: PointLike;
+    control2: PointLike;
+    end: PointLike;
+} | {
+    type: 'close';
+    last: PointLike;
+    move: PointLike;
+};
 export declare enum PathDirection {
     CW = 0,
     CCW = 1,
@@ -279,6 +303,15 @@ export declare class PathBuilder {
     isPointInPath(px: number, py: number, fillRule?: 'nonzero' | 'evenodd'): boolean;
     invertVisit(visitor: PathVisitCallbacks): void;
     visit(cbs: PathVisitCallbacks): void;
+    /**
+     * 迭代路径段，产出内容与 visit 的回调一一对应
+     *
+     * 用法：
+     * for (const seg of path) {
+     *     if (seg.type === 'lineTo') console.log(seg.start, seg.end)
+     * }
+     */
+    [Symbol.iterator](): IterableIterator<PathIterSegment>;
     /**
      * 计算路径的包围盒（带缓存）
      * 路径未变化时返回缓存，避免重复遍历。

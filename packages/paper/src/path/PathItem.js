@@ -31,6 +31,17 @@ var PathItem = Item.extend(/** @lends PathItem# */{
         // Do nothing.
     },
 
+    // Scale the stroke with the matrix that is applied to the content, when
+    // settings.scaleStrokes asks for it:
+    _scaleStroke: function(matrix) {
+        var style = this._style;
+        if (this._project._scope.settings.scaleStrokes
+                && style.getStrokeScaling()) {
+            style.setStrokeWidth(style.getStrokeWidth()
+                    * matrix._getMeanScale());
+        }
+    },
+
     statics: /** @lends PathItem */{
         /**
          * Creates a path item from the given SVG path-data, determining if the
@@ -137,7 +148,14 @@ var PathItem = Item.extend(/** @lends PathItem# */{
             previous,
             control,
             current = new Point(),
-            start = new Point();
+            start = new Point(),
+            number = '([+-]?(?:\\d*\\.\\d+|\\d+\\.?)(?:[eE][+-]?\\d+)?)',
+            numbers = new RegExp(number, 'g'),
+            // The arc flags are single characters that don't need to be
+            // separated from what follows, e.g. 'a1 1 0 011 1', see #1808:
+            flag = '([01])',
+            arcs = new RegExp([number, number, number, flag, flag, number,
+                    number].join('[\\s,]*'), 'g');
 
         function getCoord(index, coord) {
             var val = +coords[index];
@@ -161,7 +179,7 @@ var PathItem = Item.extend(/** @lends PathItem# */{
                 command = part[0],
                 lower = command.toLowerCase();
             // Match all coordinate values
-            coords = part.match(/[+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?/g);
+            coords = part.match(numbers);
             var length = coords && coords.length;
             relative = command === lower;
             // Fix issues with z in the middle of SVG path data, not followed by
@@ -230,10 +248,10 @@ var PathItem = Item.extend(/** @lends PathItem# */{
                 }
                 break;
             case 'a':
-                for (var j = 0; j < length; j += 7) {
-                    this.arcTo(current = getPoint(j + 5),
-                            new Size(+coords[j], +coords[j + 1]),
-                            +coords[j + 2], +coords[j + 4], +coords[j + 3]);
+                while (coords = arcs.exec(part)) {
+                    this.arcTo(current = getPoint(6),
+                            new Size(+coords[1], +coords[2]),
+                            +coords[3], +coords[5], +coords[4]);
                 }
                 break;
             case 'z':
@@ -288,7 +306,7 @@ var PathItem = Item.extend(/** @lends PathItem# */{
      * of {@link CurveLocation} objects. {@link CompoundPath} items are also
      * supported.
      *
-     * @param {PathItem} path the other item to find the intersections with
+     * @param {PathItem} [path] the other item to find the intersections with
      * @param {Function} [include] a callback function that can be used to
      *     filter out undesired locations right while they are collected. When
      *     defined, it shall return {@true to include a location}.
@@ -329,9 +347,16 @@ var PathItem = Item.extend(/** @lends PathItem# */{
             matrix2 = self ? matrix1
                 : (_matrix || path._matrix)._orNullIfIdentity();
         // First check the bounds of the two paths. If they don't intersect,
-        // we don't need to iterate through their curves.
-        return self || this.getBounds(matrix1).intersects(
-                path.getBounds(matrix2), /*#=*/Numerical.EPSILON)
+        // we don't need to iterate through their curves. Bounds that only
+        // touch need a tolerance, also at large coordinates:
+        var bounds1 = !self && this.getBounds(matrix1),
+            bounds2 = !self && path.getBounds(matrix2),
+            abs = Math.abs;
+        return self || bounds1.intersects(bounds2, Numerical.getEpsilon(
+                Math.max(abs(bounds1.left), abs(bounds1.right),
+                    abs(bounds1.top), abs(bounds1.bottom),
+                    abs(bounds2.left), abs(bounds2.right),
+                    abs(bounds2.top), abs(bounds2.bottom))))
                 ? Curve.getIntersections(
                         this.getCurves(), !self && path.getCurves(), include,
                         matrix1, matrix2, _returnFirst)
@@ -879,6 +904,78 @@ var PathItem = Item.extend(/** @lends PathItem# */{
      * }
      */
     // DOCS: PathItem#arcTo(to, radius, rotation, clockwise, large)
+
+    /**
+     * Adds an arc that sweeps the specified angle around the specified
+     * `center` point, from the position of the last segment in the path, by
+     * adding one or more segments to the path. Positive angles draw the arc in
+     * clockwise direction, negative ones in anticlockwise direction.
+     *
+     * @name PathItem#arcAround
+     * @function
+     *
+     * @param {Point} center the center of the arc
+     * @param {Number} angle the angle in degrees that the arc sweeps over
+     *
+     * @example {@paperscript}
+     * var path = new Path();
+     * path.strokeColor = 'black';
+     * path.add(new Point(30, 75));
+     * path.lineTo(new Point(80, 75));
+     *
+     * // Draw a half circle around (105, 75) and continue on the other side:
+     * path.arcAround(new Point(105, 75), 180);
+     * path.lineTo(new Point(180, 75));
+     *
+     * // Draw a full circle around (230, 75):
+     * var circle = new Path();
+     * circle.strokeColor = 'red';
+     * circle.add(new Point(250, 75));
+     * circle.arcAround(new Point(230, 75), 360);
+     */
+    /**
+     * Adds an arc from the position of the last segment in the path to the
+     * specified point, by adding one or more segments to the path. The arc
+     * continues in the direction in which the path ends, without a corner.
+     *
+     * @name PathItem#arcTowards
+     * @function
+     *
+     * @param {Point} to the point where the arc should end
+     *
+     * @example {@paperscript}
+     * var path = new Path();
+     * path.strokeColor = 'black';
+     * path.add(new Point(30, 125));
+     * path.lineTo(new Point(80, 125));
+     *
+     * // Each arc continues smoothly from where the path ends:
+     * path.arcTowards(new Point(130, 75));
+     * path.arcTowards(new Point(230, 75));
+     * path.lineTo(new Point(230, 125));
+     *
+     * @example {@paperscript height=300}
+     * // Interactive example. Click and drag in the view below:
+     * var myPath;
+     *
+     * // The mouse has to move at least 20 points before
+     * // the next mouse drag event is fired:
+     * tool.minDistance = 20;
+     *
+     * // When the user clicks, create a new path that starts
+     * // with a horizontal line ending at the mouse position:
+     * function onMouseDown(event) {
+     *     myPath = new Path();
+     *     myPath.strokeColor = 'black';
+     *     myPath.add(event.point - [20, 0], event.point);
+     * }
+     *
+     * // On each mouse drag event, continue the path smoothly
+     * // with an arc to the current position of the mouse:
+     * function onMouseDrag(event) {
+     *     myPath.arcTowards(event.point);
+     * }
+     */
 
     /**
      * Adds a curve from the last segment in the path through the specified

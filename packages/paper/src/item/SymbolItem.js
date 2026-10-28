@@ -14,7 +14,9 @@
  * @name SymbolItem
  *
  * @class A symbol item represents an instance of a symbol which has been
- * placed in a Paper.js project.
+ * placed in a Paper.js project. All instances share the symbol's definition,
+ * which they draw as it is: styles set on a symbol item don't reach the items
+ * of the definition, unlike `<use>` elements in SVG.
  *
  * @extends Item
  */
@@ -25,7 +27,7 @@ var SymbolItem = Item.extend(/** @lends SymbolItem# */{
     // SymbolItem uses strokeBounds for bounds
     _boundsOptions: { stroke: true },
     _serializeFields: {
-        symbol: null
+        definition: null
     },
 
     /**
@@ -105,6 +107,7 @@ var SymbolItem = Item.extend(/** @lends SymbolItem# */{
 
     /**
      * @bean
+     * @type SymbolDefinition
      * @deprecated use {@link #definition} instead.
      */
     getSymbol: '#getDefinition',
@@ -124,7 +127,10 @@ var SymbolItem = Item.extend(/** @lends SymbolItem# */{
         // We need to call definition item hit test with `options.all = false`,
         // as otherwise it would populate the array with its own matches.
         // Instead we want only returning one match per symbol-item, see #1680
-        var opts = options.extend({ all: false });
+        // The filters apply to the symbol-item, not to the definition's items:
+        var opts = options.extend({
+            all: false, match: null, class: null, type: null
+        });
         var res = this._definition._item._hitTest(point, opts, viewMatrix);
         // TODO: When the symbol's definition is a path, should hitResult
         // contain information like HitResult#curve?
@@ -134,8 +140,41 @@ var SymbolItem = Item.extend(/** @lends SymbolItem# */{
     },
 
     _draw: function(ctx, param) {
-        this._definition._item.draw(ctx, param);
-    }
+        // The definition's item is shared by all its symbol items, so don't
+        // let them set its global matrix (#1684):
+        this._definition._item.draw(ctx, param.extend({ updateMatrix: false }));
+    },
 
-    // TODO: SymbolItem#embed()
+    /**
+     * Replaces the symbol item with a copy of its definition's item, which
+     * keeps the symbol item's appearance: its matrix is applied to the copy,
+     * its opacity, visibility, blend mode and other attributes are combined
+     * with the copy's, and its name, data and selection are passed on.
+     *
+     * @return {Item} the copy of the definition's item, or `null` if the
+     *     symbol item has no parent
+     */
+    embed: function() {
+        if (!this._parent)
+            return null;
+        var item = this._definition._item.clone(false);
+        // The copy applies the matrix to its content or its own matrix,
+        // depending on its applyMatrix, as in Group#ungroup():
+        item.transform(this._matrix);
+        // Both items' opacities and visibilities apply when drawn, but only
+        // one blend mode can, the symbol item's if it has one:
+        item.setOpacity(item._opacity * this._opacity);
+        item.setVisible(item._visible && this._visible);
+        item.setLocked(item._locked || this._locked);
+        item.setGuide(item._guide || this._guide);
+        if (this._blendMode !== 'normal')
+            item.setBlendMode(this._blendMode);
+        item.setClipMask(this._clipMask);
+        item.setSelected(this.isSelected());
+        if (this._data)
+            item._data = Base.clone(this._data);
+        if (this._name)
+            item.setName(this._name);
+        return this.replaceWith(item) ? item : null;
+    }
 });

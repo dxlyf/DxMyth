@@ -540,6 +540,47 @@ export class Quaternion implements QuaternionLike {
         return Quaternion.equalsEpsilon(this, q, epsilon)
     }
 
+    setFromRotationMatrix(m: Readonly<Matrix4>): this {
+        const te = m;
+        const m11 = te[0]!;
+        const m12 = te[4]!;
+        const m13 = te[8]!;
+        const m21 = te[1]!;
+        const m22 = te[5]!;
+        const m23 = te[9]!;
+        const m31 = te[2]!;
+        const m32 = te[6]!;
+        const m33 = te[10]!;
+        const trace = m11 + m22 + m33;
+
+        if (trace > 0) {
+            const s = 0.5 / Math.sqrt(trace + 1);
+            this.w = 0.25 / s;
+            this.x = (m32 - m23) * s;
+            this.y = (m13 - m31) * s;
+            this.z = (m21 - m12) * s;
+        } else if (m11 > m22 && m11 > m33) {
+            const s = 2 * Math.sqrt(1 + m11 - m22 - m33);
+            this.w = (m32 - m23) / s;
+            this.x = 0.25 * s;
+            this.y = (m12 + m21) / s;
+            this.z = (m13 + m31) / s;
+        } else if (m22 > m33) {
+            const s = 2 * Math.sqrt(1 + m22 - m11 - m33);
+            this.w = (m13 - m31) / s;
+            this.x = (m12 + m21) / s;
+            this.y = 0.25 * s;
+            this.z = (m23 + m32) / s;
+        } else {
+            const s = 2 * Math.sqrt(1 + m33 - m11 - m22);
+            this.w = (m21 - m12) / s;
+            this.x = (m13 + m31) / s;
+            this.y = (m23 + m32) / s;
+            this.z = 0.25 * s;
+        }
+        return this.normalize();
+    }
+
     isFinite(): boolean {
         return Number.isFinite(this.x) && Number.isFinite(this.y)
             && Number.isFinite(this.z) && Number.isFinite(this.w)

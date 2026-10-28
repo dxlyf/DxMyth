@@ -7,6 +7,7 @@ export type ColorStop = {
 };
 export declare abstract class Gradient extends Disposable {
     type: 'gradient';
+    readonly uid: number;
     elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient';
     stops: ColorStop[];
     matrix?: Matrix2D;

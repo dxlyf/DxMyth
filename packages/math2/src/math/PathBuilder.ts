@@ -64,6 +64,14 @@ type PathVisitCallbacks = {
     close?: (lastPoint: PointLike, movePoint: PointLike) => void
 }
 
+/** 迭代路径时产出的单个路径段，与 visit 的回调一一对应 */
+export type PathIterSegment =
+    | { type: 'moveTo'; point: PointLike }
+    | { type: 'lineTo'; start: PointLike; end: PointLike }
+    | { type: 'quadraticCurveTo'; start: PointLike; control: PointLike; end: PointLike }
+    | { type: 'cubicCurveTo'; start: PointLike; control1: PointLike; control2: PointLike; end: PointLike }
+    | { type: 'close'; last: PointLike; move: PointLike }
+
 
 
 export enum PathDirection {
@@ -935,6 +943,54 @@ export class PathBuilder {
                     cbs.close?.(points[k - 1], movePoint)
                     break
 
+            }
+        }
+    }
+    /**
+     * 迭代路径段，产出内容与 visit 的回调一一对应
+     *
+     * 用法：
+     * for (const seg of path) {
+     *     if (seg.type === 'lineTo') console.log(seg.start, seg.end)
+     * }
+     */
+    *[Symbol.iterator](): IterableIterator<PathIterSegment> {
+        const points = this.points
+        const size = this.size
+        let k = 0
+        const movePoint = Point.default()
+        for (let i = 0; i < size; i++) {
+            const verb = this.verbs[i]
+            k += PathVerbCount[verb]
+            switch (verb) {
+                case PathVerb.MoveTo:
+                    movePoint.copy(points[k - 1])
+                    yield { type: 'moveTo', point: points[k - 1] }
+                    break
+                case PathVerb.LineTo:
+                    yield { type: 'lineTo', start: points[k - 2], end: points[k - 1] }
+                    break
+                case PathVerb.QuadraticTo:
+                    yield {
+                        type: 'quadraticCurveTo',
+                        start: points[k - 3],
+                        control: points[k - 2],
+                        end: points[k - 1],
+                    }
+                    break
+                case PathVerb.CubicTo:
+                    yield {
+                        type: 'cubicCurveTo',
+                        start: points[k - 4],
+                        control1: points[k - 3],
+                        control2: points[k - 2],
+                        end: points[k - 1],
+                    }
+                    break
+                case PathVerb.Close:
+                    // movePoint 会被后续 MoveTo 复用，这里给出快照
+                    yield { type: 'close', last: points[k - 1], move: { x: movePoint.x, y: movePoint.y } }
+                    break
             }
         }
     }

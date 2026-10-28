@@ -47,6 +47,11 @@ export * from './math/Conic'
 export * from './math/Intersection'
 export * from './math/StructArray'
 export * from './math/misc/projectStroke'
+export * from './math/Sphere'
+export * from './math/Box3'
+export * from './math/Ray'
+export * from './math/Frustum'
+export * as paperPath from './math/paper-path'
 
 export * as contain from './math/contain'
 export * from './math/PathProxy'
@@ -54,13 +59,15 @@ export * as bbox from './math/bbox'
 export * as pixijs from './math/pixijs'
 export * as polyclip from './math/polyclip-ts'
 export * as RBush from './data/rbush'
+export * from './data/quadtree'
 export {default as TinyQueue} from './data/tinyqueue'
 export * from './data/splaytree'
+export * from './data/quadtree'
 // export * as math2 from './math2'
 
 export * as polybool from './math/polybool/polybool'
 export * as clipper2 from './math/clipper2'
-export * from './math/path-2d'
+export * from './math/Path2D'
 export * from './math/ShapePath'
 export * as curvePaths from './math/curve-path'
 
@@ -89,6 +96,8 @@ export type {PluginContext as PluginServiceContext,IPlugin as PluginServicePlugi
 export * from './animation'
 export * from './tapable'
 
+// renderer2d
+export * as renderer2d  from './renderer2d'
 
 
 
@@ -113,6 +122,9 @@ export * from './utils/stats.module'
 export * from './utils/template'
 export * from './utils/uid'
 export * from './utils/merge'
+export * from './utils/Pixmap'
+
+
 
 export * from './controls/Ruler'
 export * from './controls/ZoomTranslate'

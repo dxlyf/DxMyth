@@ -95,6 +95,7 @@ export declare class Quaternion implements QuaternionLike {
     angleTo(q: QuaternionLike): number;
     equals(q: QuaternionLike): boolean;
     equalsEpsilon(q: QuaternionLike, epsilon?: number): boolean;
+    setFromRotationMatrix(m: Readonly<Matrix4>): this;
     isFinite(): boolean;
     isIdentity(): boolean;
     isZero(): boolean;

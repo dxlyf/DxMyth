@@ -33,9 +33,11 @@
 // Allow the minification of the undefined variable by defining it as a local
 // parameter inside the paper scope.
 var paper = function(self, undefined) {
+// Strict mode makes e.g. Path#getNearestPoint() and Item#hitTest() faster:
+'use strict';
 /*#*/ include('init.js');
 // Inline Straps.js core (the Base class) inside the paper scope first:
-/*#*/ include('../node_modules/straps/straps.js');
+/*#*/ include('straps.js');
 
 /*#*/ include('core/Base.js');
 /*#*/ include('core/Emitter.js');
@@ -54,18 +56,24 @@ var paper = function(self, undefined) {
 /*#*/ include('basic/Point.js');
 /*#*/ include('basic/Size.js');
 /*#*/ include('basic/Rectangle.js');
+/*#*/ include('basic/RectangleBuilder.js');
 /*#*/ include('basic/Matrix.js');
 /*#*/ include('basic/Line.js');
 
+/*#*/ include('item/ChangeFlag.js');
 /*#*/ include('item/Project.js');
 /*#*/ include('item/Item.js');
 /*#*/ include('item/Group.js');
 /*#*/ include('item/Layer.js');
 /*#*/ include('item/Shape.js');
 /*#*/ include('item/Raster.js');
+/*#*/ include('item/ItemDefinition.js');
 /*#*/ include('item/SymbolItem.js');
 /*#*/ include('item/SymbolDefinition.js');
 /*#*/ include('item/HitResult.js');
+/*#*/ include('item/EffectInstance.js');
+/*#*/ include('item/Effect.js');
+/*#*/ include('item/Item.Effects.js');
 
 /*#*/ include('path/Segment.js');
 /*#*/ include('path/SegmentPoint.js');
@@ -74,19 +82,27 @@ var paper = function(self, undefined) {
 /*#*/ include('path/PathItem.js');
 /*#*/ include('path/Path.js');
 /*#*/ include('path/Path.Constructors.js');
+/*#*/ include('path/Path.StrokeProfile.js');
+/*#*/ include('path/StrokeProfileStop.js');
 /*#*/ include('path/CompoundPath.js');
 /*#*/ if (__options.booleanOperations) {
 /*#*/     include('path/PathItem.Boolean.js');
+/*#*/     include('path/PathItem.Offset.js');
 /*#*/ }
 /*#*/ include('path/PathFlattener.js');
 /*#*/ include('path/PathFitter.js');
 
 /*#*/ include('text/TextItem.js');
 /*#*/ include('text/PointText.js');
+/*#*/ include('text/PathText.js');
+/*#*/ include('text/AreaText.js');
+/*#*/ include('text/TextStory.js');
+/*#*/ include('text/TextRange.js');
 
 /*#*/ include('style/Color.js');
 /*#*/ include('style/Gradient.js');
 /*#*/ include('style/GradientStop.js');
+/*#*/ include('style/PatternDefinition.js');
 /*#*/ include('style/Style.js');
 
 /*#*/ include('dom/DomElement.js');
@@ -96,6 +112,7 @@ var paper = function(self, undefined) {
 /*#*/ include('view/CanvasView.js');
 
 /*#*/ include('event/Event.js');
+/*#*/ include('event/DrawEvent.js');
 /*#*/ include('event/KeyEvent.js');
 /*#*/ include('event/Key.js');
 /*#*/ include('event/MouseEvent.js');
@@ -109,6 +126,11 @@ var paper = function(self, undefined) {
 
 /*#*/ include('canvas/CanvasProvider.js');
 /*#*/ include('canvas/BlendMode.js');
+/*#*/ if (__options.hosted) {
+/*#*/     include('item/HostItem.js');
+/*#*/     include('item/Item.Hosted.js');
+/*#*/ }
+
 /*#*/ if (__options.load) {
 /*#*/     include('canvas/ProxyContext.js');
 /*#*/ }
@@ -126,4 +148,4 @@ var paper = function(self, undefined) {
 
 /*#*/ include('export.js');
 return paper;
-}.call(this, typeof self === 'object' ? self : null);
+}(typeof self === 'object' ? self : null);

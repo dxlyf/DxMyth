@@ -24,9 +24,9 @@ export type TransformProps = {
     pivot?: Vector2Like
 }
 export type TransformEvents={
-    'transform:change': [transform: Transform<TransformEvents>]
+    'transform:change': [transform: Transform]
 }
-export class Transform<Events extends TransformEvents=any> extends EventEmitter<TransformEvents> {
+export class Transform<Events extends TransformEvents=any> extends EventEmitter<Events> {
     // ---- 内部存储 ----
 
     public position: Point
@@ -37,7 +37,7 @@ export class Transform<Events extends TransformEvents=any> extends EventEmitter<
     public pivot: Point
 
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
-    declare parent: Transform<Events> | null 
+    declare parent: Transform<any> | null
 
     // ---- 矩阵缓存 ----
 
@@ -162,7 +162,7 @@ export class Transform<Events extends TransformEvents=any> extends EventEmitter<
     updateTransform(): void {
         this._localMatrixDirty = true
         this._worldMatrixDirty = true
-        this.emit('transform:change', this)
+        this.emit('transform:change',this)
         this.onTransformChange()
     }
     onTransformChange(){

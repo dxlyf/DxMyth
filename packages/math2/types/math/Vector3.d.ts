@@ -1,6 +1,7 @@
 import { CachePool } from './CachePool';
 import { Matrix3Like } from './Matrix3';
 import { Matrix4Like } from './Matrix4';
+import { Quaternion } from './Quaternion';
 export type Vector3Like = {
     x: number;
     y: number;
@@ -26,6 +27,7 @@ export declare class Vector3 implements Vector3Like {
     static unitZ(): Vector3;
     /** out = a + b */
     static add<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
+    static addScaled<T extends Vector3Like>(out: T, v: Vector3Like, s: number): T;
     /** out = a - b */
     static subtract<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like): T;
     /** out = a ⊙ b（逐分量相乘） */
@@ -76,8 +78,12 @@ export declare class Vector3 implements Vector3Like {
     copy(v: Vector3Like): this;
     zero(): this;
     one(): this;
+    addVectors(a: Vector3Like, b: Vector3Like): this;
     add(v: Vector3Like): this;
+    addScaled(v: Vector3Like, s: number): this;
+    subtractVectors(a: Vector3Like, b: Vector3Like): this;
     subtract(v: Vector3Like): this;
+    multiplyVectors(a: Vector3Like, b: Vector3Like): this;
     multiply(v: Vector3Like): this;
     multiplyScalar(s: number): this;
     divide(s: number): this;
@@ -89,6 +95,7 @@ export declare class Vector3 implements Vector3Like {
     min(v: Vector3Like): this;
     /** this = max(this, v)（逐分量取最大） */
     max(v: Vector3Like): this;
+    crossVectors(a: Vector3Like, b: Vector3Like): this;
     cross(v: Vector3Like): this;
     /** this = m * this（3x3 矩阵变换） */
     applyMatrix3(m: Matrix3Like): this;
@@ -103,6 +110,9 @@ export declare class Vector3 implements Vector3Like {
     angle(v: Vector3Like): number;
     distanceTo(v: Vector3Like): number;
     distanceSquaredTo(v: Vector3Like): number;
+    transformDirection(m: Matrix4Like): this;
+    applyQuat(q: Readonly<Quaternion>): this;
+    applyAxisAngle(axis: Readonly<Vector3Like>, radians: number): this;
     equals(v: Vector3Like): boolean;
     equalsEpsilon(v: Vector3Like, epsilon?: number): boolean;
     isFinite(): boolean;

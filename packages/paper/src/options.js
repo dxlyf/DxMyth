@@ -15,9 +15,10 @@
 // files directly through load.js / Prepro.js during development.
 
 // The paper.js version.
-// NOTE: Adjust value here before calling `gulp publish`, which then updates and
-// publishes the various JSON package files automatically.
-var version = '0.12.18';
+// NOTE: Adjust value here before calling `gulp publish`, which then updates the
+// various JSON package files and commits, tags and pushes the release, for the
+// release workflow on GitHub Actions to publish it.
+var version = '0.16.0';
 
 // If this file is loaded in the browser, we're in load.js mode.
 var load = typeof window === 'object';
@@ -29,7 +30,10 @@ var __options = {
     svg: true,
     booleanOperations: true,
     nativeContains: false,
-    paperScript: true
+    paperScript: true,
+    // Items backed by a host document, see Project#source. Only in the
+    // paper-hosted.js build, and when loading the sources directly:
+    hosted: load
 };
 
 // Export for use in Gulp.js

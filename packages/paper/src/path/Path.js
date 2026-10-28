@@ -22,8 +22,12 @@ var Path = PathItem.extend(/** @lends Path# */{
     _class: 'Path',
     _serializeFields: {
         segments: [],
-        closed: false
+        closed: false,
+        strokeProfile: null
     },
+    // The offsets of the stroke profile lie on the segments, so set those
+    // first:
+    _prioritize: ['applyMatrix', 'segments', 'closed'],
 
     /**
      * Creates a new path item and places it at the top of the active layer.
@@ -73,7 +77,10 @@ var Path = PathItem.extend(/** @lends Path# */{
      */
     /**
      * Creates a new path item from SVG path-data and places it at the top of
-     * the active layer.
+     * the active layer. A path holds a single sub-path: further `M` commands
+     * are ignored, and the commands that follow them continue the same path.
+     * Use {@link CompoundPath} or {@link PathItem.create(pathData)} to create
+     * items with multiple sub-paths.
      *
      * @name Path#initialize
      * @param {String} pathData the SVG path-data that describes the geometry
@@ -128,12 +135,26 @@ var Path = PathItem.extend(/** @lends Path# */{
 
     _equals: function(item) {
         return this._closed === item._closed
-                && Base.equals(this._segments, item._segments);
+                && Base.equals(this._segments, item._segments)
+                && Base.equals(this._strokeProfile, item._strokeProfile);
     },
 
     copyContent: function(source) {
+        var profile = source._strokeProfile;
         this.setSegments(source._segments);
         this._closed = source._closed;
+        // The same segments, so the same indices:
+        if (profile || this._strokeProfile) {
+            this.setStrokeProfile(profile && profile.map(function(stop) {
+                return {
+                    index: stop._index,
+                    width: stop._width,
+                    aspect: stop._aspect,
+                    angle: stop._angle,
+                    smooth: stop._smooth
+                };
+            }));
+        }
     },
 
     _changed: function _changed(flags) {
@@ -148,10 +169,6 @@ var Path = PathItem.extend(/** @lends Path# */{
                for (var i = 0, l = this._curves.length; i < l; i++)
                     this._curves[i]._changed();
             }
-        } else if (flags & /*#=*/ChangeFlag.STROKE) {
-            // TODO: We could preserve the purely geometric bounds that are not
-            // affected by stroke: _bounds.bounds and _bounds.handleBounds
-            this._bounds = undefined;
         }
     },
 
@@ -162,10 +179,22 @@ var Path = PathItem.extend(/** @lends Path# */{
     },
 
     /**
-     * The segments contained within the path.
+     * The segments contained within the path. Segments that define a
+     * {@link Segment#name} can also be accessed by name.
      *
      * @bean
      * @type Segment[]
+     *
+     * @example {@paperscript}
+     * // Accessing segments by name:
+     * var path = new Path([20, 80], [50, 20], [80, 80]);
+     * path.strokeColor = 'black';
+     *
+     * // Set the name of the top segment:
+     * path.segments[1].name = 'top';
+     *
+     * // The segment can be accessed by name:
+     * path.segments['top'].point.y += 20;
      */
     getSegments: function() {
         return this._segments;
@@ -173,7 +202,21 @@ var Path = PathItem.extend(/** @lends Path# */{
 
     setSegments: function(segments) {
         var fullySelected = this.isFullySelected(),
-            length = segments && segments.length;
+            length = segments && segments.length,
+            named = this._namedSegments,
+            // The new segments keep the stroke profile by the fractions of
+            // its offsets along the path:
+            profile = this._strokeProfile,
+            pathLength = profile && this.getLength(),
+            fractions = profile && profile.map(function(stop) {
+                return pathLength ? stop.getOffset() / pathLength : 0;
+            });
+        this._strokeProfile = null;
+        if (named) {
+            for (var name in named)
+                delete this._segments[name];
+            this._namedSegments = null;
+        }
         this._segments.length = 0;
         this._segmentSelection = 0;
         // Calculate new curves next time we call getCurves()
@@ -193,6 +236,13 @@ var Path = PathItem.extend(/** @lends Path# */{
         // TODO: Do we still need this?
         if (fullySelected)
             this.setFullySelected(true);
+        if (profile) {
+            this._strokeProfile = profile;
+            pathLength = this.getLength();
+            for (var i = 0, l = profile.length; i < l; i++)
+                profile[i]._index = this._getIndexAt(fractions[i] * pathLength);
+            this._sortStrokeProfile();
+        }
     },
 
     /**
@@ -280,6 +330,13 @@ var Path = PathItem.extend(/** @lends Path# */{
     setClosed: function(closed) {
         // On-the-fly conversion to boolean:
         if (this._closed != (closed = !!closed)) {
+            // Opening the path lets go of the stops on its closing curve:
+            if (!closed && this._strokeProfile) {
+                var last = this._segments.length - 1;
+                this._filterStrokeProfile(function(stop) {
+                    return stop._index <= last;
+                });
+            }
             this._closed = closed;
             // Update _curves length
             if (this._curves) {
@@ -372,6 +429,7 @@ var Path = PathItem.extend(/** @lends Path# */{
             coords = new Array(6);
         for (var i = 0, l = segments.length; i < l; i++)
             segments[i]._transformCoordinates(matrix, coords, true);
+        this._scaleStroke(matrix);
         return true;
     },
 
@@ -398,6 +456,9 @@ var Path = PathItem.extend(/** @lends Path# */{
                 segment = segs[i] = segment.clone();
             segment._path = this;
             segment._index = index + i;
+            // Set the name again to add it to the segments' name lookup.
+            if (segment._name)
+                segment.setName(segment._name);
             // If parts of this segment are selected, adjust the internal
             // _segmentSelection now
             if (segment._selection)
@@ -435,6 +496,8 @@ var Path = PathItem.extend(/** @lends Path# */{
             // Adjust segments for the curves before and after the removed ones
             this._adjustCurves(start, end);
         }
+        if (this._strokeProfile)
+            this._insertStrokeProfile(index, amount);
         // Use SEGMENTS notification instead of GEOMETRY since curves are kept
         // up-to-date by _adjustCurves() and don't need notification.
         this._changed(/*#=*/Change.SEGMENTS);
@@ -708,11 +771,14 @@ var Path = PathItem.extend(/** @lends Path# */{
      */
     /**
      * Removes the segments from the specified `from` index to the `to` index
-     * from the path's {@link #segments} array.
+     * from the path's {@link #segments} array. On closed paths, `from` can be
+     * bigger than `to`, to remove the segments from `from` to the end and then
+     * from the beginning up to `to`, wrapping around the closing curve.
      *
      * @param {Number} from the beginning index, inclusive
      * @param {Number} [to=segments.length] the ending index, exclusive
-     * @return {Segment[]} an array containing the removed segments
+     * @return {Segment[]} an array containing the removed segments, in the
+     *     order in which they appeared along the path
      *
      * @example {@paperscript}
      * // Removing segments from a path:
@@ -734,9 +800,16 @@ var Path = PathItem.extend(/** @lends Path# */{
     removeSegments: function(start, end, _includeCurves) {
         start = start || 0;
         end = Base.pick(end, this._segments.length);
+        // On closed paths, wrap around from the end to the beginning:
+        if (start > end && this._closed)
+            return this.removeSegments(start).concat(
+                    this.removeSegments(0, end));
         var segments = this._segments,
-            curves = this._curves,
-            count = segments.length, // segment count before removal
+            count = segments.length; // segment count before removal
+        if (this._strokeProfile && start < Math.min(end, count))
+            this._removeStrokeProfile(start, Math.min(end, count));
+        // Moving the stroke profile may have created the curves:
+        var curves = this._curves,
             removed = segments.splice(start, end - start),
             amount = removed.length;
         if (!amount)
@@ -746,6 +819,9 @@ var Path = PathItem.extend(/** @lends Path# */{
             var segment = removed[i];
             if (segment._selection)
                 this._updateSelection(segment, segment._selection, 0);
+            if (segment._name)
+                Base.removeNamed(segments, this._namedSegments, segment._name,
+                        segment);
             // Clear the indices and path references of the removed segments
             segment._index = segment._path = null;
         }
@@ -783,7 +859,9 @@ var Path = PathItem.extend(/** @lends Path# */{
     clear: '#removeSegments',
 
     /**
-     * Checks if any of the curves in the path have curve handles set.
+     * Checks if any of the curves in the path have curve handles set. Handles
+     * of which both coordinates are 0 within a tolerance of 1e-12 count as not
+     * set, see {@link Point#isZero()}.
      *
      * @return {Boolean} {@true if the path has curve handles set}
      * @see Segment#hasHandles()
@@ -991,7 +1069,7 @@ var Path = PathItem.extend(/** @lends Path# */{
      *
      * @param {Number|CurveLocation} location the offset or location at which to
      *     split the path
-     * @return {Path} the newly created path after splitting, if any
+     * @return {?Path} the newly created path after splitting, if any
      *
      * @example {@paperscript}
      * var path = new Path.Circle({
@@ -1053,7 +1131,11 @@ var Path = PathItem.extend(/** @lends Path# */{
             time = 0;
         }
         var curves = this.getCurves();
-        if (index >= 0 && index < curves.length) {
+        if (loc && index < curves.length) {
+            // Both parts keep their shapes, so the stroke profile moves along
+            // by offsets:
+            var cut = loc.getOffset(),
+                profile = this._strokeProfile && this._takeStrokeProfile();
             // Only divide curves if we're not on an existing segment already.
             if (time >= tMin) {
                 // Divide the curve with the index at the given curve-time.
@@ -1083,12 +1165,24 @@ var Path = PathItem.extend(/** @lends Path# */{
             // Add dividing segment again. In case of a closed path, that's the
             // beginning segment again at the end, since we opened it.
             this.addSegment(segs[0]);
+            if (profile) {
+                if (path === this) {
+                    this._setStrokeProfilePart(profile, cut,
+                            cut + profile.length);
+                } else {
+                    this._setStrokeProfilePart(profile, 0, cut);
+                    path._setStrokeProfilePart(profile, cut, profile.length);
+                }
+            }
             return path;
         }
         return null;
     },
 
     /**
+     * @param {Number} index
+     * @param {Number} [time]
+     * @return {Path}
      * @deprecated use use {@link #splitAt(offset)} instead.
      */
     split: function(index, time) {
@@ -1173,17 +1267,24 @@ var Path = PathItem.extend(/** @lends Path# */{
      * path.selected = true;
      */
     join: function(path, tolerance) {
-        var epsilon = tolerance || 0;
+        var epsilon = tolerance || 0,
+            // The joined paths keep their shapes, so their stroke profiles
+            // move along by offsets, as parts in their order along the path:
+            parts = null;
         if (path && path !== this) {
             var segments = path._segments,
                 last1 = this.getLastSegment(),
                 last2 = path.getLastSegment();
             if (!last2) // an empty path?
                 return this;
+            if (this._strokeProfile || path._strokeProfile)
+                parts = [this._takeStrokeProfile()];
             if (last1 && last1._point.isClose(last2._point, epsilon))
                 path.reverse();
             var first2 = path.getFirstSegment();
             if (last1 && last1._point.isClose(first2._point, epsilon)) {
+                if (parts)
+                    parts.push(path._takeStrokeProfile());
                 last1.setHandleOut(first2._handleOut);
                 this._add(segments.slice(1));
             } else {
@@ -1191,7 +1292,11 @@ var Path = PathItem.extend(/** @lends Path# */{
                 if (first1 && first1._point.isClose(first2._point, epsilon))
                     path.reverse();
                 last2 = path.getLastSegment();
+                if (parts)
+                    parts.push(path._takeStrokeProfile());
                 if (first1 && first1._point.isClose(last2._point, epsilon)) {
+                    if (parts)
+                        parts.reverse();
                     first1.setHandleIn(last2._handleIn);
                     // Prepend all segments from path except the last one.
                     this._add(segments.slice(0, segments.length - 1), 0);
@@ -1209,17 +1314,27 @@ var Path = PathItem.extend(/** @lends Path# */{
         var first = this.getFirstSegment(),
             last = this.getLastSegment();
         if (first !== last && first._point.isClose(last._point, epsilon)) {
+            if (!parts && this._strokeProfile)
+                parts = [this._takeStrokeProfile()];
             first.setHandleIn(last._handleIn);
             last.remove();
             this.setClosed(true);
         }
+        if (parts)
+            this._setStrokeProfileParts(parts);
         return this;
     },
 
     /**
-     * Reduces the path by removing curves that have a length of 0,
-     * and unnecessary segments between two collinear flat curves.
+     * Reduces the path by removing straight curves that have a length of 0.
+     * With `options.simplify`, it also removes straight curves that are almost
+     * 0 in length, and unnecessary segments between two collinear straight
+     * curves.
      *
+     * @option [options.simplify=false] {Boolean} also remove almost zero-length
+     *     curves and segments between collinear straight curves
+     *
+     * @param {Object} [options] the reduce options
      * @return {Path} the reduced path
      */
     reduce: function(options) {
@@ -1255,6 +1370,8 @@ var Path = PathItem.extend(/** @lends Path# */{
         }
         // Clear curves since it all has changed.
         this._curves = null;
+        if (this._strokeProfile)
+            this._reverseStrokeProfile();
         this._changed(/*#=*/Change.GEOMETRY);
     },
 
@@ -1560,7 +1677,7 @@ var Path = PathItem.extend(/** @lends Path# */{
             shape._matrix.prepend(this._matrix);
             // Determine and apply the shape's angle of rotation.
             shape.rotate(topCenter.subtract(center).getAngle() + 90);
-            if (insert === undefined || insert)
+            if (Base.pick(insert, paper.settings.insertItems))
                 shape.insertAbove(this);
             return shape;
         }
@@ -1659,14 +1776,30 @@ var Path = PathItem.extend(/** @lends Path# */{
             segments = this._segments,
             numSegments = segments.length,
             closed = this._closed,
-            // transformed tolerance padding, see Item#hitTest. We will add
-            // stroke padding on top if stroke is defined.
-            tolerancePadding = options._tolerancePadding,
+            // Measure where the stroke is drawn with a round pen: for
+            // non-scaling strokes in the view's coordinates, through the
+            // inverted strokeMatrix that Item#_hitTest() passes, otherwise in
+            // the item's own. Curve times are the same in both (#2334):
+            strokeSpace = strokeMatrix && strokeMatrix.inverted(),
+            strokePoint = point.transform(strokeSpace),
+            // The tolerance padding in that space, see Item#_hitTest(): for
+            // non-scaling strokes, the tolerance of the project in the view's
+            // coordinates. The stroke padding is added on top of it below.
+            tolerancePadding = strokeSpace
+                    ? new Size(Matrix._getCircleExtents(
+                        Math.max(options.tolerance, /*#=*/Numerical.EPSILON),
+                        this.getView()._matrix._shiftless()))
+                    : options._tolerancePadding,
             strokePadding = tolerancePadding,
             join, cap, miterLimit,
             area, loc, res,
+            // When collecting all hits for hitTestAll(), we report every
+            // segment and handle in range, not just the first one:
+            hits = options.all && [],
             hitStroke = options.stroke && style.hasStroke(),
-            hitFill = options.fill && style.hasFill(),
+            // Transparent fills are hit too, only no fill isn't, as in SVG
+            // (#1157):
+            hitFill = options.fill && !!style.getFillColor(),
             hitCurves = options.curves,
             strokeRadius = hitStroke
                     ? style.getStrokeWidth() / 2
@@ -1680,10 +1813,9 @@ var Path = PathItem.extend(/** @lends Path# */{
                 join = style.getStrokeJoin();
                 cap = style.getStrokeCap();
                 miterLimit = style.getMiterLimit();
-                // Add the stroke radius to tolerance padding, taking
-                // #strokeScaling into account through _getStrokeMatrix().
-                strokePadding = strokePadding.add(
-                    Path._getStrokePadding(strokeRadius, strokeMatrix));
+                // Add the stroke radius to tolerance padding, which is round
+                // where the stroke is measured:
+                strokePadding = strokePadding.add(strokeRadius);
             } else {
                 join = cap = 'round';
             }
@@ -1692,8 +1824,9 @@ var Path = PathItem.extend(/** @lends Path# */{
             // locations to extend the fill area by tolerance.
         }
 
+        // Checks a point where the stroke is measured, see strokeSpace:
         function isCloseEnough(pt, padding) {
-            return point.subtract(pt).divide(padding).length <= 1;
+            return strokePoint.subtract(pt).divide(padding).length <= 1;
         }
 
         function checkSegmentPoint(seg, pt, name) {
@@ -1701,11 +1834,14 @@ var Path = PathItem.extend(/** @lends Path# */{
                 var anchor = seg._point;
                 if (pt !== anchor)
                     pt = pt.add(anchor);
-                if (isCloseEnough(pt, strokePadding)) {
-                    return new HitResult(name, that, {
+                if (isCloseEnough(pt.transform(strokeSpace), strokePadding)) {
+                    var hit = new HitResult(name, that, {
                         segment: seg,
                         point: pt
                     });
+                    if (!hits)
+                        return hit;
+                    hits.push(hit);
                 }
             }
         }
@@ -1726,28 +1862,51 @@ var Path = PathItem.extend(/** @lends Path# */{
             area.add(point);
         }
 
+        // Returns the tangent where the curve meets the segment, looking past
+        // curves without length, which have no direction:
+        function getJoinTangent(curve, forward) {
+            for (var i = 0; curve && i < numSegments; i++) {
+                if (curve.hasLength())
+                    return curve.getTangentAtTime(forward ? 0 : 1);
+                curve = forward ? curve.getNext() : curve.getPrevious();
+            }
+        }
+
+        function isFlatJoin(segment) {
+            var curve = segment.getCurve(),
+                tangent1 = getJoinTangent(curve.getPrevious(), false),
+                tangent2 = getJoinTangent(curve, true);
+            return tangent1 && tangent2 && tangent1.isCollinear(tangent2)
+                    && tangent1.dot(tangent2) > 0;
+        }
+
         function checkSegmentStroke(segment) {
             // Handle joins / caps that are not round specifically, by
             // hit-testing their polygon areas.
             var isJoin = closed || segment._index > 0
                     && segment._index < numSegments - 1;
-            if ((isJoin ? join : cap) === 'round') {
+            // Smooth segments are always joined round, as in addJoin() in
+            // getStrokeBounds(), and so are segments where the curves meet in
+            // the same direction, such as a line running into a curve, as the
+            // join adds nothing there:
+            if (isJoin && (segment.isSmooth() || isFlatJoin(segment))
+                    || (isJoin ? join : cap) === 'round') {
                 // Round join / cap is easy to handle.
-                return isCloseEnough(segment._point, strokePadding);
+                return isCloseEnough(segment._point.transform(strokeSpace),
+                        strokePadding);
             } else {
                 // Create an 'internal' path without id and outside the scene
-                // graph to run the hit-test on it.
+                // graph to run the hit-test on it, where the stroke is
+                // measured.
                 area = new Path({ internal: true, closed: true });
                 if (isJoin) {
-                    // Only add bevels to segments that aren't smooth.
-                    if (!segment.isSmooth()) {
-                        // _addBevelJoin() handles both 'bevel' and 'miter'.
-                        Path._addBevelJoin(segment, join, strokeRadius,
-                               miterLimit, null, strokeMatrix, addToArea, true);
-                    }
-                } else if (cap === 'square') {
-                    Path._addSquareCap(segment, cap, strokeRadius, null,
-                            strokeMatrix, addToArea, true);
+                    // _addBevelJoin() handles both 'bevel' and 'miter'.
+                    Path._addBevelJoin(segment, join, strokeRadius,
+                           miterLimit, strokeSpace, null, addToArea, true);
+                } else {
+                    // _addSquareCap() handles both 'square' and 'butt' caps.
+                    Path._addSquareCap(segment, cap, strokeRadius,
+                            strokeSpace, null, addToArea, true);
                 }
                 // See if the above produced an area to check for
                 if (!area.isEmpty()) {
@@ -1755,8 +1914,8 @@ var Path = PathItem.extend(/** @lends Path# */{
                     // is not inside the area itself, to use test caps and joins
                     // with same tolerance.
                     var loc;
-                    return area.contains(point)
-                        || (loc = area.getNearestLocation(point))
+                    return area.contains(strokePoint)
+                        || (loc = area.getNearestLocation(strokePoint))
                             && isCloseEnough(loc.getPoint(), tolerancePadding);
                 }
             }
@@ -1775,7 +1934,22 @@ var Path = PathItem.extend(/** @lends Path# */{
         }
         // If we're querying for stroke, perform that before fill
         if (strokeRadius !== null) {
-            loc = this.getNearestLocation(point);
+            // Find the nearest location where the stroke is measured, as
+            // PathItem#getNearestLocation() does in the item's coordinates:
+            var curves = this.getCurves(),
+                minDistance = Infinity,
+                nearest;
+            for (var i = 0, l = curves.length; i < l; i++) {
+                var values = curves[i].getValues(strokeSpace),
+                    t = Curve.getNearestTime(values, strokePoint),
+                    pt = Curve.getPoint(values, t),
+                    distance = pt.getDistance(strokePoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    loc = new CurveLocation(curves[i], t);
+                    nearest = pt;
+                }
+            }
             // Note that paths need at least two segments to have an actual
             // stroke. But we still check for segments with the radius fallback
             // check if there is only one segment.
@@ -1787,7 +1961,7 @@ var Path = PathItem.extend(/** @lends Path# */{
                 if (time === 0 || time === 1 && numSegments > 1) {
                     if (!checkSegmentStroke(loc.getSegment()))
                         loc = null;
-                } else if (!isCloseEnough(loc.getPoint(), strokePadding)) {
+                } else if (!isCloseEnough(nearest, strokePadding)) {
                     loc = null;
                 }
             }
@@ -1796,7 +1970,8 @@ var Path = PathItem.extend(/** @lends Path# */{
             if (!loc && join === 'miter' && numSegments > 1) {
                 for (var i = 0; i < numSegments; i++) {
                     var segment = segments[i];
-                    if (point.getDistance(segment._point)
+                    if (strokePoint.getDistance(
+                                segment._point.transform(strokeSpace))
                             <= miterLimit * strokeRadius
                             && checkSegmentStroke(segment)) {
                         loc = segment.getLocation();
@@ -1808,7 +1983,7 @@ var Path = PathItem.extend(/** @lends Path# */{
         // Don't process loc yet, as we also need to query for stroke after fill
         // in some cases. Simply skip fill query if we already have a matching
         // stroke. If we have a loc and no stroke then it's a result for fill.
-        return !loc && hitFill && this._contains(point)
+        res = !loc && hitFill && this._contains(point)
                 || loc && !hitStroke && !hitCurves
                     ? new HitResult('fill', this)
                     : loc
@@ -1819,6 +1994,17 @@ var Path = PathItem.extend(/** @lends Path# */{
                             point: loc.getPoint()
                         })
                         : null;
+        if (hits) {
+            // Report the closest segments and handles first, then the rest:
+            hits.sort(function(hit1, hit2) {
+                return hit1.point.getDistance(point)
+                        - hit2.point.getDistance(point);
+            });
+            if (res)
+                hits.push(res);
+            return hits;
+        }
+        return res;
     }
 
     // TODO: intersects(item)
@@ -1846,7 +2032,7 @@ var Path = PathItem.extend(/** @lends Path# */{
      * path, `null` otherwise.
      *
      * @param {Point} point the point on the path
-     * @return {CurveLocation} the curve location of the specified point
+     * @return {?CurveLocation} the curve location of the specified point
      */
     getLocationOf: function(/* point */) {
         var point = Point.read(arguments),
@@ -1864,7 +2050,7 @@ var Path = PathItem.extend(/** @lends Path# */{
      * specified point if it lies on the path, `null` otherwise.
      *
      * @param {Point} point the point on the path
-     * @return {Number} the length of the path up to the specified point
+     * @return {?Number} the length of the path up to the specified point
      */
     getOffsetOf: function(/* point */) {
         var loc = this.getLocationOf.apply(this, arguments);
@@ -1872,7 +2058,8 @@ var Path = PathItem.extend(/** @lends Path# */{
     },
 
     /**
-     * Returns the curve location of the specified offset on the path.
+     * Returns the curve location of the specified offset on the path, or
+     * `null` if the offset exceeds the length of the path.
      *
      * @param {Number} offset the offset on the path, where `0` is at
      * the beginning of the path and {@link Path#length} at the end
@@ -2177,12 +2364,11 @@ new function() { // Scope for drawing
     // SegmentPoint objects maybe seem a bit tedious but is worth the benefit in
     // performance.
 
-    function drawHandles(ctx, segments, matrix, size) {
-        // Only draw if size is not null or negative.
-        if (size <= 0) return;
-
-        var half = size / 2,
-            miniSize = size - 2,
+    function drawHandles(ctx, segments, matrix, handleSize, segmentSize) {
+        // Only draw the handles and segments whose size is positive.
+        var handleHalf = handleSize / 2,
+            half = segmentSize / 2,
+            miniSize = segmentSize - 2,
             miniHalf = half - 1,
             coords = new Array(6),
             pX, pY;
@@ -2190,13 +2376,13 @@ new function() { // Scope for drawing
         function drawHandle(index) {
             var hX = coords[index],
                 hY = coords[index + 1];
-            if (pX != hX || pY != hY) {
+            if (handleSize > 0 && (pX != hX || pY != hY)) {
                 ctx.beginPath();
                 ctx.moveTo(pX, pY);
                 ctx.lineTo(hX, hY);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(hX, hY, half, 0, Math.PI * 2, true);
+                ctx.arc(hX, hY, handleHalf, 0, Math.PI * 2, true);
                 ctx.fill();
             }
         }
@@ -2211,8 +2397,10 @@ new function() { // Scope for drawing
                 drawHandle(2);
             if (selection & /*#=*/SegmentSelection.HANDLE_OUT)
                 drawHandle(4);
+            if (segmentSize <= 0)
+                continue;
             // Draw a rectangle at segment.point:
-            ctx.fillRect(pX - half, pY - half, size, size);
+            ctx.fillRect(pX - half, pY - half, segmentSize, segmentSize);
             // If the point is not selected, draw a white square that is 1px
             // smaller on all sides, but only draw it if size is big enough.
             if (miniSize > 0 && !(selection & /*#=*/SegmentSelection.POINT)) {
@@ -2288,71 +2476,18 @@ new function() { // Scope for drawing
 
     return {
         _draw: function(ctx, param, viewMatrix, strokeMatrix) {
-            var dontStart = param.dontStart,
-                dontPaint = param.dontFinish || param.clip,
-                style = this.getStyle(),
-                hasFill = style.hasFill(),
-                hasStroke = style.hasStroke(),
-                dashArray = style.getDashArray(),
-                // dashLength is only set if we can't draw dashes natively
-                dashLength = !paper.support.nativeDash && hasStroke
-                        && dashArray && dashArray.length;
-
-            if (!dontStart)
+            var dontPaint = param.dontFinish || param.clip;
+            if (!param.dontStart)
                 ctx.beginPath();
-
-            if (hasFill || hasStroke && !dashLength || dontPaint) {
+            if (this.hasFill() || this.hasStroke() || dontPaint) {
                 // Prepare the canvas path if we have any situation that
                 // requires it to be defined.
                 drawSegments(ctx, this, strokeMatrix);
                 if (this._closed)
                     ctx.closePath();
             }
-
-            function getOffset(i) {
-                // Negative modulo is necessary since we're stepping back
-                // in the dash sequence first.
-                return dashArray[((i % dashLength) + dashLength) % dashLength];
-            }
-
-            if (!dontPaint && (hasFill || hasStroke)) {
-                // If the path is part of a compound path or doesn't have a fill
-                // or stroke, there is no need to continue.
-                this._setStyles(ctx, param, viewMatrix);
-                if (hasFill) {
-                    ctx.fill(style.getFillRule());
-                    // If shadowColor is defined, clear it after fill, so it
-                    // won't be applied to both fill and stroke. If the path is
-                    // only stroked, we don't have to clear it.
-                    ctx.shadowColor = 'rgba(0,0,0,0)';
-                }
-                if (hasStroke) {
-                    if (dashLength) {
-                        // We cannot use the path created by drawSegments above
-                        // Use PathFlattener to draw dashed paths:
-                        if (!dontStart)
-                            ctx.beginPath();
-                        var flattener = new PathFlattener(this, 0.25, 32, false,
-                                strokeMatrix),
-                            length = flattener.length,
-                            from = -style.getDashOffset(), to,
-                            i = 0;
-                        // Step backwards in the dash sequence (dash -- no-dash)
-                        // first until the from parameter is below 0.
-                        while (from > 0) {
-                            from -= getOffset(i--) + getOffset(i--);
-                        }
-                        while (from < length) {
-                            to = from + getOffset(i++);
-                            if (from > 0 || to > 0)
-                                flattener.drawPart(ctx,
-                                        Math.max(from, 0), Math.max(to, 0));
-                            from = to + getOffset(i++);
-                        }
-                    }
-                    ctx.stroke();
-                }
-            }
+            if (!dontPaint)
+                this._paint(ctx, param, viewMatrix, strokeMatrix);
         },
 
         _drawSelected: function(ctx, matrix) {
@@ -2360,7 +2495,12 @@ new function() { // Scope for drawing
             drawSegments(ctx, this, matrix);
             // Now stroke it and draw its handles:
             ctx.stroke();
-            drawHandles(ctx, this._segments, matrix, paper.settings.handleSize);
+            var settings = paper.settings,
+                handleSize = settings.handleSize,
+                segmentSize = settings.segmentSize;
+            // segmentSize is null by default, which Base.pick() keeps:
+            drawHandles(ctx, this._segments, matrix, handleSize,
+                    segmentSize != null ? segmentSize : handleSize);
         }
     };
 },
@@ -2374,6 +2514,60 @@ new function() { // PostScript-style drawing commands
         if (!segments.length)
             throw new Error('Use a moveTo() command first');
         return segments[segments.length - 1];
+    }
+
+    /**
+     * Helper method that adds an arc of `extent` degrees around `center`, from
+     * the current segment at `vector` from `center` to `to`. The optional
+     * `matrix` maps `center` and `vector` from the unit circle to an ellipse.
+     */
+    function addArc(that, center, vector, extent, to, matrix) {
+        var current = getCurrentSegment(that),
+            epsilon = /*#=*/Numerical.ANGULAR_EPSILON,
+            // Calculate amount of segments required to approximate over
+            // `extend` degrees (extend / 90), but prevent ceil() from
+            // rounding up small imprecisions by subtracting epsilon.
+            count = Math.ceil((Math.abs(extent) - epsilon) / 90);
+        if (count) {
+            var inc = extent / count,
+                half = inc * Math.PI / 360,
+                z = 4 / 3 * Math.sin(half) / (1 + Math.cos(half)),
+                segments = [];
+            for (var i = 0; i <= count; i++) {
+                // Explicitly use to point for last segment, since depending
+                // on values the calculation adds imprecision:
+                var pt = to,
+                    out = null;
+                if (i < count) {
+                    out = vector.rotate(90).multiply(z);
+                    if (matrix) {
+                        pt = matrix._transformPoint(vector);
+                        out = matrix._transformPoint(vector.add(out))
+                                .subtract(pt);
+                    } else {
+                        pt = center.add(vector);
+                    }
+                }
+                if (!i) {
+                    // Modify startSegment
+                    current.setHandleOut(out);
+                } else {
+                    // Add new Segment
+                    var _in = vector.rotate(-90).multiply(z);
+                    if (matrix) {
+                        _in = matrix._transformPoint(vector.add(_in))
+                                .subtract(pt);
+                    }
+                    segments.push(new Segment(pt, _in, out));
+                }
+                vector = vector.rotate(inc);
+            }
+            // Add all segments at once at the end for higher performance
+            that._add(segments);
+        } else if (extent && !to.equals(current._point)) {
+            // Arcs too small to approximate are straight:
+            that.lineTo(to);
+        }
     }
 
     return {
@@ -2455,8 +2649,7 @@ new function() { // PostScript-style drawing commands
             var args = arguments,
                 abs = Math.abs,
                 sqrt = Math.sqrt,
-                current = getCurrentSegment(this),
-                from = current._point,
+                from = getCurrentSegment(this)._point,
                 to = Point.read(args),
                 through,
                 // Peek at next value to see if it's clockwise, with true as the
@@ -2574,50 +2767,46 @@ new function() { // PostScript-style drawing commands
                     extent += extent < 0 ? 360 : -360;
                 }
             }
-            if (extent) {
-                var epsilon = /*#=*/Numerical.ANGULAR_EPSILON,
-                    ext = abs(extent),
-                    // Calculate amount of segments required to approximate over
-                    // `extend` degrees (extend / 90), but prevent ceil() from
-                    // rounding up small imprecisions by subtracting epsilon.
-                    count = ext >= 360
-                        ? 4
-                        : Math.ceil((ext - epsilon) / 90),
-                    inc = extent / count,
-                    half = inc * Math.PI / 360,
-                    z = 4 / 3 * Math.sin(half) / (1 + Math.cos(half)),
-                    segments = [];
-                for (var i = 0; i <= count; i++) {
-                    // Explicitly use to point for last segment, since depending
-                    // on values the calculation adds imprecision:
-                    var pt = to,
-                        out = null;
-                    if (i < count) {
-                        out = vector.rotate(90).multiply(z);
-                        if (matrix) {
-                            pt = matrix._transformPoint(vector);
-                            out = matrix._transformPoint(vector.add(out))
-                                    .subtract(pt);
-                        } else {
-                            pt = center.add(vector);
-                        }
-                    }
-                    if (!i) {
-                        // Modify startSegment
-                        current.setHandleOut(out);
-                    } else {
-                        // Add new Segment
-                        var _in = vector.rotate(-90).multiply(z);
-                        if (matrix) {
-                            _in = matrix._transformPoint(vector.add(_in))
-                                    .subtract(pt);
-                        }
-                        segments.push(new Segment(pt, _in, out));
-                    }
-                    vector = vector.rotate(inc);
-                }
-                // Add all segments at once at the end for higher performance
-                this._add(segments);
+            addArc(this, center, vector, extent, to, matrix);
+        },
+
+        arcAround: function(/* center, angle */) {
+            var args = arguments,
+                center = Point.read(args),
+                angle = Base.read(args),
+                vector = getCurrentSegment(this)._point.subtract(center);
+            addArc(this, center, vector, angle,
+                    center.add(vector.rotate(angle)));
+        },
+
+        arcTowards: function(/* to */) {
+            var to = Point.read(arguments),
+                current = getCurrentSegment(this),
+                previous = current.getPrevious(),
+                from = current._point,
+                tangent = previous
+                        ? new Curve(previous, current).getTangentAtTime(1)
+                        : new Point(),
+                normal = tangent.rotate(90),
+                vector = to.subtract(from),
+                // The distance of `to` from the tangent, signed by its side:
+                distance = vector.dot(normal);
+            if (!Numerical.isZero(distance)) {
+                // The center lies on the normal, as far from `from` as from
+                // `to`, and the arc continues in the direction of the tangent:
+                var center = from.add(normal.multiply(
+                        vector.dot(vector) / (2 * distance))),
+                    start = from.subtract(center),
+                    extent = start.getDirectedAngle(to.subtract(center));
+                if (extent * distance < 0)
+                    extent += distance > 0 ? 360 : -360;
+                addArc(this, center, start, extent, to);
+            } else if (vector.dot(tangent) > 0) {
+                this.lineTo(to);
+            } else {
+                // `to` lies behind, or there is no tangent to continue:
+                throw new Error(
+                        'Cannot create an arc with the given arguments');
             }
         },
 
@@ -2742,9 +2931,9 @@ statics: {
     getStrokeBounds: function(segments, closed, path, matrix, options) {
         var style = path.getStyle(),
             stroke = style.hasStroke(),
-            strokeWidth = style.getStrokeWidth(),
+            strokeRadius = style.getStrokeWidth() / 2,
             strokeMatrix = stroke && path._getStrokeMatrix(matrix, options),
-            strokePadding = stroke && Path._getStrokePadding(strokeWidth,
+            strokePadding = stroke && Matrix._getCircleExtents(strokeRadius,
                 strokeMatrix),
             // Start with normal path bounds with added stroke padding. Then we
             // only need to look at each segment and handle join / cap / miter.
@@ -2752,13 +2941,12 @@ statics: {
                 strokePadding);
         if (!stroke)
             return bounds;
-        var strokeRadius = strokeWidth / 2,
-            join = style.getStrokeJoin(),
+        var join = style.getStrokeJoin(),
             cap = style.getStrokeCap(),
             miterLimit = style.getMiterLimit(),
             // Create a rectangle of padding size, used for union with bounds
             // further down
-            joinBounds = new Rectangle(new Size(strokePadding));
+            joinBounds = new Rectangle(new Size(strokePadding).multiply(2));
 
         // helper function that is passed to _addBevelJoin() and _addSquareCap()
         // to handle the point transformations.
@@ -2811,82 +2999,57 @@ statics: {
     },
 
     /**
-     * Returns the horizontal and vertical padding that a transformed round
-     * stroke adds to the bounding box, by calculating the dimensions of a
-     * rotated ellipse.
+     * Returns the normal of the curve at the given time with the length of the
+     * stroke's radius, in the space where the stroke is drawn with a round pen,
+     * from the curve's tangent transformed into it, as the matrices don't
+     * preserve angles (#2065). For strokes that scale with the matrix, this is
+     * the curve's own space.
      */
-    _getStrokePadding: function(radius, matrix) {
-        if (!matrix)
-            return [radius, radius];
-        // If a matrix is provided, we need to rotate the stroke circle
-        // and calculate the bounding box of the resulting rotated ellipse:
-        // Get rotated hor and ver vectors, and determine rotation angle
-        // and ellipse values from them:
-        var hor = new Point(radius, 0).transform(matrix),
-            ver = new Point(0, radius).transform(matrix),
-            phi = hor.getAngleInRadians(),
-            a = hor.getLength(),
-            b = ver.getLength();
-        // Formula for rotated ellipses:
-        // x = cx + a*cos(t)*cos(phi) - b*sin(t)*sin(phi)
-        // y = cy + b*sin(t)*cos(phi) + a*cos(t)*sin(phi)
-        // Derivatives (by Wolfram Alpha):
-        // derivative of x = cx + a*cos(t)*cos(phi) - b*sin(t)*sin(phi)
-        // dx/dt = a sin(t) cos(phi) + b cos(t) sin(phi) = 0
-        // derivative of y = cy + b*sin(t)*cos(phi) + a*cos(t)*sin(phi)
-        // dy/dt = b cos(t) cos(phi) - a sin(t) sin(phi) = 0
-        // This can be simplified to:
-        // tan(t) = -b * tan(phi) / a // x
-        // tan(t) =  b * cot(phi) / a // y
-        // Solving for t gives:
-        // t = pi * n - arctan(b * tan(phi) / a) // x
-        // t = pi * n + arctan(b * cot(phi) / a)
-        //   = pi * n + arctan(b / tan(phi) / a) // y
-        var sin = Math.sin(phi),
-            cos = Math.cos(phi),
-            tan = Math.tan(phi),
-            tx = Math.atan2(b * tan, a),
-            ty = Math.atan2(b, tan * a);
-        // Due to symmetry, we don't need to cycle through pi * n solutions:
-        return [Math.abs(a * Math.cos(tx) * cos + b * Math.sin(tx) * sin),
-                Math.abs(b * Math.sin(ty) * cos + a * Math.cos(ty) * sin)];
+    _getStrokeNormal: function(curve, time, radius, matrix, strokeMatrix) {
+        var mx = matrix ? matrix._shiftless() : new Matrix(),
+            inverse = strokeMatrix && strokeMatrix.inverted(),
+            tangent = curve.getTangentAtTime(time).transform(
+                    inverse ? inverse.append(mx) : mx);
+        return new Point(tangent.y, -tangent.x).normalize(radius);
     },
 
     _addBevelJoin: function(segment, join, radius, miterLimit, matrix,
             strokeMatrix, addPoint, isArea) {
         // Handles both 'bevel' and 'miter' joins, as they share a lot of code,
         // using different matrices to transform segment points and stroke
-        // vectors to support Style#strokeScaling.
+        // vectors to support Style#strokeScaling. The join is constructed
+        // where the stroke is drawn, see _getStrokeNormal(), and its vectors
+        // transformed from there.
         var curve2 = segment.getCurve(),
             curve1 = curve2.getPrevious(),
             point = curve2.getPoint1().transform(matrix),
-            normal1 = curve1.getNormalAtTime(1).multiply(radius)
-                .transform(strokeMatrix),
-            normal2 = curve2.getNormalAtTime(0).multiply(radius)
-                .transform(strokeMatrix),
-                angle = normal1.getDirectedAngle(normal2);
+            normal1 = Path._getStrokeNormal(curve1, 1, radius, matrix,
+                    strokeMatrix),
+            normal2 = Path._getStrokeNormal(curve2, 0, radius, matrix,
+                    strokeMatrix),
+            angle = normal1.getDirectedAngle(normal2);
         if (angle < 0 || angle >= 180) {
             normal1 = normal1.negate();
             normal2 = normal2.negate();
         }
         if (isArea)
             addPoint(point);
-        addPoint(point.add(normal1));
+        addPoint(point.add(normal1.transform(strokeMatrix)));
         if (join === 'miter') {
             // Intersect the two lines
-            var corner = new Line(point.add(normal1),
+            var corner = new Line(normal1,
                     new Point(-normal1.y, normal1.x), true
-                ).intersect(new Line(point.add(normal2),
+                ).intersect(new Line(normal2,
                     new Point(-normal2.y, normal2.x), true
                 ), true);
             // See if we actually get a bevel point and if its distance is below
             // the miterLimit. If not, make a normal bevel.
-            if (corner && point.getDistance(corner) <= miterLimit * radius) {
-                addPoint(corner);
+            if (corner && corner.getLength() <= miterLimit * radius) {
+                addPoint(point.add(corner.transform(strokeMatrix)));
             }
         }
         // Produce a normal bevel
-        addPoint(point.add(normal2));
+        addPoint(point.add(normal2.transform(strokeMatrix)));
     },
 
     _addSquareCap: function(segment, cap, radius, matrix, strokeMatrix,
@@ -2897,20 +3060,22 @@ statics: {
         // Style#strokeScaling.
         var point = segment._point.transform(matrix),
             loc = segment.getLocation(),
-            // Checking loc.getTime() for 0 is to see whether this is the first
-            // or the last segment of the open path, in order to determine in
-            // which direction to flip the normal.
-            normal = loc.getNormal()
-                    .multiply(loc.getTime() === 0 ? radius : -radius)
-                    .transform(strokeMatrix);
+            time = loc.getTime(),
+            // Checking the time for 0 is to see whether this is the first or
+            // the last segment of the open path, in order to determine in which
+            // direction to flip the normal.
+            vector = Path._getStrokeNormal(loc.getCurve(), time,
+                    time === 0 ? radius : -radius, matrix, strokeMatrix),
+            normal = vector.transform(strokeMatrix);
         // For square caps, we need to step away from point in the direction of
-        // the tangent, which is the rotated normal.
+        // the tangent, which is the normal rotated before transforming it, as
+        // the matrices don't preserve angles (#2065).
         if (cap === 'square') {
             if (isArea) {
                 addPoint(point.subtract(normal));
                 addPoint(point.add(normal));
             }
-            point = point.add(normal.rotate(-90));
+            point = point.add(vector.rotate(-90).transform(strokeMatrix));
         }
         addPoint(point.add(normal));
         addPoint(point.subtract(normal));
@@ -2922,6 +3087,9 @@ statics: {
      * @private
      */
     getHandleBounds: function(segments, closed, path, matrix, options) {
+        // If there are no segments, return "empty" rectangle, as getBounds().
+        if (!segments.length)
+            return new Rectangle();
         var style = path.getStyle(),
             stroke = options.stroke && style.hasStroke(),
             strokePadding,
@@ -2934,8 +3102,9 @@ statics: {
                 joinRadius = strokeRadius * style.getMiterLimit();
             if (style.getStrokeCap() === 'square')
                 joinRadius = Math.max(joinRadius, strokeRadius * Math.SQRT2);
-            strokePadding = Path._getStrokePadding(strokeRadius, strokeMatrix);
-            joinPadding = Path._getStrokePadding(joinRadius, strokeMatrix);
+            strokePadding = Matrix._getCircleExtents(strokeRadius,
+                    strokeMatrix);
+            joinPadding = Matrix._getCircleExtents(joinRadius, strokeMatrix);
         }
         var coords = new Array(6),
             x1 = Infinity,

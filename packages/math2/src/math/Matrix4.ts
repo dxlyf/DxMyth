@@ -9,8 +9,9 @@
 
 import { CachePool } from './CachePool'
 import type { EulerLike, EulerOrder } from './Euler'
-import type { QuaternionLike } from './Quaternion'
-import type { Vector3Like } from './Vector3'
+import { EPSILON } from './MathUtils'
+import type { Quaternion, QuaternionLike } from './Quaternion'
+import { Vector3, type Vector3Like } from './Vector3'
 import type { Vector4Like } from './Vector4'
 
 /** 类矩阵输入：number[] 或 Float32Array（含 Matrix4 实例） */
@@ -684,6 +685,50 @@ export class Matrix4 extends Float32Array {
 
     determinant(): number {
         return Matrix4.determinant(this)
+    }
+
+    getScaling(out = new Vector3()): Vector3 {
+        const e = this;
+        let sx = Math.hypot(e[0]!, e[1]!, e[2]!);
+        const sy = Math.hypot(e[4]!, e[5]!, e[6]!);
+        const sz = Math.hypot(e[8]!, e[9]!, e[10]!);
+        if (this.determinant() < 0) sx = -sx;
+        return out.set(sx, sy, sz);
+    }
+
+    /** Decompose into translation, rotation and scale. */
+    decompose(position: Vector3, quaternion: Quaternion, scale: Vector3): this {
+        const e = this;
+        let sx = Math.hypot(e[0]!, e[1]!, e[2]!);
+        const sy = Math.hypot(e[4]!, e[5]!, e[6]!);
+        const sz = Math.hypot(e[8]!, e[9]!, e[10]!);
+        if (this.determinant() < 0) sx = -sx;
+
+        position.set(e[12]!, e[13]!, e[14]!);
+
+        const m = new Matrix4().copy(this);
+        const me = m;
+        const invSX = 1 / (sx || EPSILON);
+        const invSY = 1 / (sy || EPSILON);
+        const invSZ = 1 / (sz || EPSILON);
+        me[0] *= invSX; me[1] *= invSX; me[2] *= invSX;
+        me[4] *= invSY; me[5] *= invSY; me[6] *= invSY;
+        me[8] *= invSZ; me[9] *= invSZ; me[10] *= invSZ;
+        quaternion.setFromRotationMatrix(m);
+        scale.set(sx, sy, sz);
+        return this;
+    }
+
+    getTranslation(out = new Vector3()): Vector3 {
+        return out.set(this[12]!, this[13]!, this[14]!);
+    }
+
+    getMaxScaleOnAxis(): number {
+        const e = this;
+        const x = e[0]! * e[0]! + e[1]! * e[1]! + e[2]! * e[2]!;
+        const y = e[4]! * e[4]! + e[5]! * e[5]! + e[6]! * e[6]!;
+        const z = e[8]! * e[8]! + e[9]! * e[9]! + e[10]! * e[10]!;
+        return Math.sqrt(Math.max(x, y, z));
     }
 
     equals(m: Matrix4Like): boolean {

@@ -53,12 +53,22 @@ var DomEvent = /** @lends DomEvent */{
         }
     },
 
-    getPoint: function(event) {
-        var pos = event.targetTouches
-                ? event.targetTouches.length
-                    ? event.targetTouches[0]
-                    : event.changedTouches[0]
-                : event;
+    getPoint: function(event, target) {
+        function find(touches) {
+            for (var i = 0, l = touches.length; i < l; i++) {
+                if (touches[i].target === target)
+                    return touches[i];
+            }
+        }
+
+        var touches = event.targetTouches,
+            pos = event;
+        if (touches) {
+            // Prefer the first touch on the target, also when it just ended, so
+            // that touches elsewhere don't take over its drag (#1875):
+            pos = find(event.touches) || find(event.changedTouches)
+                    || (touches.length ? touches[0] : event.changedTouches[0]);
+        }
         return new Point(
             pos.pageX || pos.clientX + document.documentElement.scrollLeft,
             pos.pageY || pos.clientY + document.documentElement.scrollTop
@@ -66,17 +76,18 @@ var DomEvent = /** @lends DomEvent */{
     },
 
     getTarget: function(event) {
-        return event.target || event.srcElement;
+        return event.target;
     },
 
     getRelatedTarget: function(event) {
-        return event.relatedTarget || event.toElement;
+        return event.relatedTarget;
     },
 
     getOffset: function(event, target) {
         // Remove target offsets from page coordinates
-        return DomEvent.getPoint(event).subtract(DomElement.getOffset(
-                target || DomEvent.getTarget(event)));
+        target = target || DomEvent.getTarget(event);
+        return DomEvent.getPoint(event, target).subtract(
+                DomElement.getOffset(target));
     }
 };
 
@@ -98,8 +109,15 @@ DomEvent.requestAnimationFrame = new function() {
         // Now see if the above calls have collected new callbacks. Keep
         // requesting new frames as long as we have callbacks.
         requested = nativeRequest && callbacks.length;
-        if (requested)
+        if (requested) {
             nativeRequest(handleCallbacks);
+        } else if (timer && !callbacks.length) {
+            // Stop the interval timer of the fallback when there's nothing
+            // left to do, so it doesn't keep hosts running. The next request
+            // starts it again:
+            clearInterval(timer);
+            timer = null;
+        }
     }
 
     return function(callback) {

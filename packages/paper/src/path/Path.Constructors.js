@@ -22,17 +22,18 @@ Path.inject({ statics: new function() {
 
     function createPath(segments, closed, args) {
         var props = Base.getNamed(args),
-            path = new Path(props && (
-                props.insert == true ? Item.INSERT
-                : props.insert == false ? Item.NO_INSERT
-                : null
-            ));
+            // Let Item#_initialize() handle the insertion:
+            path = new Path(props && {
+                insert: props.insert,
+                project: props.project,
+                parent: props.parent
+            });
         path._add(segments);
         // No need to use setter for _closed since _add() called _changed().
         path._closed = closed;
         // Set named arguments at the end, since some depend on geometry to be
         // defined (e.g. #clockwise)
-        return path.set(props, Item.INSERT);
+        return path.set(props, { insert: true, project: true, parent: true });
     }
 
     function createEllipse(center, radius, args) {
@@ -253,6 +254,9 @@ Path.inject({ statics: new function() {
         },
 
         /**
+         * @param {Rectangle} rectangle
+         * @param {Size} radius
+         * @return {Path}
          * @deprecated use {@link #Path.Rectangle(rectangle, size)} instead.
          */
         RoundRectangle: '#Rectangle',
@@ -299,6 +303,8 @@ Path.inject({ statics: new function() {
         },
 
         /**
+         * @param {Rectangle} rectangle
+         * @return {Path}
          * @deprecated use {@link #Path.Ellipse(rectangle)} instead.
          */
         Oval: '#Ellipse',
@@ -342,17 +348,19 @@ Path.inject({ statics: new function() {
                 from = Point.readNamed(args, 'from'),
                 through = Point.readNamed(args, 'through'),
                 to = Point.readNamed(args, 'to'),
-                props = Base.getNamed(args),
-                // See createPath() for an explanation of the following sequence
-                path = new Path(props && props.insert == false
-                        && Item.NO_INSERT);
-            path.moveTo(from);
-            path.arcTo(through, to);
-            return path.set(props);
+                // Draw the arc on a temporary path, and create the result
+                // from its segments like all the other constructors:
+                arc = new Path(Item.NO_INSERT);
+            arc.moveTo(from);
+            arc.arcTo(through, to);
+            return createPath(arc._segments, false, args);
         },
 
         /**
-         * Creates a regular polygon shaped path item.
+         * Creates a regular polygon shaped path item. As in Illustrator, it
+         * stands on a flat bottom edge, and its segments run counterclockwise
+         * from its top vertex, or with an even number of sides, from the right
+         * end of its top edge.
          *
          * @name Path.RegularPolygon
          * @param {Point} center the center point of the polygon
@@ -389,10 +397,12 @@ Path.inject({ statics: new function() {
                 center = Point.readNamed(args, 'center'),
                 sides = Base.readNamed(args, 'sides'),
                 radius = Base.readNamed(args, 'radius'),
-                step = 360 / sides,
-                three = sides % 3 === 0,
-                vector = new Point(0, three ? -radius : radius),
-                offset = three ? -1 : 0.5,
+                step = -360 / sides,
+                // Start at the top as Illustrator does: at the top vertex, or
+                // the right end of the top edge with an even number of sides,
+                // counterclockwise:
+                offset = sides % 2 ? 0 : -0.5,
+                vector = new Point(0, -radius),
                 segments = new Array(sides);
             for (var i = 0; i < sides; i++)
                 segments[i] = new Segment(center.add(

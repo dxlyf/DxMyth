@@ -4,6 +4,7 @@ import { ColorInput, ColorValue, Color } from 'src/math/Color'
 import { Matrix2D, Matrix2DLike } from './Matrix2D'
 import { clamp } from './MathUtils'
 import { Disposable } from 'src/utils/Disposable'
+import { uid } from 'src/utils/uid'
 export type ColorStop = {
     offset: number
     color: ColorValue
@@ -11,6 +12,7 @@ export type ColorStop = {
 
 export abstract class Gradient extends Disposable   {
     type: 'gradient' = 'gradient'
+    readonly uid: number = uid('gradient')
     elementType: 'linear-gradient' | 'radial-gradient' | 'conic-gradient'
     stops: ColorStop[] = []
     matrix?: Matrix2D

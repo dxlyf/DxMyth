@@ -18,7 +18,9 @@ var path = require('path');
 // 'paper-jsdom' or 'paper-jsdom-canvas'), and use this to determine if error
 // exceptions should be thrown or if loading should fail silently.
 var parent = module.parent && module.parent.parent,
-    requireName = parent && path.basename(path.dirname(parent.filename));
+    // The REPL's module has no filename:
+    requireName = parent && parent.filename &&
+            path.basename(path.dirname(parent.filename));
 requireName = /^paper/.test(requireName) ? requireName : 'paper';
 
 var jsdom,
@@ -30,7 +32,7 @@ try {
     // Check the required module's name to see if it contains jsdom, and only
     // complain about its lack if the module requires it.
     if (/\bjsdom\b/.test(requireName)) {
-        throw new Error('Unable to load jsdom module.');
+        throw new Error('Unable to load jsdom module.', { cause: e });
     }
 }
 
@@ -44,8 +46,15 @@ if (jsdom) {
         resources: 'usable'
     });
     self = document.window;
-    require('./canvas.js')(self, requireName);
-    require('./xml.js')(self);
+    if (!require('./canvas.js')(self, requireName)) {
+        // Hide `self.window`, so we still have the global `self` reference,
+        // but no `window` object:
+        // - On the browser, this corresponds to a worker context.
+        // - On Node.js, it basically means the canvas is missing or not working
+        //   which can be treated the same way.
+        // jsdom's window can't be removed from itself, so inherit from it:
+        self = Object.create(self, { window: { value: null } });
+    }
 } else {
     self = {
         navigator: {

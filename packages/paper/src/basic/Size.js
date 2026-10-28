@@ -16,6 +16,9 @@
  * @class The Size object is used to describe the size or dimensions of
  * something, through its {@link #width} and {@link #height} properties.
  *
+ * Wherever a size is the only argument of a function, it can also be passed
+ * as two numbers, e.g. `size.multiply(2, 3)`.
+ *
  * @classexample
  * // Create a size that is 10pt wide and 5pt high,
  * // and use it to define a rectangle:
@@ -160,7 +163,7 @@ var Size = Base.extend(/** @lends Size# */{
      * Checks whether the width and height of the size are equal to those of the
      * supplied size.
      *
-     * @param {Size} size the size to compare to
+     * @param {Size|Number[]} size the size to compare to
      * @return {Boolean}
      *
      * @example
@@ -201,6 +204,17 @@ var Size = Base.extend(/** @lends Size# */{
     },
 
     /**
+     * The size's dimensions as an array, `[width, height]`, as
+     * {@link Matrix#values} gives those of a matrix.
+     *
+     * @bean
+     * @type Number[]
+     */
+    getValues: function() {
+        return [this.width, this.height];
+    },
+
+    /**
      * Returns the addition of the supplied value to the width and height of the
      * size as a new size. The object itself is not modified!
      *
@@ -212,7 +226,8 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(5, 10);
-     * var result = size + 20;
+     * var result = size + 20; // PaperScript
+     * var result = size.add(20); // JavaScript
      * console.log(result); // {width: 25, height: 30}
      */
     /**
@@ -228,7 +243,8 @@ var Size = Base.extend(/** @lends Size# */{
      * @example
      * var size1 = new Size(5, 10);
      * var size2 = new Size(10, 20);
-     * var result = size1 + size2;
+     * var result = size1 + size2; // PaperScript
+     * var result = size1.add(size2); // JavaScript
      * console.log(result); // {width: 15, height: 30}
      */
     add: function(/* size */) {
@@ -249,7 +265,8 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(10, 20);
-     * var result = size - 5;
+     * var result = size - 5; // PaperScript
+     * var result = size.subtract(5); // JavaScript
      * console.log(result); // {width: 5, height: 15}
      */
     /**
@@ -265,7 +282,8 @@ var Size = Base.extend(/** @lends Size# */{
      * @example
      * var firstSize = new Size(10, 20);
      * var secondSize = new Size(5, 5);
-     * var result = firstSize - secondSize;
+     * var result = firstSize - secondSize; // PaperScript
+     * var result = firstSize.subtract(secondSize); // JavaScript
      * console.log(result); // {width: 5, height: 15}
      */
     subtract: function(/* size */) {
@@ -285,7 +303,8 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(10, 20);
-     * var result = size * 2;
+     * var result = size * 2; // PaperScript
+     * var result = size.multiply(2); // JavaScript
      * console.log(result); // {width: 20, height: 40}
      */
     /**
@@ -301,7 +320,8 @@ var Size = Base.extend(/** @lends Size# */{
      * @example
      * var firstSize = new Size(5, 10);
      * var secondSize = new Size(4, 2);
-     * var result = firstSize * secondSize;
+     * var result = firstSize * secondSize; // PaperScript
+     * var result = firstSize.multiply(secondSize); // JavaScript
      * console.log(result); // {width: 20, height: 20}
      */
     multiply: function(/* size */) {
@@ -321,7 +341,8 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(10, 20);
-     * var result = size / 2;
+     * var result = size / 2; // PaperScript
+     * var result = size.divide(2); // JavaScript
      * console.log(result); // {width: 5, height: 10}
      */
     /**
@@ -337,7 +358,8 @@ var Size = Base.extend(/** @lends Size# */{
      * @example
      * var firstSize = new Size(8, 10);
      * var secondSize = new Size(2, 5);
-     * var result = firstSize / secondSize;
+     * var result = firstSize / secondSize; // PaperScript
+     * var result = firstSize.divide(secondSize); // JavaScript
      * console.log(result); // {width: 4, height: 2}
      */
     divide: function(/* size */) {
@@ -358,7 +380,9 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(12, 6);
-     * console.log(size % 5); // {width: 2, height: 1}
+     * var result = size % 5; // PaperScript
+     * var result = size.modulo(5); // JavaScript
+     * console.log(result); // {width: 2, height: 1}
      */
     /**
      * The modulo operator returns the integer remainders of dividing the size
@@ -373,22 +397,42 @@ var Size = Base.extend(/** @lends Size# */{
      *
      * @example
      * var size = new Size(12, 6);
-     * console.log(size % new Size(5, 2)); // {width: 2, height: 0}
+     * var result = size % new Size(5, 2); // PaperScript
+     * var result = size.modulo(new Size(5, 2)); // JavaScript
+     * console.log(result); // {width: 2, height: 0}
      */
     modulo: function(/* size */) {
         var size = Size.read(arguments);
         return new Size(this.width % size.width, this.height % size.height);
     },
 
+    /**
+     * Returns a new size with both dimensions negated.
+     * PaperScript uses it for the unary minus operator.
+     * The object itself is not modified!
+     *
+     * @name Size#negate
+     * @function
+     * @return {Size} the negation of the size as a new size
+     *
+     * @example
+     * var size = new Size(12, -6);
+     * var result = -size; // PaperScript
+     * var result = size.negate(); // JavaScript
+     * console.log(result); // {width: -12, height: 6}
+     */
     negate: function() {
         return new Size(-this.width, -this.height);
     },
 
     /**
      * {@grouptitle Tests}
-     * Checks if this size has both the width and height set to 0.
+     * Checks if this size has both the width and height set to 0, within a
+     * tolerance of 1e-12, unlike {@link #equals(size)}, which compares
+     * exactly.
      *
-     * @return {Boolean} {@true if both width and height are 0}
+     * @return {Boolean} {@true if both width and height are 0, within the
+     *     tolerance}
      */
     isZero: function() {
         var isZero = Numerical.isZero;

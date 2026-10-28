@@ -11,9 +11,9 @@ export type TransformProps = {
     pivot?: Vector2Like;
 };
 export type TransformEvents = {
-    'transform:change': [transform: Transform<TransformEvents>];
+    'transform:change': [transform: Transform];
 };
-export declare class Transform<Events extends TransformEvents = any> extends EventEmitter<TransformEvents> {
+export declare class Transform<Events extends TransformEvents = any> extends EventEmitter<Events> {
     position: Point;
     scale: Point;
     private _rotation;
@@ -21,7 +21,7 @@ export declare class Transform<Events extends TransformEvents = any> extends Eve
     origin: Point;
     pivot: Point;
     /** 父级变换（设置后 worldMatrix 自动跟随父级） */
-    parent: Transform<Events> | null;
+    parent: Transform<any> | null;
     private _matrix;
     private _worldMatrix;
     private _worldMatrixInvert;

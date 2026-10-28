@@ -2,6 +2,7 @@
 import { loadImage } from 'src/utils/loadResource'
 import { Matrix2D } from './Matrix2D'
 import { Disposable } from 'src/utils/Disposable'
+import { uid } from 'src/utils/uid'
 
 
 export class Pattern extends Disposable {
@@ -18,6 +19,7 @@ export class Pattern extends Disposable {
         return pattern
     }
     type:'pattern'='pattern'
+    readonly uid: number = uid('pattern')
     elementType:'image'
     repeat?: 'repeat' | 'repeat-x' | 'repeat-y'='repeat'
     source: CanvasImageSource

@@ -47,7 +47,8 @@ var Color = Base.extend(new function() {
         rgb: ['red', 'green', 'blue'],
         hsb: ['hue', 'saturation', 'brightness'],
         hsl: ['hue', 'saturation', 'lightness'],
-        gradient: ['gradient', 'origin', 'destination', 'highlight']
+        gradient: ['gradient', 'origin', 'destination', 'highlight', 'aspect'],
+        pattern: ['pattern', 'matrix']
     };
 
     // Parsers of values for setters, by type and property
@@ -59,6 +60,99 @@ var Color = Base.extend(new function() {
             transparent: [0, 0, 0, 0]
         },
         colorCtx;
+
+    // The gradient points are in the coordinates of the item's parent. If the
+    // item's content is transformed by a matrix, get them into its own
+    // coordinates by the inverse, and then through the strokeMatrix:
+    function getCanvasTransform(matrix, strokeMatrix) {
+        var inverse = matrix && matrix.inverted();
+        return strokeMatrix && inverse
+                ? strokeMatrix.appended(inverse)
+                : strokeMatrix || inverse;
+    }
+
+    // Transforms the origin, destination, highlight and aspect of the
+    // gradient color's components into those of `dest`, which may be the
+    // components themselves, exactly for any matrix.
+    function transformGradient(components, dest, matrix) {
+        var origin = components[1],
+            highlight = components[3],
+            aspect = components[4],
+            along = components[2].subtract(origin),
+            across = along.rotate(90),
+            // Vectors map without the translation:
+            linear = matrix._shiftless(),
+            u = linear._transformPoint(along),
+            start = matrix._transformPoint(origin),
+            vector = u;
+        if (!along.isZero()) {
+            if (components[0]._radial) {
+                // The ellipse with the radius along the gradient and the
+                // aspect across it maps to the ellipse of the vectors u and w.
+                // Its radii and axis follow from the parts of [u w] that rotate
+                // and that reflect, p and q:
+                var w = linear._transformPoint(across.multiply(aspect)),
+                    v = w.rotate(-90),
+                    p = u.add(v),
+                    q = u.subtract(v),
+                    pLength = p.getLength(),
+                    qLength = q.getLength(),
+                    major = (pLength + qLength) / 2,
+                    minor = Math.abs(pLength - qLength) / 2,
+                    axis = u.normalize();
+                aspect = 1;
+                // Without either part, the ellipse is a circle:
+                if (Math.min(pLength, qLength)
+                        > /*#=*/Numerical.EPSILON * major) {
+                    axis = new Point({
+                        angle: (p.getAngle() + q.getAngle()) / 2,
+                        length: 1
+                    });
+                    // Take the axis closest to the mapped one:
+                    if (Math.abs(axis.cross(u)) > Math.abs(axis.dot(u))) {
+                        axis = axis.rotate(90);
+                        aspect = major / minor;
+                        major = minor;
+                    } else {
+                        aspect = minor / major;
+                    }
+                    if (axis.dot(u) < 0)
+                        axis = axis.negate();
+                }
+                vector = axis.multiply(major);
+            } else {
+                // Linear gradients keep their stripes, which run across them:
+                // the destination is where the line from the origin at right
+                // angles to the mapped stripes meets the mapped end stripe.
+                var stripe = linear._transformPoint(across),
+                    normal = stripe.rotate(90);
+                if (!normal.isZero()) {
+                    vector = normal.multiply(
+                            u.dot(normal) / normal.dot(normal));
+                }
+            }
+        }
+        dest[1] = (dest[1] || new Point())._set(start.x, start.y, true);
+        dest[2] = (dest[2] || new Point())._set(start.x + vector.x,
+                start.y + vector.y, true);
+        if (highlight)
+            dest[3] = matrix._transformPoint(highlight, dest[3], true);
+        dest[4] = aspect;
+        return dest;
+    }
+
+    // The matrix that stretches the circle of an elliptical radial gradient
+    // into its ellipse, around its origin and along its axis:
+    function getEllipseMatrix(components) {
+        var aspect = components[4];
+        if (components[0]._radial && aspect !== 1) {
+            var origin = components[1],
+                angle = components[2].subtract(origin).getAngle();
+            return new Matrix().translate(origin).rotate(angle)
+                    .scale(1, aspect).rotate(-angle)
+                    .translate(origin.negate());
+        }
+    }
 
     function fromCSS(string) {
         var match = string.match(
@@ -110,15 +204,16 @@ var Color = Base.extend(new function() {
             // Named
             var color = namedColors[string];
             if (!color) {
-                if (window) {
-                    // Use a canvas to draw with the given name, then retrieve
-                    // RGB values and build a cache for all the used colors.
-                    if (!colorCtx) {
-                        colorCtx = CanvasProvider.getContext(1, 1, {
-                            willReadFrequently: true
-                        });
+                // Use a canvas to draw with the given name, then retrieve
+                // RGB values and build a cache for all the used colors.
+                if (!colorCtx) {
+                    colorCtx = CanvasProvider.getContext(1, 1, {
+                        willReadFrequently: true
+                    });
+                    if (colorCtx)
                         colorCtx.globalCompositeOperation = 'copy';
-                    }
+                }
+                if (colorCtx) {
                     // Set the current fillStyle to transparent, so that it will be
                     // transparent instead of the previously set color in case the
                     // new color can not be interpreted.
@@ -135,8 +230,7 @@ var Color = Base.extend(new function() {
                         data[2] / 255
                     ];
                 } else {
-                    // Web-workers can't resolve CSS color names, for now.
-                    // TODO: Find a way to make this work there too?
+                    // Without a canvas, CSS color names can't be resolved.
                     color = [0, 0, 0];
                 }
             }
@@ -256,6 +350,16 @@ var Color = Base.extend(new function() {
         'rgb-gradient': function(/* r, g, b */) {
             // TODO: Implement
             return [];
+        },
+
+        // Patterns have no colors to convert, but this lets other colors read
+        // their components, as undefined:
+        'pattern-rgb': function(/* pattern */) {
+            return [];
+        },
+
+        'rgb-pattern': function(/* r, g, b */) {
+            return [];
         }
 
     };
@@ -292,13 +396,28 @@ var Color = Base.extend(new function() {
                             }
                             return value;
                         }
-                        // all other (point) properties of gradient color:
-                        : function(/* value */) {
-                            return Point.read(arguments, 0, {
-                                    readNull: name === 'highlight',
-                                    clone: true
-                            });
-                        }
+                        : name === 'aspect'
+                            // The aspect of radial gradients, 1 for circles:
+                            ? function(value) {
+                                return value == null ? 1 : +value;
+                            }
+                            // The point properties of gradient colors:
+                            : function(/* value */) {
+                                return Point.read(arguments, 0, {
+                                        readNull: name === 'highlight',
+                                        clone: true
+                                });
+                            }
+                    : type === 'pattern'
+                        ? name === 'pattern'
+                            ? function(/* value */) {
+                                return PatternDefinition.read(arguments, 0,
+                                        { readNull: true });
+                            }
+                            // The matrix that places the tiles, a copy:
+                            : function(value) {
+                                return value ? new Matrix(value) : new Matrix();
+                            }
                     // Normal number component properties:
                     : function(value) {
                         // NOTE: We don't clamp values here, they're only
@@ -374,8 +493,8 @@ var Color = Base.extend(new function() {
          * circle.fillColor = new Color(0.5);
          */
         /**
-         * Creates a HSB, HSL or gradient Color object from the properties of
-         * the provided object:
+         * Creates a HSB, HSL, gradient or pattern Color object from the
+         * properties of the provided object:
          *
          * @option hsb.hue {Number} the hue of the color as a value in degrees
          *     between `0` and `360`
@@ -404,6 +523,11 @@ var Color = Base.extend(new function() {
          *     the gradient, as an alternative to providing a gradient object
          * @option gradient.radial {Boolean} controls whether the gradient is
          *     radial, as an alternative to providing a gradient object
+         *
+         * @option pattern.pattern {PatternDefinition} the pattern whose tiles
+         *     the color repeats
+         * @option pattern.matrix {Matrix} the matrix that places the tiles in
+         *     the item's coordinates
          *
          * @name Color#initialize
          * @param {Object} object an object describing the components and
@@ -478,6 +602,7 @@ var Color = Base.extend(new function() {
          * @param {Point} origin
          * @param {Point} destination
          * @param {Point} [highlight]
+         * @param {Number} [aspect=1]
          *
          * @example {@paperscript height=200}
          * // Applying a linear gradient color containing evenly distributed
@@ -539,6 +664,35 @@ var Color = Base.extend(new function() {
          *
          * // Set the fill color of the path to the gradient color:
          * path.fillColor = gradientColor;
+         */
+        /**
+         * Creates a pattern Color object, which repeats the tiles of the
+         * pattern, placed by the matrix in the item's coordinates. As with
+         * gradient colors, the matrix is transformed along with the item.
+         *
+         * @name Color#initialize
+         * @param {PatternDefinition} pattern
+         * @param {Matrix} [matrix]
+         *
+         * @example {@paperscript height=200}
+         * // Filling a rectangle with a dotted pattern, and stroking it with
+         * // the same pattern, turned by 45 degrees:
+         * var dot = new Path.Circle({
+         *     center: [4, 4],
+         *     radius: 2,
+         *     fillColor: 'black'
+         * });
+         * var pattern = new PatternDefinition(dot, {
+         *     tile: new Rectangle(0, 0, 8, 8)
+         * });
+         *
+         * var path = new Path.Rectangle({
+         *     point: [40, 40],
+         *     size: [160, 120],
+         *     strokeWidth: 16
+         * });
+         * path.fillColor = new Color(pattern);
+         * path.strokeColor = new Color(pattern, new Matrix().rotate(45));
          */
         initialize: function Color(arg) {
             // We are storing color internally as an array of components
@@ -615,17 +769,22 @@ var Color = Base.extend(new function() {
                         type = arg._type;
                         components = arg._components.slice();
                         alpha = arg._alpha;
+                        // Clone all points and the matrix, since they belong
+                        // to the other color already.
                         if (type === 'gradient') {
-                            // Clone all points, since they belong to the other
-                            // color already.
-                            for (var i = 1, l = components.length; i < l; i++) {
+                            for (var i = 1; i < 4; i++) {
                                 var point = components[i];
                                 if (point)
                                     components[i] = point.clone();
                             }
+                        } else if (type === 'pattern') {
+                            components[1] = components[1].clone();
                         }
                     } else if (arg.constructor === Gradient) {
                         type = 'gradient';
+                        values = args;
+                    } else if (arg.constructor === PatternDefinition) {
+                        type = 'pattern';
                         values = args;
                     } else {
                         // Determine type by presence of object property names
@@ -636,9 +795,11 @@ var Color = Base.extend(new function() {
                             : 'gradient' in arg || 'stops' in arg
                                     || 'radial' in arg
                                 ? 'gradient'
-                                : 'gray' in arg
-                                    ? 'gray'
-                                    : 'rgb';
+                                : 'pattern' in arg
+                                    ? 'pattern'
+                                    : 'gray' in arg
+                                        ? 'gray'
+                                        : 'rgb';
                         // Convert to array and parse in one loop, for efficiency
                         var properties = types[type],
                             parsers = componentParsers[type];
@@ -699,7 +860,15 @@ var Color = Base.extend(new function() {
         set: '#initialize',
 
         _serialize: function(options, dictionary) {
-            var components = this.getComponents();
+            var components = this.getComponents(),
+                hasAlpha = this._alpha != null;
+            // Leave out the aspect of circles, and with it an unset highlight,
+            // and the identity matrix of patterns, unless the alpha follows:
+            if (this._type === 'gradient' && components[4] === 1 && !hasAlpha)
+                components.length = components[3] ? 4 : 3;
+            if (this._type === 'pattern' && components[1].isIdentity()
+                    && !hasAlpha)
+                components.length = 1;
             return Base.serialize(
                     // We can omit the type for gray and rgb:
                     /^(gray|rgb)$/.test(this._type)
@@ -859,13 +1028,14 @@ var Color = Base.extend(new function() {
         toString: function() {
             var properties = this._properties,
                 parts = [],
-                isGradient = this._type === 'gradient',
+                // Gradients and patterns have objects among their components:
+                isObject = /^(gradient|pattern)$/.test(this._type),
                 f = Formatter.instance;
             for (var i = 0, l = properties.length; i < l; i++) {
                 var value = this._components[i];
                 if (value != null)
                     parts.push(properties[i] + ': '
-                            + (isGradient ? value : f.number(value)));
+                            + (isObject ? value : f.number(value)));
             }
             if (this._alpha != null)
                 parts.push('alpha: ' + f.number(this._alpha));
@@ -901,29 +1071,60 @@ var Color = Base.extend(new function() {
                         + components.join(',') + ')';
         },
 
-        toCanvasStyle: function(ctx, matrix) {
-            if (this._canvasStyle)
+        // Returns the components of a gradient color in the coordinates it's
+        // drawn in, see getCanvasTransform():
+        _getCanvasComponents: function(matrix, strokeMatrix) {
+            var components = this._components,
+                transform = getCanvasTransform(matrix, strokeMatrix);
+            return transform
+                    ? transformGradient(components, [components[0]], transform)
+                    : components;
+        },
+
+        // Returns the matrix that elliptical radial gradients are drawn
+        // through, as canvas only draws circles, or null for other colors.
+        // See Item#_paint():
+        _getEllipseMatrix: function(matrix, strokeMatrix) {
+            return this._type === 'gradient' && getEllipseMatrix(
+                    this._getCanvasComponents(matrix, strokeMatrix)) || null;
+        },
+
+        // Pass true for `isEllipse` to get an elliptical radial gradient as the
+        // circle to draw through #_getEllipseMatrix(). Strokes and text can't
+        // be drawn through a matrix without distorting them, so they draw such
+        // gradients as circles.
+        toCanvasStyle: function(ctx, matrix, strokeMatrix, isEllipse) {
+            // Patterns are drawn at the resolution of the context, which
+            // changes without notifying the color, so they aren't cached. They
+            // are placed in the coordinates of the item's parent, as gradients:
+            if (this._type === 'pattern') {
+                var transform = getCanvasTransform(matrix, strokeMatrix),
+                    placement = this._components[1];
+                return this._components[0]._toCanvasStyle(ctx, transform
+                        ? transform.appended(placement)
+                        : placement);
+            }
+            // Gradients drawn with a strokeMatrix depend on it, and it can
+            // change without notifying the color, so we can't cache these, nor
+            // elliptical ones, which are drawn in two ways:
+            var isCacheable = !(this._type === 'gradient'
+                    && (strokeMatrix || this._components[4] !== 1));
+            if (this._canvasStyle && isCacheable)
                 return this._canvasStyle;
             // Normal colors are simply represented by their CSS string.
             if (this._type !== 'gradient')
                 return this._canvasStyle = this.toCSS();
             // Gradient code form here onwards
-            var components = this._components,
+            var components = this._getCanvasComponents(matrix, strokeMatrix),
                 gradient = components[0],
                 stops = gradient._stops,
                 origin = components[1],
                 destination = components[2],
                 highlight = components[3],
-                inverse = matrix && matrix.inverted(),
                 canvasGradient;
-            // If the item's content is transformed by a matrix, we need to
-            // inverse transform the gradient points, as they are defined in
-            // item's parent coordinate system.
-            if (inverse) {
-                origin = inverse._transformPoint(origin);
-                destination = inverse._transformPoint(destination);
-                if (highlight)
-                    highlight = inverse._transformPoint(highlight);
+            if (isEllipse && highlight) {
+                highlight = getEllipseMatrix(components)._inverseTransform(
+                        highlight);
             }
             if (gradient._radial) {
                 var radius = destination.getDistance(origin);
@@ -950,21 +1151,27 @@ var Color = Base.extend(new function() {
                         offset == null ? i / (l - 1) : offset,
                         stop._color.toCanvasStyle());
             }
-            return this._canvasStyle = canvasGradient;
+            if (isCacheable)
+                this._canvasStyle = canvasGradient;
+            return canvasGradient;
         },
 
         /**
-         * Transform the gradient color by the specified matrix.
+         * Transform the gradient or pattern color by the specified matrix.
+         * Radial gradients become ellipses, see {@link #aspect}, and the
+         * stripes of linear gradients keep running across them, also when the
+         * matrix scales unevenly or shears. Pattern colors transform their
+         * {@link #matrix}.
          *
-         * @param {Matrix} matrix the matrix to transform the gradient color by
+         * @param {Matrix} matrix the matrix to transform the color by
          */
         transform: function(matrix) {
+            var components = this._components;
             if (this._type === 'gradient') {
-                var components = this._components;
-                for (var i = 1, l = components.length; i < l; i++) {
-                    var point = components[i];
-                    matrix._transformPoint(point, point, true);
-                }
+                transformGradient(components, components, matrix);
+                this._changed();
+            } else if (this._type === 'pattern') {
+                components[1].prepend(matrix);
                 this._changed();
             }
         },
@@ -1188,6 +1395,53 @@ var Color = Base.extend(new function() {
          * }
          */
 
+        /**
+         * The aspect of a radial gradient: its radius across the line from
+         * the origin to the destination, as a factor of its radius along it,
+         * which makes it an ellipse. Transforming a gradient color sets it, so
+         * that the gradient stretches, shears and rotates with its item.
+         *
+         * @name Color#aspect
+         * @property
+         * @type Number
+         * @default 1
+         *
+         * @example {@paperscript height=200}
+         * // An elliptical radial gradient, twice as wide as tall:
+         * var path = new Path.Ellipse({
+         *  center: view.center,
+         *  radius: [80, 40],
+         *  fillColor: {
+         *      gradient: {
+         *          stops: ['yellow', 'red', 'black'],
+         *          radial: true
+         *      },
+         *      origin: view.center,
+         *      destination: view.center + [80, 0],
+         *      aspect: 0.5
+         *  }
+         * });
+         */
+
+        /**
+         * {@grouptitle Pattern Components}
+         *
+         * The pattern whose tiles the color repeats.
+         *
+         * @name Color#pattern
+         * @property
+         * @type PatternDefinition
+         */
+
+        /**
+         * The matrix that places the tiles of the pattern in the item's
+         * coordinates.
+         *
+         * @name Color#matrix
+         * @property
+         * @type Matrix
+         */
+
         statics: /** @lends Color */{
             // Export for backward compatibility code below.
             _types: types,
@@ -1259,7 +1513,7 @@ new function() {
         };
     }, /** @lends Color# */{
         /**
-         * Returns the addition of the supplied value to both coordinates of
+         * Returns the addition of the supplied value to all components of
          * the color as a new color.
          * The object itself is not modified!
          *
@@ -1271,9 +1525,10 @@ new function() {
          * color
          *
          * @example
-         * var color = new Color(0.5, 1, 1);
-         * var result = color + 1;
-         * console.log(result); // { red: 1, blue: 1, green: 1 }
+         * var color = new Color(0.5, 0.25, 0);
+         * var result = color + 0.25; // PaperScript
+         * var result = color.add(0.25); // JavaScript
+         * console.log(result); // { red: 0.75, green: 0.5, blue: 0.25 }
          */
         /**
          * Returns the addition of the supplied color to the color as a new
@@ -1289,11 +1544,12 @@ new function() {
          * @example
          * var color1 = new Color(0, 1, 1);
          * var color2 = new Color(1, 0, 0);
-         * var result = color1 + color2;
-         * console.log(result); // { red: 1, blue: 1, green: 1 }
+         * var result = color1 + color2; // PaperScript
+         * var result = color1.add(color2); // JavaScript
+         * console.log(result); // { red: 1, green: 1, blue: 1 }
          */
         /**
-         * Returns the subtraction of the supplied value to both coordinates of
+         * Returns the subtraction of the supplied value to all components of
          * the color as a new color.
          * The object itself is not modified!
          *
@@ -1306,8 +1562,9 @@ new function() {
          *
          * @example
          * var color = new Color(0.5, 1, 1);
-         * var result = color - 1;
-         * console.log(result); // { red: 0, blue: 0, green: 0 }
+         * var result = color - 0.5; // PaperScript
+         * var result = color.subtract(0.5); // JavaScript
+         * console.log(result); // { red: 0, green: 0.5, blue: 0.5 }
          */
         /**
          * Returns the subtraction of the supplied color to the color as a new
@@ -1321,13 +1578,14 @@ new function() {
          * @return {Color} the subtraction of the two colors as a new color
          *
          * @example
-         * var color1 = new Color(0, 1, 1);
+         * var color1 = new Color(1, 1, 1);
          * var color2 = new Color(1, 0, 0);
-         * var result = color1 - color2;
-         * console.log(result); // { red: 0, blue: 1, green: 1 }
+         * var result = color1 - color2; // PaperScript
+         * var result = color1.subtract(color2); // JavaScript
+         * console.log(result); // { red: 0, green: 1, blue: 1 }
          */
         /**
-         * Returns the multiplication of the supplied value to both coordinates
+         * Returns the multiplication of the supplied value to all components
          * of the color as a new color.
          * The object itself is not modified!
          *
@@ -1340,8 +1598,9 @@ new function() {
          *
          * @example
          * var color = new Color(0.5, 1, 1);
-         * var result = color * 0.5;
-         * console.log(result); // { red: 0.25, blue: 0.5, green: 0.5 }
+         * var result = color * 0.5; // PaperScript
+         * var result = color.multiply(0.5); // JavaScript
+         * console.log(result); // { red: 0.25, green: 0.5, blue: 0.5 }
          */
         /**
          * Returns the multiplication of the supplied color to the color as a
@@ -1357,11 +1616,12 @@ new function() {
          * @example
          * var color1 = new Color(0, 1, 1);
          * var color2 = new Color(0.5, 0, 0.5);
-         * var result = color1 * color2;
-         * console.log(result); // { red: 0, blue: 0, green: 0.5 }
+         * var result = color1 * color2; // PaperScript
+         * var result = color1.multiply(color2); // JavaScript
+         * console.log(result); // { red: 0, green: 0, blue: 0.5 }
          */
         /**
-         * Returns the division of the supplied value to both coordinates of
+         * Returns the division of the supplied value to all components of
          * the color as a new color.
          * The object itself is not modified!
          *
@@ -1374,8 +1634,9 @@ new function() {
          *
          * @example
          * var color = new Color(0.5, 1, 1);
-         * var result = color / 2;
-         * console.log(result); // { red: 0.25, blue: 0.5, green: 0.5 }
+         * var result = color / 2; // PaperScript
+         * var result = color.divide(2); // JavaScript
+         * console.log(result); // { red: 0.25, green: 0.5, blue: 0.5 }
          */
         /**
          * Returns the division of the supplied color to the color as a new
@@ -1390,9 +1651,10 @@ new function() {
          *
          * @example
          * var color1 = new Color(0, 1, 1);
-         * var color2 = new Color(0.5, 0, 0.5);
-         * var result = color1 / color2;
-         * console.log(result); // { red: 0, blue: 0, green: 1 }
+         * var color2 = new Color(0.5, 1, 2);
+         * var result = color1 / color2; // PaperScript
+         * var result = color1.divide(color2); // JavaScript
+         * console.log(result); // { red: 0, green: 1, blue: 0.5 }
          */
     });
 });

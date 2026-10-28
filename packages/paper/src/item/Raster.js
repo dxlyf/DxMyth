@@ -26,6 +26,9 @@ var Raster = Item.extend(/** @lends Raster# */{
     _boundsOptions: { stroke: false, handle: false },
     _serializeFields: {
         crossOrigin: null, // NOTE: Needs to be set before source to work!
+        // The size comes before the source, so versions that don't treat it
+        // as a placeholder, see #set(), apply it before the source too:
+        size: new Size(),
         source: null
     },
     // Prioritize `crossOrigin` over `source`:
@@ -123,11 +126,11 @@ var Raster = Item.extend(/** @lends Raster# */{
         // If _initialize can set properties through object literal, we're done.
         // Otherwise we need to check the type of object:
         if (!this._initialize(source,
-                position !== undefined && Point.read(arguments))) {
+                position !== undefined && Point.read([position]))) {
             var image,
                 type = typeof source,
                 object = type === 'string'
-                    ? document.getElementById(source)
+                    ? document && document.getElementById(source)
                     : type  === 'object'
                         ? source
                         : null;
@@ -191,16 +194,16 @@ var Raster = Item.extend(/** @lends Raster# */{
         var size = Size.read(arguments);
         if (!size.equals(this._size)) { // NOTE: this._size could be null
             if (size.width > 0 && size.height > 0) {
-                // Get reference to image before changing canvas.
-                var element = !_clear && this.getElement();
-                // NOTE: Setting canvas internally sets _size.
-                // NOTE: No need to release canvas because #_setImage() does so.
-                this._setImage(CanvasProvider.getCanvas(size));
+                var element = !_clear && this.getElement(),
+                    canvas = CanvasProvider.getCanvas(size);
+                // Draw the element onto the new canvas before #_setImage()
+                // releases the old one, which frees its pixels:
                 if (element) {
-                    // Draw element back onto the new, resized canvas.
-                    this.getContext(true).drawImage(element, 0, 0,
+                    canvas.getContext('2d').drawImage(element, 0, 0,
                             size.width, size.height);
                 }
+                // NOTE: Setting canvas internally sets _size.
+                this._setImage(canvas);
             } else {
                 // 0-width / height dimensions do not require the creation of
                 // an internal canvas. Just reflect the size for now.
@@ -276,8 +279,8 @@ var Raster = Item.extend(/** @lends Raster# */{
     },
 
     /**
-     * @private
      * @bean
+     * @type Size
      * @deprecated use {@link #resolution} instead.
      */
     getPpi: '#getResolution',
@@ -330,6 +333,20 @@ var Raster = Item.extend(/** @lends Raster# */{
      * events. This is used by #setImage(), but also in other places where
      * underlying canvases are replaced, resized, etc.
      */
+    /**
+     * @private
+     */
+    set: function set(props, exclude) {
+        // A size that comes with a source, as from #importJSON(), only holds
+        // the place of the image's size until it has loaded, see #_setImage(),
+        // so don't create a canvas for it:
+        if (props && props.source && props.size) {
+            this._size = new Size(props.size);
+            exclude = Base.set({ size: true }, exclude);
+        }
+        return set.base.call(this, props, exclude);
+    },
+
     _setImage: function(image) {
         if (this._canvas)
             CanvasProvider.release(this._canvas);
@@ -349,9 +366,14 @@ var Raster = Item.extend(/** @lends Raster# */{
         // naturalWidth / Height needs to be checked for a swell, because it
         // apparently can have width / height set to 0 when the image is
         // invisible in the document.
-        this._size = new Size(
-                image ? image.naturalWidth || image.width : 0,
-                image ? image.naturalHeight || image.height : 0);
+        // While an image is still loading, keep the current size as a
+        // placeholder, such as the one from #importJSON() (#1598), until the
+        // loaded image sets its own:
+        this._size = image && !this._loaded
+                ? this._size || new Size()
+                : new Size(
+                    image ? image.naturalWidth || image.width : 0,
+                    image ? image.naturalHeight || image.height : 0);
         this._context = null;
         this._changed(/*#=*/(Change.GEOMETRY | Change.PIXELS));
     },
@@ -412,16 +434,17 @@ var Raster = Item.extend(/** @lends Raster# */{
     },
 
     /**
-     * The source of the raster, which can be set using a DOM Image, a Canvas,
-     * a data url, a string describing the URL to load the image from, or the
-     * ID of a DOM element to get the image from (either a DOM Image or a
-     * Canvas). Reading this property will return the url of the source image or
-     * a data-url.
+     * The source of the raster, which can be set using a string describing the
+     * URL to load the image from, or a data url. Reading this property will
+     * return the url of the source image or a data-url.
+     * To set the raster to a DOM Image or a Canvas, use {@link #image} or
+     * {@link #canvas} instead. The ID of a DOM Image or Canvas element is only
+     * accepted by the constructor.
      * Note that for consistency, a {@link #onLoad} event will be triggered on
      * the raster even if the image has already finished loading before.
      *
      * @bean
-     * @type HTMLImageElement|HTMLCanvasElement|String
+     * @type String
      *
      * @example {@paperscript}
      * var raster = new Raster();
@@ -568,8 +591,18 @@ var Raster = Item.extend(/** @lends Raster# */{
 
     /**
      * Returns a Base 64 encoded `data:` URL representation of the raster.
+     * If the raster shows an image that was loaded from a `data:` URL, that
+     * URL is returned unchanged. Otherwise, the arguments are passed on to
+     * `HTMLCanvasElement#toDataURL()` of the raster's {@link #canvas}.
+     * In web-workers, where the canvas is an `OffscreenCanvas`, this is not
+     * supported, and neither are {@link #source} and exporting the raster to
+     * JSON, which rely on it. Use the canvas' asynchronous `convertToBlob()`
+     * there instead.
      *
-     * @return {String}
+     * @param {String} [type='image/png'] the image format to encode
+     * @param {Number} [quality] the image quality between `0` and `1`, for
+     *     formats that use lossy compression, such as `'image/jpeg'`
+     * @return {String} the `data:` URL of the raster
      */
     toDataURL: function() {
         // See if the linked image is base64 encoded already, if so reuse it,
@@ -754,10 +787,13 @@ var Raster = Item.extend(/** @lends Raster# */{
         return this.getContext().createImageData(size.width, size.height);
     },
 
-    // DOCS: document Raster#getImageData
     /**
-     * @param {Rectangle} rect
-     * @return {ImageData}
+     * Returns the image data of the pixels within the specified rectangle, or
+     * of the whole raster if no rectangle or an empty one is passed.
+     *
+     * @param {Rectangle} [rect] the area of the raster to get the image data
+     *     of, in pixel coordinates
+     * @return {ImageData} the image data of the specified area
      */
     getImageData: function(/* rect */) {
         var rect = Rectangle.read(arguments);
@@ -847,8 +883,14 @@ var Raster = Item.extend(/** @lends Raster# */{
 
     _draw: function(ctx, param, viewMatrix) {
         var element = this.getElement();
-        // Only draw if image is not empty (#1320).
-        if (element && element.width > 0 && element.height > 0) {
+        if (param.dontFinish || param.clip) {
+            // Clip with the raster's rectangle (#1845):
+            var rect = this.getInternalBounds();
+            if (!param.dontStart)
+                ctx.beginPath();
+            ctx.rect(rect.x, rect.y, rect.width, rect.height);
+        } else if (element && element.width > 0 && element.height > 0) {
+            // Only draw if image is not empty (#1320).
             // Handle opacity for Rasters separately from the rest, since
             // Rasters never draw a stroke. See Item#draw().
             ctx.globalAlpha = Numerical.clamp(this._opacity, 0, 1);

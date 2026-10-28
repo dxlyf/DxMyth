@@ -1,4 +1,5 @@
 import { CachePool } from './CachePool';
+import { Matrix4 } from './Matrix4';
 import { Vector3Like } from './Vector3';
 /** 类矩阵输入：number[] 或 Float32Array（含 Matrix3 实例） */
 export type Matrix3Like = number[] | Float32Array;
@@ -89,6 +90,11 @@ export declare class Matrix3 extends Float32Array {
     invert(): Matrix3 | null;
     adjoint(): this;
     determinant(): number;
+    /**
+   * Normal matrix for a 4x4 model matrix: inverse-transpose of the
+   * upper-left 3x3 block, so normals stay perpendicular under non-uniform scale.
+   */
+    getNormalMatrix(m: Matrix4): this;
     equals(m: Matrix3Like): boolean;
     isIdentity(): boolean;
     isSingular(): boolean;

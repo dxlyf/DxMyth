@@ -4,6 +4,7 @@ export declare class Pattern extends Disposable {
     static fromUrl(url: string): Pattern;
     static fromImage(image: CanvasImageSource): Pattern;
     type: 'pattern';
+    readonly uid: number;
     elementType: 'image';
     repeat?: 'repeat' | 'repeat-x' | 'repeat-y';
     source: CanvasImageSource;

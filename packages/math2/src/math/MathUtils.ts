@@ -1,4 +1,4 @@
-import {type PointLike } from './Point'
+import { type PointLike } from './Point'
 import { Vector2 } from './Vector2'
 export const EPSILON = 1e-6
 export const PI = Math.PI
@@ -287,15 +287,22 @@ export const bezier = (out: PointLike, controls: PointLike[], t: number) => {
 // 有理贝塞尔曲线
 export const rationalBezier = (out: PointLike, controls: PointLike[], weight: number[], t: number) => {
     const n = controls.length - 1
-    let x = 0, y = 0
+    let x = 0, y = 0, den = 0
     for (let i = 0; i <= n; i++) {
         let b = bernstein(n, i, t) * weight[i]
-        x += b * controls[i].x / b
-        y += b * controls[i].y / b
+        x += b * controls[i].x
+        y += b * controls[i].y
+        den += b
 
     }
-    out.x = x
-    out.y = y
+    // 分母理论上不会为 0（权重为正时），但加个保护更稳妥
+    if (den === 0) {
+        out.x = 0
+        out.y = 0
+        return out
+    }
+    out.x = x / den
+    out.y = y / den
     return out
 }
 /**
@@ -676,7 +683,8 @@ export const getRays3D = (player: { rotate: number, x: number, y: number }, map:
             }
         }
         let distance = side ? sideDistX - deltaX : sideDistY - deltaY
-        // const target = dir.multiplyScalar(distance * cellSize).add(origin)
+        // 格子墙交点
+        const target = dir.multiplyScalar(distance * cellSize).add(origin)
         // 移除鱼眼
         let noFishDistance = distance * Math.cos(theta - player.rotate);
         // 计算光线强度
@@ -692,8 +700,8 @@ export const getRays3D = (player: { rotate: number, x: number, y: number }, map:
             dir,
             origin,
             distance,// 格子距离
-            noFishDistance: noFishDistance
-            //  target
+            noFishDistance: noFishDistance,
+            target
         })
     }
     return rays

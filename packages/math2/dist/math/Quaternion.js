@@ -1,0 +1,516 @@
+import { CachePool } from "./CachePool.js";
+import { Matrix3 } from "./Matrix3.js";
+import { Matrix4 } from "./Matrix4.js";
+class Quaternion {
+  static pool = CachePool.create({
+    initSize: 20,
+    create: () => Quaternion.identity(),
+    init(item) {
+      item.identity();
+    }
+  });
+  // ---- 静态工厂 ----
+  static identity() {
+    return new Quaternion(0, 0, 0, 1);
+  }
+  static zero() {
+    return new Quaternion(0, 0, 0, 0);
+  }
+  static fromValues(x, y, z, w) {
+    return new Quaternion(x, y, z, w);
+  }
+  static from(q) {
+    return new Quaternion(q.x, q.y, q.z, q.w);
+  }
+  static fromArray(arr) {
+    return new Quaternion(arr[0], arr[1], arr[2], arr[3]);
+  }
+  /** 绕任意轴（单位方向向量）旋转 angle（rad） */
+  static fromAxisAngle(axis, angle) {
+    return new Quaternion().setFromAxisAngle(axis, angle);
+  }
+  static fromRotationX(rad) {
+    const half = rad / 2;
+    return new Quaternion(Math.sin(half), 0, 0, Math.cos(half));
+  }
+  static fromRotationY(rad) {
+    const half = rad / 2;
+    return new Quaternion(0, Math.sin(half), 0, Math.cos(half));
+  }
+  static fromRotationZ(rad) {
+    const half = rad / 2;
+    return new Quaternion(0, 0, Math.sin(half), Math.cos(half));
+  }
+  /** 从欧拉角构造（旋转顺序由 euler.order 决定） */
+  static fromEuler(euler) {
+    return new Quaternion().setFromEuler(euler);
+  }
+  /** 从 3x3 旋转矩阵提取四元数 */
+  static fromMatrix3(m) {
+    return new Quaternion().setFromRotationMatrix3(m);
+  }
+  // ---- 静态运算 ----
+  /** out = a + b */
+  static add(out, a, b) {
+    out.x = a.x + b.x;
+    out.y = a.y + b.y;
+    out.z = a.z + b.z;
+    out.w = a.w + b.w;
+    return out;
+  }
+  /** out = a - b */
+  static subtract(out, a, b) {
+    out.x = a.x - b.x;
+    out.y = a.y - b.y;
+    out.z = a.z - b.z;
+    out.w = a.w - b.w;
+    return out;
+  }
+  /** out = a * b（Hamilton 积，表示先 b 后 a 的复合旋转） */
+  static multiply(out, a, b) {
+    const ax = a.x, ay = a.y, az = a.z, aw = a.w;
+    const bx = b.x, by = b.y, bz = b.z, bw = b.w;
+    out.x = ax * bw + aw * bx + ay * bz - az * by;
+    out.y = ay * bw + aw * by + az * bx - ax * bz;
+    out.z = az * bw + aw * bz + ax * by - ay * bx;
+    out.w = aw * bw - ax * bx - ay * by - az * bz;
+    return out;
+  }
+  /** out = q * s */
+  static multiplyScalar(out, q, s) {
+    out.x = q.x * s;
+    out.y = q.y * s;
+    out.z = q.z * s;
+    out.w = q.w * s;
+    return out;
+  }
+  /** out = -q */
+  static negate(out, q) {
+    out.x = -q.x;
+    out.y = -q.y;
+    out.z = -q.z;
+    out.w = -q.w;
+    return out;
+  }
+  /** out = normalized(q)；零四元数返回零 */
+  static normalize(out, q) {
+    const len = Math.hypot(q.x, q.y, q.z, q.w);
+    if (len === 0) {
+      out.x = 0;
+      out.y = 0;
+      out.z = 0;
+      out.w = 0;
+      return out;
+    }
+    out.x = q.x / len;
+    out.y = q.y / len;
+    out.z = q.z / len;
+    out.w = q.w / len;
+    return out;
+  }
+  /** a · b */
+  static dot(a, b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  }
+  /** out = 共轭（-x, -y, -z, w）；单位四元数共轭即逆 */
+  static conjugate(out, q) {
+    out.x = -q.x;
+    out.y = -q.y;
+    out.z = -q.z;
+    out.w = q.w;
+    return out;
+  }
+  /** out = q⁻¹（共轭除以模长平方）；零四元数返回零 */
+  static invert(out, q) {
+    const lenSq = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+    if (lenSq === 0) {
+      out.x = 0;
+      out.y = 0;
+      out.z = 0;
+      out.w = 0;
+      return out;
+    }
+    out.x = -q.x / lenSq;
+    out.y = -q.y / lenSq;
+    out.z = -q.z / lenSq;
+    out.w = q.w / lenSq;
+    return out;
+  }
+  /** out = lerp(a, b, t)（线性插值，非球面） */
+  static lerp(out, a, b, t) {
+    out.x = a.x + (b.x - a.x) * t;
+    out.y = a.y + (b.y - a.y) * t;
+    out.z = a.z + (b.z - a.z) * t;
+    out.w = a.w + (b.w - a.w) * t;
+    return out;
+  }
+  /** out = slerp(a, b, t)（球面插值，自动取最短弧） */
+  static slerp(out, a, b, t) {
+    let bx = b.x, by = b.y, bz = b.z, bw = b.w;
+    let cosHalfTheta = a.w * bw + a.x * bx + a.y * by + a.z * bz;
+    if (cosHalfTheta < 0) {
+      bw = -bw;
+      bx = -bx;
+      by = -by;
+      bz = -bz;
+      cosHalfTheta = -cosHalfTheta;
+    }
+    if (cosHalfTheta >= 1) {
+      out.x = a.x;
+      out.y = a.y;
+      out.z = a.z;
+      out.w = a.w;
+      return out;
+    }
+    const sqrSinHalfTheta = 1 - cosHalfTheta * cosHalfTheta;
+    if (sqrSinHalfTheta <= 1e-12) {
+      out.x = a.x + (bx - a.x) * t;
+      out.y = a.y + (by - a.y) * t;
+      out.z = a.z + (bz - a.z) * t;
+      out.w = a.w + (bw - a.w) * t;
+      return out;
+    }
+    const sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+    const halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+    const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta;
+    const ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+    out.x = a.x * ratioA + bx * ratioB;
+    out.y = a.y * ratioA + by * ratioB;
+    out.z = a.z * ratioA + bz * ratioB;
+    out.w = a.w * ratioA + bw * ratioB;
+    return out;
+  }
+  static equals(a, b) {
+    return a.x === b.x && a.y === b.y && a.z === b.z && a.w === b.w;
+  }
+  static equalsEpsilon(a, b, epsilon = 1e-9) {
+    return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon && Math.abs(a.z - b.z) <= epsilon && Math.abs(a.w - b.w) <= epsilon;
+  }
+  /** a 与 b 之间的夹角 (rad)：2·acos(|a·b|) */
+  static angleBetween(a, b) {
+    const d = Math.min(1, Math.abs(Quaternion.dot(a, b)));
+    return 2 * Math.acos(d);
+  }
+  /** out = q * v * q⁻¹（旋转向量 v，q 需为单位四元数） */
+  static rotateVector(out, v, q) {
+    const x = v.x, y = v.y, z = v.z;
+    const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+    const ix = qw * x + qy * z - qz * y;
+    const iy = qw * y + qz * x - qx * z;
+    const iz = qw * z + qx * y - qy * x;
+    const iw = -qx * x - qy * y - qz * z;
+    out.x = ix * qw - iw * qx - iy * qz + iz * qy;
+    out.y = iy * qw - iw * qy - iz * qx + ix * qz;
+    out.z = iz * qw - iw * qz - ix * qy + iy * qx;
+    return out;
+  }
+  /** out = q 对应的 3x3 旋转矩阵（列主序） */
+  static toMatrix3(q, out) {
+    const m = out ?? new Matrix3();
+    const x = q.x, y = q.y, z = q.z, w = q.w;
+    const x2 = x + x, y2 = y + y, z2 = z + z;
+    const xx = x * x2, xy = x * y2, xz = x * z2;
+    const yy = y * y2, yz = y * z2, zz = z * z2;
+    const wx = w * x2, wy = w * y2, wz = w * z2;
+    m[0] = 1 - (yy + zz);
+    m[1] = xy + wz;
+    m[2] = xz - wy;
+    m[3] = xy - wz;
+    m[4] = 1 - (xx + zz);
+    m[5] = yz + wx;
+    m[6] = xz + wy;
+    m[7] = yz - wx;
+    m[8] = 1 - (xx + yy);
+    return m;
+  }
+  /** out = q 对应的 4x4 旋转矩阵（列主序，第四行/列单位） */
+  static toMatrix4(q, out) {
+    const m = out ?? new Matrix4();
+    const x = q.x, y = q.y, z = q.z, w = q.w;
+    const x2 = x + x, y2 = y + y, z2 = z + z;
+    const xx = x * x2, xy = x * y2, xz = x * z2;
+    const yy = y * y2, yz = y * z2, zz = z * z2;
+    const wx = w * x2, wy = w * y2, wz = w * z2;
+    m[0] = 1 - (yy + zz);
+    m[1] = xy + wz;
+    m[2] = xz - wy;
+    m[3] = 0;
+    m[4] = xy - wz;
+    m[5] = 1 - (xx + zz);
+    m[6] = yz + wx;
+    m[7] = 0;
+    m[8] = xz + wy;
+    m[9] = yz - wx;
+    m[10] = 1 - (xx + yy);
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 1;
+    return m;
+  }
+  // ==================== 实例 ====================
+  x;
+  y;
+  z;
+  w;
+  constructor(x = 0, y = 0, z = 0, w = 1) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
+  }
+  // ---- 写入 ----
+  set(x, y, z, w) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
+    return this;
+  }
+  copy(q) {
+    this.x = q.x;
+    this.y = q.y;
+    this.z = q.z;
+    this.w = q.w;
+    return this;
+  }
+  identity() {
+    return this.set(0, 0, 0, 1);
+  }
+  zero() {
+    return this.set(0, 0, 0, 0);
+  }
+  /** 绕任意轴（axis 自动归一化）旋转 angle（rad） */
+  setFromAxisAngle(axis, angle) {
+    const half = angle / 2;
+    const s = Math.sin(half);
+    const len = Math.hypot(axis.x, axis.y, axis.z);
+    if (len === 0) {
+      return this.identity();
+    }
+    this.x = axis.x / len * s;
+    this.y = axis.y / len * s;
+    this.z = axis.z / len * s;
+    this.w = Math.cos(half);
+    return this;
+  }
+  /** 从欧拉角构造（旋转顺序由 euler.order 决定） */
+  setFromEuler(euler) {
+    const x = euler.x, y = euler.y, z = euler.z;
+    const c1 = Math.cos(x / 2), c2 = Math.cos(y / 2), c3 = Math.cos(z / 2);
+    const s1 = Math.sin(x / 2), s2 = Math.sin(y / 2), s3 = Math.sin(z / 2);
+    switch (euler.order ?? "XYZ") {
+      case "XYZ":
+        this.x = s1 * c2 * c3 + c1 * s2 * s3;
+        this.y = c1 * s2 * c3 - s1 * c2 * s3;
+        this.z = c1 * c2 * s3 + s1 * s2 * c3;
+        this.w = c1 * c2 * c3 - s1 * s2 * s3;
+        break;
+      case "YXZ":
+        this.x = s1 * c2 * c3 + c1 * s2 * s3;
+        this.y = c1 * s2 * c3 - s1 * c2 * s3;
+        this.z = c1 * c2 * s3 - s1 * s2 * c3;
+        this.w = c1 * c2 * c3 + s1 * s2 * s3;
+        break;
+      case "ZXY":
+        this.x = s1 * c2 * c3 - c1 * s2 * s3;
+        this.y = c1 * s2 * c3 + s1 * c2 * s3;
+        this.z = c1 * c2 * s3 + s1 * s2 * c3;
+        this.w = c1 * c2 * c3 - s1 * s2 * s3;
+        break;
+      case "ZYX":
+        this.x = s1 * c2 * c3 - c1 * s2 * s3;
+        this.y = c1 * s2 * c3 + s1 * c2 * s3;
+        this.z = c1 * c2 * s3 - s1 * s2 * c3;
+        this.w = c1 * c2 * c3 + s1 * s2 * s3;
+        break;
+      case "YZX":
+        this.x = s1 * c2 * c3 + c1 * s2 * s3;
+        this.y = c1 * s2 * c3 + s1 * c2 * s3;
+        this.z = c1 * c2 * s3 - s1 * s2 * c3;
+        this.w = c1 * c2 * c3 - s1 * s2 * s3;
+        break;
+      case "XZY":
+        this.x = s1 * c2 * c3 - c1 * s2 * s3;
+        this.y = c1 * s2 * c3 - s1 * c2 * s3;
+        this.z = c1 * c2 * s3 + s1 * s2 * c3;
+        this.w = c1 * c2 * c3 + s1 * s2 * s3;
+        break;
+    }
+    return this;
+  }
+  /** 从 3x3 旋转矩阵提取四元数 */
+  setFromRotationMatrix3(m) {
+    const m11 = m[0], m12 = m[3], m13 = m[6];
+    const m21 = m[1], m22 = m[4], m23 = m[7];
+    const m31 = m[2], m32 = m[5], m33 = m[8];
+    const trace = m11 + m22 + m33;
+    if (trace > 0) {
+      const s = 0.5 / Math.sqrt(trace + 1);
+      this.w = 0.25 / s;
+      this.x = (m32 - m23) * s;
+      this.y = (m13 - m31) * s;
+      this.z = (m21 - m12) * s;
+    } else if (m11 > m22 && m11 > m33) {
+      const s = 2 * Math.sqrt(1 + m11 - m22 - m33);
+      this.w = (m32 - m23) / s;
+      this.x = 0.25 * s;
+      this.y = (m12 + m21) / s;
+      this.z = (m13 + m31) / s;
+    } else if (m22 > m33) {
+      const s = 2 * Math.sqrt(1 + m22 - m11 - m33);
+      this.w = (m13 - m31) / s;
+      this.x = (m12 + m21) / s;
+      this.y = 0.25 * s;
+      this.z = (m23 + m32) / s;
+    } else {
+      const s = 2 * Math.sqrt(1 + m33 - m11 - m22);
+      this.w = (m21 - m12) / s;
+      this.x = (m13 + m31) / s;
+      this.y = (m23 + m32) / s;
+      this.z = 0.25 * s;
+    }
+    return this;
+  }
+  // ---- 运算（委托给静态方法） ----
+  add(q) {
+    Quaternion.add(this, this, q);
+    return this;
+  }
+  subtract(q) {
+    Quaternion.subtract(this, this, q);
+    return this;
+  }
+  /** this = this * q */
+  multiply(q) {
+    Quaternion.multiply(this, this, q);
+    return this;
+  }
+  /** this = q * this */
+  premultiply(q) {
+    Quaternion.multiply(this, q, this);
+    return this;
+  }
+  multiplyScalar(s) {
+    Quaternion.multiplyScalar(this, this, s);
+    return this;
+  }
+  negate() {
+    Quaternion.negate(this, this);
+    return this;
+  }
+  normalize() {
+    Quaternion.normalize(this, this);
+    return this;
+  }
+  conjugate() {
+    Quaternion.conjugate(this, this);
+    return this;
+  }
+  /** 求逆；零四元数返回零 */
+  invert() {
+    Quaternion.invert(this, this);
+    return this;
+  }
+  lerp(to, t) {
+    Quaternion.lerp(this, this, to, t);
+    return this;
+  }
+  slerp(to, t) {
+    Quaternion.slerp(this, this, to, t);
+    return this;
+  }
+  /** this = q * this * q⁻¹ 旋转向量 v（写入 out 并返回） */
+  rotateVector(out, v) {
+    return Quaternion.rotateVector(out, v, this);
+  }
+  // ---- 查询 ----
+  length() {
+    return Math.hypot(this.x, this.y, this.z, this.w);
+  }
+  lengthSquared() {
+    return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
+  }
+  dot(q) {
+    return Quaternion.dot(this, q);
+  }
+  /** 与 q 的夹角 (rad) */
+  angleTo(q) {
+    return Quaternion.angleBetween(this, q);
+  }
+  equals(q) {
+    return Quaternion.equals(this, q);
+  }
+  equalsEpsilon(q, epsilon) {
+    return Quaternion.equalsEpsilon(this, q, epsilon);
+  }
+  setFromRotationMatrix(m) {
+    const te = m;
+    const m11 = te[0];
+    const m12 = te[4];
+    const m13 = te[8];
+    const m21 = te[1];
+    const m22 = te[5];
+    const m23 = te[9];
+    const m31 = te[2];
+    const m32 = te[6];
+    const m33 = te[10];
+    const trace = m11 + m22 + m33;
+    if (trace > 0) {
+      const s = 0.5 / Math.sqrt(trace + 1);
+      this.w = 0.25 / s;
+      this.x = (m32 - m23) * s;
+      this.y = (m13 - m31) * s;
+      this.z = (m21 - m12) * s;
+    } else if (m11 > m22 && m11 > m33) {
+      const s = 2 * Math.sqrt(1 + m11 - m22 - m33);
+      this.w = (m32 - m23) / s;
+      this.x = 0.25 * s;
+      this.y = (m12 + m21) / s;
+      this.z = (m13 + m31) / s;
+    } else if (m22 > m33) {
+      const s = 2 * Math.sqrt(1 + m22 - m11 - m33);
+      this.w = (m13 - m31) / s;
+      this.x = (m12 + m21) / s;
+      this.y = 0.25 * s;
+      this.z = (m23 + m32) / s;
+    } else {
+      const s = 2 * Math.sqrt(1 + m33 - m11 - m22);
+      this.w = (m21 - m12) / s;
+      this.x = (m13 + m31) / s;
+      this.y = (m23 + m32) / s;
+      this.z = 0.25 * s;
+    }
+    return this.normalize();
+  }
+  isFinite() {
+    return Number.isFinite(this.x) && Number.isFinite(this.y) && Number.isFinite(this.z) && Number.isFinite(this.w);
+  }
+  isIdentity() {
+    return this.x === 0 && this.y === 0 && this.z === 0 && this.w === 1;
+  }
+  isZero() {
+    return this.x === 0 && this.y === 0 && this.z === 0 && this.w === 0;
+  }
+  // ---- 转换 ----
+  toMatrix3(out) {
+    return Quaternion.toMatrix3(this, out);
+  }
+  toMatrix4(out) {
+    return Quaternion.toMatrix4(this, out);
+  }
+  // ---- 工具 ----
+  clone() {
+    return new Quaternion(this.x, this.y, this.z, this.w);
+  }
+  toArray() {
+    return [this.x, this.y, this.z, this.w];
+  }
+  toString() {
+    return `Quaternion(${this.x}, ${this.y}, ${this.z}, ${this.w})`;
+  }
+}
+export {
+  Quaternion
+};

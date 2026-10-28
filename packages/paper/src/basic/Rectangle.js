@@ -87,7 +87,12 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
             // new Rectangle(), new Rectangle(null)
             this._set(0, 0, 0, 0);
             read = arg0 === null ? 1 : 0;
-        } else if (args.length === 1) {
+        } else if (args.length === 1
+                // When reading from a longer list of arguments, an array of
+                // four values or an object with both x and width can only
+                // describe a rectangle, not the point of (point, size):
+                || Array.isArray(arg0) && arg0.length === 4
+                || arg0.x !== undefined && arg0.width !== undefined) {
             // This can either be an array, or an object literal.
             if (Array.isArray(arg0)) {
                 this._set.apply(this, arg0);
@@ -102,10 +107,11 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
                 // Use `Base.readSupported()` to read and consume whatever
                 // property the rectangle can receive, but handle `from` / `to`
                 // separately below.
-                this._set(0, 0, 0, 0);
-                if (Base.readSupported(args, this)) {
+                var builder = new RectangleBuilder();
+                if (Base.readSupported(args, builder)) {
                     read = 1;
                 }
+                this._set(builder.x, builder.y, builder.width, builder.height);
             }
         }
         if (read === undefined) {
@@ -250,7 +256,20 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     /**
-     * The top-left point of the rectangle
+     * The rectangle's position and size as an array,
+     * `[x, y, width, height]`, as {@link Matrix#values} gives those of a
+     * matrix.
+     *
+     * @bean
+     * @type Number[]
+     */
+    getValues: function() {
+        return [this.x, this.y, this.width, this.height];
+    },
+
+    /**
+     * The top-left point of the rectangle. Setting it moves the whole
+     * rectangle, unlike {@link #topLeft}.
      *
      * @bean
      * @type Point
@@ -278,34 +297,10 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
         return new ctor(this.width, this.height, this, 'setSize');
     },
 
-    // properties to keep track of fix-width / height: They are on by default,
-    // and switched off once properties are used that change the outside of the
-    // rectangle, so combinations of: left / top / right / bottom.
-    _fw: 1,
-    _fh: 1,
-
     setSize: function(/* size */) {
-        var size = Size.read(arguments),
-            sx = this._sx,
-            sy = this._sy,
-            w = size.width,
-            h = size.height;
-        // Keep track of how dimensions were specified through this._s*
-        // attributes.
-        // _sx / _sy can either be 0 (left), 0.5 (center) or 1 (right), and is
-        // used as direct factors to calculate the x / y adjustments from the
-        // size differences.
-        // _fw / _fh can either be 0 (off) or 1 (on), and is used to protect
-        // width / height values against changes.
-        if (sx) {
-            this.x += (this.width - w) * sx;
-        }
-        if (sy) {
-            this.y += (this.height - h) * sy;
-        }
-        this.width = w;
-        this.height = h;
-        this._fw = this._fh = 1;
+        var size = Size.read(arguments);
+        this.width = size.width;
+        this.height = size.height;
     },
 
     /**
@@ -322,12 +317,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setLeft: function(left) {
-        if (!this._fw) {
-            var amount = left - this.x;
-            this.width -= this._sx === 0.5 ? amount * 2 : amount;
-        }
+        this.width -= left - this.x;
         this.x = left;
-        this._sx = this._fw = 0;
     },
 
     /**
@@ -342,12 +333,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setTop: function(top) {
-        if (!this._fh) {
-            var amount = top - this.y;
-            this.height -= this._sy === 0.5 ? amount * 2 : amount;
-        }
+        this.height -= top - this.y;
         this.y = top;
-        this._sy = this._fh = 0;
     },
 
     /**
@@ -362,13 +349,7 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setRight: function(right) {
-        if (!this._fw) {
-            var amount = right - this.x;
-            this.width = this._sx === 0.5 ? amount * 2 : amount;
-        }
-        this.x = right - this.width;
-        this._sx = 1;
-        this._fw = 0;
+        this.width = right - this.x;
     },
 
     /**
@@ -383,17 +364,12 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setBottom: function(bottom) {
-        if (!this._fh) {
-            var amount = bottom - this.y;
-            this.height = this._sy === 0.5 ? amount * 2 : amount;
-        }
-        this.y = bottom - this.height;
-        this._sy = 1;
-        this._fh = 0;
+        this.height = bottom - this.y;
     },
 
     /**
-     * The center-x coordinate of the rectangle.
+     * The center-x coordinate of the rectangle. Setting it moves the whole
+     * rectangle horizontally.
      *
      * @bean
      * @type Number
@@ -404,22 +380,12 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setCenterX: function(x) {
-        // If we're asked to fix the width or if _sx is already in center mode,
-        // just keep moving the center.
-        if (this._fw || this._sx === 0.5) {
-            this.x = x - this.width / 2;
-        } else {
-            if (this._sx) {
-                this.x += (x - this.x) * 2 * this._sx;
-            }
-            this.width = (x - this.x) * 2;
-        }
-        this._sx = 0.5;
-        this._fw = 0;
+        this.x = x - this.width / 2;
     },
 
     /**
-     * The center-y coordinate of the rectangle.
+     * The center-y coordinate of the rectangle. Setting it moves the whole
+     * rectangle vertically.
      *
      * @bean
      * @type Number
@@ -430,24 +396,13 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     setCenterY: function(y) {
-        // If we're asked to fix the height or if _sy is already in center mode,
-        // just keep moving the center.
-        if (this._fh || this._sy === 0.5) {
-            this.y = y - this.height / 2;
-        } else {
-            if (this._sy) {
-                this.y += (y - this.y) * 2 * this._sy;
-            }
-            this.height = (y - this.y) * 2;
-        }
-        this._sy = 0.5;
-        this._fh = 0;
+        this.y = y - this.height / 2;
     },
 
     /**
      * {@grouptitle Corner and Center Point Positions}
      *
-     * The center point of the rectangle.
+     * The center point of the rectangle. Setting it moves the whole rectangle.
      *
      * @bean
      * @type Point
@@ -467,56 +422,68 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     /**
-     * The top-left point of the rectangle.
+     * The top-left point of the rectangle. Note that this doesn't move the
+     * whole rectangle; the bottom-right corner stays where it was.
      *
      * @name Rectangle#topLeft
      * @type Point
      */
 
     /**
-     * The top-right point of the rectangle.
+     * The top-right point of the rectangle. Note that this doesn't move the
+     * whole rectangle; the bottom-left corner stays where it was.
      *
      * @name Rectangle#topRight
      * @type Point
      */
 
     /**
-     * The bottom-left point of the rectangle.
+     * The bottom-left point of the rectangle. Note that this doesn't move the
+     * whole rectangle; the top-right corner stays where it was.
      *
      * @name Rectangle#bottomLeft
      * @type Point
      */
 
     /**
-     * The bottom-right point of the rectangle.
+     * The bottom-right point of the rectangle. Note that this doesn't move the
+     * whole rectangle; the top-left corner stays where it was.
      *
      * @name Rectangle#bottomRight
      * @type Point
      */
 
     /**
-     * The left-center point of the rectangle.
+     * The left-center point of the rectangle. Setting it moves the left hand
+     * side while the right hand side stays where it was, and moves the whole
+     * rectangle vertically.
      *
      * @name Rectangle#leftCenter
      * @type Point
      */
 
     /**
-     * The top-center point of the rectangle.
+     * The top-center point of the rectangle. Setting it moves the top while
+     * the bottom stays where it was, and moves the whole rectangle
+     * horizontally.
      *
      * @name Rectangle#topCenter
      * @type Point
      */
 
     /**
-     * The right-center point of the rectangle.
+     * The right-center point of the rectangle. Setting it moves the right
+     * hand side while the left hand side stays where it was, and moves the
+     * whole rectangle vertically.
      *
      * @name Rectangle#rightCenter
      * @type Point
      */
 
     /**
-     * The bottom-center point of the rectangle.
+     * The bottom-center point of the rectangle. Setting it moves the bottom
+     * while the top stays where it was, and moves the whole rectangle
+     * horizontally.
      *
      * @name Rectangle#bottomCenter
      * @type Point
@@ -820,27 +787,39 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
     },
 
     /**
-     * Returns a new rectangle scaled by the specified amount from its center.
+     * Returns a new rectangle scaled by the specified factor from its center,
+     * or from the given center point.
      *
      * @name Rectangle#scale
      * @function
-     * @param {Number} amount
+     * @param {Number} scale the scale factor
+     * @param {Point} [center={@link Rectangle#center}]
      * @return {Rectangle} the scaled rectangle
      */
     /**
      * Returns a new rectangle scaled in horizontal direction by the specified
-     * `hor` amount and in vertical direction by the specified `ver` amount
-     * from its center.
+     * `hor` factor and in vertical direction by the specified `ver` factor
+     * from its center, or from the given center point.
      *
      * @name Rectangle#scale
      * @function
-     * @param {Number} hor
-     * @param {Number} ver
+     * @param {Number} hor the horizontal scale factor
+     * @param {Number} ver the vertical scale factor
+     * @param {Point} [center={@link Rectangle#center}]
      * @return {Rectangle} the scaled rectangle
      */
-    scale: function(hor, ver) {
-        return this.expand(this.width * hor - this.width,
-                this.height * (ver === undefined ? hor : ver) - this.height);
+    scale: function(/* scale, center */) {
+        var args = arguments,
+            scale = Point.read(args),
+            center = Point.read(args, 0, { readNull: true })
+                    || this.getCenter(true);
+        // Scale the corners from the center, which also normalizes the
+        // rectangle for negative amounts:
+        return new Rectangle(
+                this.getTopLeft(true).subtract(center).multiply(scale)
+                    .add(center),
+                this.getBottomRight(true).subtract(center).multiply(scale)
+                    .add(center));
     }
 }, Base.each([
         ['Top', 'Left'], ['Top', 'Right'],
@@ -949,6 +928,12 @@ new function() {
              * Paper.js draws the bounds of items with selected bounds on top of
              * your project. This is very useful when debugging.
              *
+             * This property is only available on the rectangles returned by
+             * {@link Item#bounds} and {@link Item#strokeBounds}, which are
+             * selected independently of each other, each showing its own
+             * bounds. Rectangles returned by other getters such as {@link
+             * Item#handleBounds} don't have it.
+             *
              * @bean
              * @type Boolean
              * @default false
@@ -963,14 +948,20 @@ new function() {
              * path.bounds.selected = true;
              */
             isSelected: function() {
-                return !!(this._owner._selection & /*#=*/ItemSelection.BOUNDS);
+                return !!(this._owner._selection & this._getSelection());
             },
 
             setSelected: function(selected) {
                 var owner = this._owner;
                 if (owner._changeSelection) {
-                    owner._changeSelection(/*#=*/ItemSelection.BOUNDS, selected);
+                    owner._changeSelection(this._getSelection(), selected);
                 }
+            },
+
+            _getSelection: function() {
+                return this._setter === 'setStrokeBounds'
+                        ? /*#=*/ItemSelection.STROKE_BOUNDS
+                        : /*#=*/ItemSelection.BOUNDS;
             }
         })
     );

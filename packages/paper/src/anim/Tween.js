@@ -100,6 +100,57 @@ var Tween = Base.extend(Emitter, /** @lends Tween# */{
                 return t < 0.5
                     ? 16 * t * t * t * t * t
                     : 1 + 16 * (--t) * t * t * t * t;
+            },
+
+            // accelerating from zero velocity
+            easeInSine: function(t) {
+                return 1 - Math.cos(t * Math.PI / 2);
+            },
+
+            // decelerating to zero velocity
+            easeOutSine: function(t) {
+                return Math.sin(t * Math.PI / 2);
+            },
+
+            // acceleration until halfway, then deceleration
+            easeInOutSine: function(t) {
+                return (1 - Math.cos(t * Math.PI)) / 2;
+            },
+
+            // accelerating from zero velocity
+            easeInExpo: function(t) {
+                return t === 0 ? 0 : Math.pow(2, 10 * t - 10);
+            },
+
+            // decelerating to zero velocity
+            easeOutExpo: function(t) {
+                return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+            },
+
+            // acceleration until halfway, then deceleration
+            easeInOutExpo: function(t) {
+                return t === 0 || t === 1
+                    ? t
+                    : t < 0.5
+                        ? Math.pow(2, 20 * t - 10) / 2
+                        : 1 - Math.pow(2, 10 - 20 * t) / 2;
+            },
+
+            // accelerating from zero velocity
+            easeInCirc: function(t) {
+                return 1 - Math.sqrt(1 - t * t);
+            },
+
+            // decelerating to zero velocity
+            easeOutCirc: function(t) {
+                return Math.sqrt(1 - (--t) * t);
+            },
+
+            // acceleration until halfway, then deceleration
+            easeInOutCirc: function(t) {
+                return t < 0.5
+                    ? (1 - Math.sqrt(1 - 4 * t * t)) / 2
+                    : (1 + Math.sqrt(1 - 4 * (--t) * t)) / 2;
             }
         })
     },
@@ -239,8 +290,8 @@ var Tween = Base.extend(Emitter, /** @lends Tween# */{
                     to = getValue(this._to[key]),
                     // Some paper objects have math functions (e.g.: Point,
                     // Color) which can directly be used to do the tweening.
-                    value = (from && to && from.__add && to.__add)
-                        ? to.__subtract(from).__multiply(factor).__add(from)
+                    value = (from && to && from.multiply && to.multiply)
+                        ? to.subtract(from).multiply(factor).add(from)
                         : ((to - from) * factor) + from;
                 this._setProperty(this._parsedKeys[key], value);
             }
@@ -304,14 +355,11 @@ var Tween = Base.extend(Emitter, /** @lends Tween# */{
     },
 
     _handleFrame: function(time) {
-        var startTime = this._startTime,
-            progress = startTime
-                ? (time - startTime) / this.duration
-                : 0;
-        if (!startTime) {
-            this._startTime = time;
-        }
-        this.update(progress);
+        var startTime = this._startTime;
+        // The first frame starts the tween, also when its time is 0:
+        if (startTime == null)
+            startTime = this._startTime = time;
+        this.update((time - startTime) / this.duration);
     },
 
     _getState: function(state) {
@@ -369,7 +417,18 @@ var Tween = Base.extend(Emitter, /** @lends Tween# */{
     },
 
     _calculate: function(left, operator, right) {
-        return paper.PaperScript.calculateBinary(left, operator, right);
+        // Use the math functions of objects that have them (e.g.: Point,
+        // Color), and the operator itself for numbers.
+        var name = { '+': 'add', '-': 'subtract', '*': 'multiply',
+                '/': 'divide' }[operator];
+        if (left && left[name])
+            return left[name](right);
+        switch (operator) {
+        case '+': return left + right;
+        case '-': return left - right;
+        case '*': return left * right;
+        case '/': return left / right;
+        }
     },
 
     _parseKeys: function(keys) {

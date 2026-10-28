@@ -214,5 +214,6 @@ export declare const getRays3D: (player: {
     origin: Vector2;
     distance: number;
     noFishDistance: number;
+    target: Vector2;
 }[];
 export {};

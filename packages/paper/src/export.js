@@ -19,6 +19,7 @@
 var paper = new (PaperScope.inject(Base.exports, {
     Base: Base,
     Numerical: Numerical,
+    ChangeFlag: ChangeFlag,
     Key: Key,
     DomEvent: DomEvent,
     DomElement: DomElement,
@@ -26,8 +27,8 @@ var paper = new (PaperScope.inject(Base.exports, {
     document: document,
     window: window,
     // TODO: Remove in 1.0.0? (deprecated January 2016):
-    Symbol: SymbolDefinition,
-    PlacedSymbol: SymbolItem
+    PlacedSymbol: SymbolItem,
+    Symbol: SymbolDefinition
 }))();
 
 // If we're on node, require some additional functionality now before finishing:

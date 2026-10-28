@@ -162,15 +162,36 @@ export function signedDistPointToLine(
 }
 
 /**
- * 圆弧细分为折线所需段数
- * 弦高误差 ≤ tolerance（默认 0.25），段数 = ceil(sweep / (2·acos(1 - tol/r)))
- * sweep ≤ 0 或 radius ≤ 0 时返回 0（无细分段）
+ * 根据半径、圆心角（弧度）和容差，计算圆弧离散成线段所需的段数。
+ *
+ * 容差 tolerance 定义为「弦中点到弧的最大垂距（矢高 sagitta）」。
+ * 对半角 α，弦到圆心的距离为 r·cosα，矢高为 r(1 - cosα)；
+ * 令 r(1 - cosα) = tolerance，解得 α = acos(1 - tolerance/r)，
+ * 故单段最大圆心角 θ = 2α = 2·acos(1 - tolerance/r)。
+ *  θ = 2·acos(1 - e/r) = acos(2(1 - e/r)² - 1)
+ * @param radius    圆弧半径（像素）
+ * @param sweep     圆弧扫过的圆心角，单位弧度；整圆为 2π
+ * @param tolerance 允许的最大矢高误差（像素），默认 0.25
+ * @returns         需要的线段数；sweep <= 0 或 radius <= 0 时返回 0
  */
 export function arcSegmentCount(radius: number, sweep: number, tolerance: number = 0.25): number {
     if (sweep <= 0 || radius <= 0) return 0
+
     const ratio = tolerance / radius
-    // 半径过小时 tolerance/r ≥ 1，acos 参数裁剪到 [-1, 1]
+
+    // 容差 >= 半径时，1 - ratio <= 0，acos 会退化到接近 π，
+    // 公式会给出极少段数（整圆甚至只算 1 段），误差远超容差。
+    // 此时走保守分支：至少保证每 90° 一段。
+    if (ratio >= 1) {
+        return Math.max(1, Math.ceil(sweep / (Math.PI / 2)))
+    }
+
+    // 单段最大圆心角：θ = 2·acos(1 - tolerance/r)
+    // ratio 在 (0, 1) 区间内，1 - ratio ∈ (0, 1)，acos 参数天然合法，
+    // 无需再裁剪到 [-1, 1]；保留裁剪仅作防御性写法亦可。
     const maxStep = 2 * Math.acos(Math.max(-1, Math.min(1, 1 - ratio)))
+
+    // 向上取整，至少 1 段
     return Math.max(1, Math.ceil(sweep / maxStep))
 }
 

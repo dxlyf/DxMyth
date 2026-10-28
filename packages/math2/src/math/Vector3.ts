@@ -6,6 +6,7 @@
 import { CachePool } from './CachePool'
 import type { Matrix3Like } from './Matrix3'
 import type { Matrix4Like } from './Matrix4'
+import { Quaternion } from './Quaternion'
 
 export type Vector3Like = {
     x: number
@@ -82,7 +83,12 @@ export class Vector3 implements Vector3Like {
         out.z = a.z + b.z
         return out
     }
-
+    static addScaled<T extends Vector3Like>(out: T, v: Vector3Like, s: number) {
+        out.x = s * v.x
+        out.y = s * v.y
+        out.z = s * v.z
+        return out
+    }
     /** out = a - b */
     static subtract<T extends Vector3Like>(out: T, a: Vector3Like, b: Vector3Like) {
         out.x = a.x - b.x
@@ -300,17 +306,30 @@ export class Vector3 implements Vector3Like {
     }
 
     // ---- 运算（委托给静态方法） ----
-
+    addVectors(a: Vector3Like, b: Vector3Like) {
+        Vector3.add(this, a, b)
+        return this
+    }
     add(v: Vector3Like): this {
         Vector3.add(this, this, v)
         return this
     }
-
+    addScaled(v: Vector3Like, s: number) {
+        Vector3.addScaled(this, v, s)
+        return this
+    }
+    subtractVectors(a: Vector3Like, b: Vector3Like) {
+        Vector3.subtract(this, a, b)
+        return this
+    }
     subtract(v: Vector3Like): this {
         Vector3.subtract(this, this, v)
         return this
     }
-
+    multiplyVectors(a: Vector3Like, b: Vector3Like) {
+        Vector3.multiply(this, a, b)
+        return this
+    }
     multiply(v: Vector3Like): this {
         Vector3.multiply(this, this, v)
         return this
@@ -357,7 +376,10 @@ export class Vector3 implements Vector3Like {
         Vector3.max(this, this, v)
         return this
     }
-
+    crossVectors(a: Vector3Like, b: Vector3Like) {
+        Vector3.cross(this, a, b)
+        return this
+    }
     cross(v: Vector3Like): this {
         Vector3.cross(this, this, v)
         return this
@@ -406,6 +428,47 @@ export class Vector3 implements Vector3Like {
 
     distanceSquaredTo(v: Vector3Like): number {
         return Vector3.distanceSquared(this, v)
+    }
+    transformDirection(m: Matrix4Like): this {
+        const x = this.x;
+        const y = this.y;
+        const z = this.z;
+        const e = m;
+        this.x = e[0]! * x + e[4]! * y + e[8]! * z;
+        this.y = e[1]! * x + e[5]! * y + e[9]! * z;
+        this.z = e[2]! * x + e[6]! * y + e[10]! * z;
+        return this.normalize();
+    }
+
+    applyQuat(q: Readonly<Quaternion>): this {
+        const x = this.x;
+        const y = this.y;
+        const z = this.z;
+        const qx = q.x;
+        const qy = q.y;
+        const qz = q.z;
+        const qw = q.w;
+        const ix = qw * x + qy * z - qz * y;
+        const iy = qw * y + qz * x - qx * z;
+        const iz = qw * z + qx * y - qy * x;
+        const iw = -qx * x - qy * y - qz * z;
+        this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+        this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+        this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+        return this;
+    }
+    applyAxisAngle(axis: Readonly<Vector3Like>, radians: number): this {
+        const c = Math.cos(radians);
+        const s = Math.sin(radians);
+        const { x, y, z } = this;
+        const ax = axis.x;
+        const ay = axis.y;
+        const az = axis.z;
+        const dot = ax * x + ay * y + az * z;
+        this.x = x * c + (ay * z - az * y) * s + ax * dot * (1 - c);
+        this.y = y * c + (az * x - ax * z) * s + ay * dot * (1 - c);
+        this.z = z * c + (ax * y - ay * x) * s + az * dot * (1 - c);
+        return this;
     }
 
     equals(v: Vector3Like): boolean {
