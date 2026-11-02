@@ -96,9 +96,6 @@ export type {PluginContext as PluginServiceContext,IPlugin as PluginServicePlugi
 export * from './animation'
 export * from './tapable'
 
-// renderer2d
-export * as renderer2d  from './renderer2d'
-
 
 
 //pre-text

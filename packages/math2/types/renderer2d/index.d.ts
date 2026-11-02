@@ -1,5 +1,0 @@
-export * from './Paint';
-export * from './Renderer2D';
-export * from './CanvasRenderer';
-export * from './WebGL2Renderer';
-export * from './WebGPURenderer';

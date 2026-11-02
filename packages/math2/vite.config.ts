@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
           ? { exports: 'named' }
           : {
             // 保留模块结构，一个源文件对应一个产物文件
-            preserveModules: true,
+            preserveModules: false,
             preserveModulesRoot: 'src',
             entryFileNames: '[name].js',
             chunkFileNames: '[name].js',

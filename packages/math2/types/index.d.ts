@@ -84,7 +84,6 @@ export { PluginService } from './PluginService';
 export type { PluginContext as PluginServiceContext, IPlugin as PluginServicePlugin, IPreset as PluginServicePreset } from './PluginService';
 export * from './animation';
 export * from './tapable';
-export * as renderer2d from './renderer2d';
 export * as pretext from './pretext';
 export * as fastJsonPatch from './utils/fast-json-patch/core';
 export * from './utils/StateMachine';

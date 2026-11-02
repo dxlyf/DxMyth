@@ -1,0 +1,67 @@
+{
+  "name": "@dxyl/backend",
+  "version": "0.0.0",
+  "description": "WebGL 1 / WebGL 2 / WebGPU 三个图形 API 的 TypeScript 高级封装库",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "dev": "pnpm --filter @dxyl/backend-examples dev",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./webgl": {
+      "types": "./dist/backends/webgl/index.d.ts",
+      "import": "./dist/backends/webgl/index.js"
+    },
+    "./webgl2": {
+      "types": "./dist/backends/webgl2/index.d.ts",
+      "import": "./dist/backends/webgl2/index.js"
+    },
+    "./webgpu": {
+      "types": "./dist/backends/webgpu/index.d.ts",
+      "import": "./dist/backends/webgpu/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@vitest/browser": "^5.0.5",
+    "@webgpu/types": "^0.1.74",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vite-plugin-dts": "^5.1.2",
+    "vitest": "^5.0.5"
+  }
+}
